@@ -9,6 +9,7 @@ from metadrive.policy.replay_policy import ReplayEgoCarPolicy
 
 
 class DemoScenarioEnv(ScenarioEnv):
+
     def reset(self, seed=None):
         if self.engine is not None:
             seeds = [i for i in range(self.config["num_scenarios"])]
@@ -20,18 +21,24 @@ class DemoScenarioEnv(ScenarioEnv):
 def test_top_down_semantics(render=False):
     asset_path = AssetLoader.asset_path
     try:
-        env = DemoScenarioEnv(
-            {
-                "manual_control": False,
-                "reactive_traffic": False,
-                "no_light": True,
-                "agent_policy": ReplayEgoCarPolicy,
-                "use_render": False,
-                "sequential_seed": True,
-                "data_directory": AssetLoader.file_path(asset_path, "nuscenes", unix_style=False),
-                "num_scenarios": 10
-            }
-        )
+        env = DemoScenarioEnv({
+            "manual_control":
+                False,
+            "reactive_traffic":
+                False,
+            "no_light":
+                True,
+            "agent_policy":
+                ReplayEgoCarPolicy,
+            "use_render":
+                False,
+            "sequential_seed":
+                True,
+            "data_directory":
+                AssetLoader.file_path(asset_path, "nuscenes", unix_style=False),
+            "num_scenarios":
+                10
+        })
         o, _ = env.reset()
         for seed in range(100):
             env.reset(seed=seed)

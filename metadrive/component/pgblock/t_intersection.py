@@ -37,13 +37,16 @@ class TInterSection(InterSection):
             last_positive = last_part_socket.negative_road
             last_negative = last_part_socket.positive_road
 
-        for i, road in enumerate([Road(last_negative.end_node, next_positive.start_node),
-                                  Road(next_negative.end_node, last_positive.start_node)]):
+        for i, road in enumerate([
+                Road(last_negative.end_node, next_positive.start_node),
+                Road(next_negative.end_node, last_positive.start_node)
+        ]):
             lanes = road.get_lanes(self.block_network)
             outside_type = PGLineType.SIDE if i == 0 else PGLineType.NONE
             for k, lane in enumerate(lanes):
-                line_types = [PGLineType.NONE, PGLineType.NONE
-                              ] if k != len(lanes) - 1 else [PGLineType.NONE, outside_type]
+                line_types = [
+                    PGLineType.NONE, PGLineType.NONE
+                ] if k != len(lanes) - 1 else [PGLineType.NONE, outside_type]
                 lane.line_types = line_types
                 if k == 0:
                     lane.line_colors = [PGLineColor.YELLOW, PGLineColor.GREY]
@@ -55,18 +58,25 @@ class TInterSection(InterSection):
         t_type = para[Parameter.t_intersection_type]
         self.add_sockets(self.pre_block_socket)
 
-        start_node = self._sockets[PGBlockSocket.get_real_index(self.name, t_type)].negative_road.end_node
-        end_node = self._sockets[PGBlockSocket.get_real_index(self.name, t_type)].positive_road.start_node
+        start_node = self._sockets[PGBlockSocket.get_real_index(
+            self.name, t_type)].negative_road.end_node
+        end_node = self._sockets[PGBlockSocket.get_real_index(
+            self.name, t_type)].positive_road.start_node
         for i in range(4):
             if i == t_type:
                 continue
-            index_i = PGBlockSocket.get_real_index(self.name, i) if i < 3 else self.pre_block_socket_index
-            exit_node = self._sockets[index_i].positive_road.start_node if i != Goal.ADVERSE else self._sockets[
-                index_i].negative_road.start_node
-            pos_lanes = self.block_network.remove_all_roads(start_node, exit_node)
-            entry_node = self._sockets[index_i].negative_road.end_node if i != Goal.ADVERSE else self._sockets[
-                index_i].positive_road.end_node
-            neg_lanes = self.block_network.remove_all_roads(entry_node, end_node)
+            index_i = PGBlockSocket.get_real_index(
+                self.name, i) if i < 3 else self.pre_block_socket_index
+            exit_node = self._sockets[
+                index_i].positive_road.start_node if i != Goal.ADVERSE else self._sockets[
+                    index_i].negative_road.start_node
+            pos_lanes = self.block_network.remove_all_roads(
+                start_node, exit_node)
+            entry_node = self._sockets[
+                index_i].negative_road.end_node if i != Goal.ADVERSE else self._sockets[
+                    index_i].positive_road.end_node
+            neg_lanes = self.block_network.remove_all_roads(
+                entry_node, end_node)
 
             # if (i + 2) % 4 == t_type:
             #     # for vis only, solve a bug existing in a corner case,
@@ -80,13 +90,17 @@ class TInterSection(InterSection):
 
         self._change_vis(t_type)
         self._sockets.pop(self.pre_block_socket.index)
-        socket = self._sockets.pop(PGBlockSocket.get_real_index(self.name, t_type))
-        self.block_network.remove_all_roads(socket.positive_road.start_node, socket.positive_road.end_node)
-        self.block_network.remove_all_roads(socket.negative_road.start_node, socket.negative_road.end_node)
+        socket = self._sockets.pop(
+            PGBlockSocket.get_real_index(self.name, t_type))
+        self.block_network.remove_all_roads(socket.positive_road.start_node,
+                                            socket.positive_road.end_node)
+        self.block_network.remove_all_roads(socket.negative_road.start_node,
+                                            socket.negative_road.end_node)
         self._respawn_roads.remove(socket.negative_road)
 
     def _add_one_socket(self, socket: PGBlockSocket):
-        assert isinstance(socket, PGBlockSocket), "Socket list only accept BlockSocket Type"
+        assert isinstance(
+            socket, PGBlockSocket), "Socket list only accept BlockSocket Type"
 
         # mute warning in T interection
 

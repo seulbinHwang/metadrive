@@ -53,7 +53,8 @@ class ScatteringEnvmapStage(RenderStage):
         self.target_cube = self.create_target("ComputeScattering")
         self.target_cube.size = self.cubemap_filter.size * 6, self.cubemap_filter.size
         self.target_cube.prepare_buffer()
-        self.target_cube.set_shader_input("DestCubemap", self.cubemap_filter.target_cubemap)
+        self.target_cube.set_shader_input("DestCubemap",
+                                          self.cubemap_filter.target_cubemap)
 
         self.cubemap_filter.create()
 
@@ -63,5 +64,6 @@ class ScatteringEnvmapStage(RenderStage):
             stage.required_pipes.append("ScatteringIBLSpecular")
 
     def reload_shaders(self):
-        self.target_cube.shader = self.load_plugin_shader("scattering_envmap.frag.glsl")
+        self.target_cube.shader = self.load_plugin_shader(
+            "scattering_envmap.frag.glsl")
         self.cubemap_filter.reload_shaders()

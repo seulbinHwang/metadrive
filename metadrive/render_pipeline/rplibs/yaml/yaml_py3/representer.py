@@ -1,4 +1,6 @@
-__all__ = ['BaseRepresenter', 'SafeRepresenter', 'Representer', 'RepresenterError']
+__all__ = [
+    'BaseRepresenter', 'SafeRepresenter', 'Representer', 'RepresenterError'
+]
 
 from .error import *
 from .nodes import *
@@ -116,7 +118,8 @@ class BaseRepresenter:
             node_value = self.represent_data(item_value)
             if not (isinstance(node_key, ScalarNode) and not node_key.style):
                 best_style = False
-            if not (isinstance(node_value, ScalarNode) and not node_value.style):
+            if not (isinstance(node_value, ScalarNode) and
+                    not node_value.style):
                 best_style = False
             value.append((node_key, node_value))
         if flow_style is None:
@@ -131,6 +134,7 @@ class BaseRepresenter:
 
 
 class SafeRepresenter(BaseRepresenter):
+
     def ignore_aliases(self, data):
         if data in [None, ()]:
             return True
@@ -148,7 +152,9 @@ class SafeRepresenter(BaseRepresenter):
             data = base64.encodebytes(data).decode('ascii')
         else:
             data = base64.encodestring(data).decode('ascii')
-        return self.represent_scalar('tag:yaml.org,2002:binary', data, style='|')
+        return self.represent_scalar('tag:yaml.org,2002:binary',
+                                     data,
+                                     style='|')
 
     def represent_bool(self, data):
         if data:
@@ -250,12 +256,14 @@ SafeRepresenter.add_representer(set, SafeRepresenter.represent_set)
 
 SafeRepresenter.add_representer(datetime.date, SafeRepresenter.represent_date)
 
-SafeRepresenter.add_representer(datetime.datetime, SafeRepresenter.represent_datetime)
+SafeRepresenter.add_representer(datetime.datetime,
+                                SafeRepresenter.represent_datetime)
 
 SafeRepresenter.add_representer(None, SafeRepresenter.represent_undefined)
 
 
 class Representer(SafeRepresenter):
+
     def represent_complex(self, data):
         if data.imag == 0.0:
             data = '%r' % data.real
@@ -272,10 +280,12 @@ class Representer(SafeRepresenter):
 
     def represent_name(self, data):
         name = '%s.%s' % (data.__module__, data.__name__)
-        return self.represent_scalar('tag:yaml.org,2002:python/name:' + name, '')
+        return self.represent_scalar('tag:yaml.org,2002:python/name:' + name,
+                                     '')
 
     def represent_module(self, data):
-        return self.represent_scalar('tag:yaml.org,2002:python/module:' + data.__name__, '')
+        return self.represent_scalar(
+            'tag:yaml.org,2002:python/module:' + data.__name__, '')
 
     def represent_object(self, data):
         # We use __reduce__ API to save the data. data.__reduce__ returns
@@ -323,7 +333,8 @@ class Representer(SafeRepresenter):
         function_name = '%s.%s' % (function.__module__, function.__name__)
         if not args and not listitems and not dictitems \
                 and isinstance(state, dict) and newobj:
-            return self.represent_mapping('tag:yaml.org,2002:python/object:' + function_name, state)
+            return self.represent_mapping(
+                'tag:yaml.org,2002:python/object:' + function_name, state)
         if not listitems and not dictitems  \
                 and isinstance(state, dict) and not state:
             return self.represent_sequence(tag + function_name, args)
@@ -347,7 +358,8 @@ Representer.add_representer(type, Representer.represent_name)
 
 Representer.add_representer(types.FunctionType, Representer.represent_name)
 
-Representer.add_representer(types.BuiltinFunctionType, Representer.represent_name)
+Representer.add_representer(types.BuiltinFunctionType,
+                            Representer.represent_name)
 
 Representer.add_representer(types.ModuleType, Representer.represent_module)
 

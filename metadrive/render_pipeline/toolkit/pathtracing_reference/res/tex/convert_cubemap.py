@@ -5,6 +5,7 @@ Converts the cubemap to a spherical one
 from __future__ import division, print_function
 
 from panda3d.core import *  # noqa
+
 load_prc_file_data("", "textures-power-2 none")
 
 import direct.directbase.DirectStart  # noqa
@@ -47,8 +48,7 @@ void main() {
     vec4 color = texture(SourceTex, v);
     imageStore(DestTex, coord, vec4(color));
 }
-"""
-)
+""")
 
 dest_tex = Texture("")
 dest_tex.setup_2d_texture(w, h, Texture.T_float, Texture.F_rgba16)

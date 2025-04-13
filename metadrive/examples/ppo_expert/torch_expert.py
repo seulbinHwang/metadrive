@@ -48,12 +48,20 @@ def torch_expert(vehicle, deterministic=False, need_obs=False):
     """
     global _expert_weights
     global _expert_observation
-    expert_obs_cfg = dict(
-        lidar=dict(num_lasers=240, distance=50, num_others=4, gaussian_noise=0.0, dropout_prob=0.0),
-        side_detector=dict(num_lasers=0, distance=50, gaussian_noise=0.0, dropout_prob=0.0),
-        lane_line_detector=dict(num_lasers=0, distance=20, gaussian_noise=0.0, dropout_prob=0.0),
-        random_agent_model=False
-    )
+    expert_obs_cfg = dict(lidar=dict(num_lasers=240,
+                                     distance=50,
+                                     num_others=4,
+                                     gaussian_noise=0.0,
+                                     dropout_prob=0.0),
+                          side_detector=dict(num_lasers=0,
+                                             distance=50,
+                                             gaussian_noise=0.0,
+                                             dropout_prob=0.0),
+                          lane_line_detector=dict(num_lasers=0,
+                                                  distance=20,
+                                                  gaussian_noise=0.0,
+                                                  dropout_prob=0.0),
+                          random_agent_model=False)
     origin_obs_cfg = vehicle.config.copy()
     # TODO: some setting in origin cfg will not be covered, then they may change the obs shape
     with torch.no_grad():  # Disable gradient computation
@@ -62,27 +70,34 @@ def torch_expert(vehicle, deterministic=False, need_obs=False):
             config = get_global_config().copy()
             config["vehicle_config"].update(expert_obs_cfg)
             _expert_observation = LidarStateObservation(config)
-            assert _expert_observation.observation_space.shape[0] == 275, "Observation not match"
+            assert _expert_observation.observation_space.shape[
+                0] == 275, "Observation not match"
             logger.info("Use Torch PPO expert.")
 
         vehicle.config.update(expert_obs_cfg)
         obs = _expert_observation.observe(vehicle)
         vehicle.config.update(origin_obs_cfg)
         obs = obs_correction(obs)
-        obs = torch.from_numpy(obs).float().unsqueeze(0).to(device)  # Convert to tensor and move to device
+        obs = torch.from_numpy(obs).float().unsqueeze(0).to(
+            device)  # Convert to tensor and move to device
         weights = _expert_weights
-        x = torch.matmul(obs, weights["default_policy/fc_1/kernel"]) + weights["default_policy/fc_1/bias"]
+        x = torch.matmul(obs, weights["default_policy/fc_1/kernel"]
+                        ) + weights["default_policy/fc_1/bias"]
         x = torch.tanh(x)
-        x = torch.matmul(x, weights["default_policy/fc_2/kernel"]) + weights["default_policy/fc_2/bias"]
+        x = torch.matmul(x, weights["default_policy/fc_2/kernel"]
+                        ) + weights["default_policy/fc_2/bias"]
         x = torch.tanh(x)
-        x = torch.matmul(x, weights["default_policy/fc_out/kernel"]) + weights["default_policy/fc_out/bias"]
+        x = torch.matmul(x, weights["default_policy/fc_out/kernel"]
+                        ) + weights["default_policy/fc_out/bias"]
         x = x.squeeze(0).cpu()  # Move back to CPU and remove batch dimension
         mean, log_std = torch.split(x, 2, dim=-1)
         if deterministic:
-            return (mean.numpy(), obs.cpu().numpy()) if need_obs else mean.numpy()
+            return (mean.numpy(),
+                    obs.cpu().numpy()) if need_obs else mean.numpy()
         std = torch.exp(log_std)
         action = torch.normal(mean, std).cpu()  # Move back to CPU
-        return (action.numpy(), obs.cpu().numpy()) if need_obs else action.numpy()
+        return (action.numpy(),
+                obs.cpu().numpy()) if need_obs else action.numpy()
 
 
 def torch_value(obs, weights):
@@ -95,11 +110,16 @@ def torch_value(obs, weights):
         value: value predicted by critic
     """
     with torch.no_grad():  # Disable gradient computation
-        obs = torch.from_numpy(obs).float().unsqueeze(0).to(device)  # Convert to tensor and move to device
+        obs = torch.from_numpy(obs).float().unsqueeze(0).to(
+            device)  # Convert to tensor and move to device
         weights = _expert_weights
-        x = torch.matmul(obs, weights["default_policy/fc_value_1/kernel"]) + weights["default_policy/fc_value_1/bias"]
+        x = torch.matmul(obs, weights["default_policy/fc_value_1/kernel"]
+                        ) + weights["default_policy/fc_value_1/bias"]
         x = torch.tanh(x)
-        x = torch.matmul(x, weights["default_policy/fc_value_2/kernel"]) + weights["default_policy/fc_value_2/bias"]
+        x = torch.matmul(x, weights["default_policy/fc_value_2/kernel"]
+                        ) + weights["default_policy/fc_value_2/bias"]
         x = torch.tanh(x)
-        x = torch.matmul(x, weights["default_policy/value_out/kernel"]) + weights["default_policy/value_out/bias"]
-        return x.squeeze(0).cpu().numpy()  # Move back to CPU and remove batch dimension
+        x = torch.matmul(x, weights["default_policy/value_out/kernel"]
+                        ) + weights["default_policy/value_out/bias"]
+        return x.squeeze(
+            0).cpu().numpy()  # Move back to CPU and remove batch dimension

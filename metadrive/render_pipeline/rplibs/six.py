@@ -57,6 +57,7 @@ else:
     else:
         # It's possible to have sizeof(long) != sizeof(Py_ssize_t).
         class X(object):
+
             def __len__(self):
                 return 1 << 31
 
@@ -83,6 +84,7 @@ def _import_module(name):
 
 
 class _LazyDescr(object):
+
     def __init__(self, name):
         self.name = name
 
@@ -99,6 +101,7 @@ class _LazyDescr(object):
 
 
 class MovedModule(_LazyDescr):
+
     def __init__(self, name, old, new=None):
         super(MovedModule, self).__init__(name)
         if PY3:
@@ -119,6 +122,7 @@ class MovedModule(_LazyDescr):
 
 
 class _LazyModule(types.ModuleType):
+
     def __init__(self, name):
         super(_LazyModule, self).__init__(name)
         self.__doc__ = self.__class__.__doc__
@@ -133,6 +137,7 @@ class _LazyModule(types.ModuleType):
 
 
 class MovedAttribute(_LazyDescr):
+
     def __init__(self, name, old_mod, new_mod, old_attr=None, new_attr=None):
         super(MovedAttribute, self).__init__(name)
         if PY3:
@@ -163,6 +168,7 @@ class _SixMetaPathImporter(object):
     This class implements a PEP302 finder and loader. It should be compatible
     with Python 2.5 and all existing versions of Python3
     """
+
     def __init__(self, six_module_name):
         self.name = six_module_name
         self.known_modules = {}
@@ -229,14 +235,16 @@ class _MovedItems(_LazyModule):
 _moved_attributes = [
     MovedAttribute("cStringIO", "cStringIO", "io", "StringIO"),
     MovedAttribute("filter", "itertools", "builtins", "ifilter", "filter"),
-    MovedAttribute("filterfalse", "itertools", "itertools", "ifilterfalse", "filterfalse"),
+    MovedAttribute("filterfalse", "itertools", "itertools", "ifilterfalse",
+                   "filterfalse"),
     MovedAttribute("input", "__builtin__", "builtins", "raw_input", "input"),
     MovedAttribute("intern", "__builtin__", "sys"),
     MovedAttribute("map", "itertools", "builtins", "imap", "map"),
     MovedAttribute("getcwd", "os", "os", "getcwdu", "getcwd"),
     MovedAttribute("getcwdb", "os", "os", "getcwd", "getcwdb"),
     MovedAttribute("range", "__builtin__", "builtins", "xrange", "range"),
-    MovedAttribute("reload_module", "__builtin__", "importlib" if PY34 else "imp", "reload"),
+    MovedAttribute("reload_module", "__builtin__",
+                   "importlib" if PY34 else "imp", "reload"),
     MovedAttribute("reduce", "__builtin__", "functools"),
     MovedAttribute("shlex_quote", "pipes", "shlex", "quote"),
     MovedAttribute("StringIO", "StringIO", "io"),
@@ -245,7 +253,8 @@ _moved_attributes = [
     MovedAttribute("UserString", "UserString", "collections"),
     MovedAttribute("xrange", "__builtin__", "builtins", "xrange", "range"),
     MovedAttribute("zip", "itertools", "builtins", "izip", "zip"),
-    MovedAttribute("zip_longest", "itertools", "itertools", "izip_longest", "zip_longest"),
+    MovedAttribute("zip_longest", "itertools", "itertools", "izip_longest",
+                   "zip_longest"),
     MovedModule("builtins", "__builtin__"),
     MovedModule("configparser", "ConfigParser"),
     MovedModule("copyreg", "copy_reg"),
@@ -256,8 +265,10 @@ _moved_attributes = [
     MovedModule("html_entities", "htmlentitydefs", "html.entities"),
     MovedModule("html_parser", "HTMLParser", "html.parser"),
     MovedModule("http_client", "httplib", "http.client"),
-    MovedModule("email_mime_multipart", "email.MIMEMultipart", "email.mime.multipart"),
-    MovedModule("email_mime_nonmultipart", "email.MIMENonMultipart", "email.mime.nonmultipart"),
+    MovedModule("email_mime_multipart", "email.MIMEMultipart",
+                "email.mime.multipart"),
+    MovedModule("email_mime_nonmultipart", "email.MIMENonMultipart",
+                "email.mime.nonmultipart"),
     MovedModule("email_mime_text", "email.MIMEText", "email.mime.text"),
     MovedModule("email_mime_base", "email.MIMEBase", "email.mime.base"),
     MovedModule("BaseHTTPServer", "BaseHTTPServer", "http.server"),
@@ -277,15 +288,21 @@ _moved_attributes = [
     MovedModule("tkinter_ttk", "ttk", "tkinter.ttk"),
     MovedModule("tkinter_constants", "Tkconstants", "tkinter.constants"),
     MovedModule("tkinter_dnd", "Tkdnd", "tkinter.dnd"),
-    MovedModule("tkinter_colorchooser", "tkColorChooser", "tkinter.colorchooser"),
-    MovedModule("tkinter_commondialog", "tkCommonDialog", "tkinter.commondialog"),
+    MovedModule("tkinter_colorchooser", "tkColorChooser",
+                "tkinter.colorchooser"),
+    MovedModule("tkinter_commondialog", "tkCommonDialog",
+                "tkinter.commondialog"),
     MovedModule("tkinter_tkfiledialog", "tkFileDialog", "tkinter.filedialog"),
     MovedModule("tkinter_font", "tkFont", "tkinter.font"),
     MovedModule("tkinter_messagebox", "tkMessageBox", "tkinter.messagebox"),
-    MovedModule("tkinter_tksimpledialog", "tkSimpleDialog", "tkinter.simpledialog"),
-    MovedModule("urllib_parse", __name__ + ".moves.urllib_parse", "urllib.parse"),
-    MovedModule("urllib_error", __name__ + ".moves.urllib_error", "urllib.error"),
-    MovedModule("urllib", __name__ + ".moves.urllib", __name__ + ".moves.urllib"),
+    MovedModule("tkinter_tksimpledialog", "tkSimpleDialog",
+                "tkinter.simpledialog"),
+    MovedModule("urllib_parse", __name__ + ".moves.urllib_parse",
+                "urllib.parse"),
+    MovedModule("urllib_error", __name__ + ".moves.urllib_error",
+                "urllib.error"),
+    MovedModule("urllib", __name__ + ".moves.urllib",
+                __name__ + ".moves.urllib"),
     MovedModule("urllib_robotparser", "robotparser", "urllib.robotparser"),
     MovedModule("xmlrpc_client", "xmlrpclib", "xmlrpc.client"),
     MovedModule("xmlrpc_server", "SimpleXMLRPCServer", "xmlrpc.server"),
@@ -344,8 +361,8 @@ del attr
 Module_six_moves_urllib_parse._moved_attributes = _urllib_parse_moved_attributes
 
 _importer._add_module(
-    Module_six_moves_urllib_parse(__name__ + ".moves.urllib_parse"), "moves.urllib_parse", "moves.urllib.parse"
-)
+    Module_six_moves_urllib_parse(__name__ + ".moves.urllib_parse"),
+    "moves.urllib_parse", "moves.urllib.parse")
 
 
 class Module_six_moves_urllib_error(_LazyModule):
@@ -364,8 +381,8 @@ del attr
 Module_six_moves_urllib_error._moved_attributes = _urllib_error_moved_attributes
 
 _importer._add_module(
-    Module_six_moves_urllib_error(__name__ + ".moves.urllib.error"), "moves.urllib_error", "moves.urllib.error"
-)
+    Module_six_moves_urllib_error(__name__ + ".moves.urllib.error"),
+    "moves.urllib_error", "moves.urllib.error")
 
 
 class Module_six_moves_urllib_request(_LazyModule):
@@ -387,7 +404,8 @@ _urllib_request_moved_attributes = [
     MovedAttribute("ProxyHandler", "urllib2", "urllib.request"),
     MovedAttribute("BaseHandler", "urllib2", "urllib.request"),
     MovedAttribute("HTTPPasswordMgr", "urllib2", "urllib.request"),
-    MovedAttribute("HTTPPasswordMgrWithDefaultRealm", "urllib2", "urllib.request"),
+    MovedAttribute("HTTPPasswordMgrWithDefaultRealm", "urllib2",
+                   "urllib.request"),
     MovedAttribute("AbstractBasicAuthHandler", "urllib2", "urllib.request"),
     MovedAttribute("HTTPBasicAuthHandler", "urllib2", "urllib.request"),
     MovedAttribute("ProxyBasicAuthHandler", "urllib2", "urllib.request"),
@@ -414,8 +432,8 @@ del attr
 Module_six_moves_urllib_request._moved_attributes = _urllib_request_moved_attributes
 
 _importer._add_module(
-    Module_six_moves_urllib_request(__name__ + ".moves.urllib.request"), "moves.urllib_request", "moves.urllib.request"
-)
+    Module_six_moves_urllib_request(__name__ + ".moves.urllib.request"),
+    "moves.urllib_request", "moves.urllib.request")
 
 
 class Module_six_moves_urllib_response(_LazyModule):
@@ -435,9 +453,8 @@ del attr
 Module_six_moves_urllib_response._moved_attributes = _urllib_response_moved_attributes
 
 _importer._add_module(
-    Module_six_moves_urllib_response(__name__ + ".moves.urllib.response"), "moves.urllib_response",
-    "moves.urllib.response"
-)
+    Module_six_moves_urllib_response(__name__ + ".moves.urllib.response"),
+    "moves.urllib_response", "moves.urllib.response")
 
 
 class Module_six_moves_urllib_robotparser(_LazyModule):
@@ -454,9 +471,8 @@ del attr
 Module_six_moves_urllib_robotparser._moved_attributes = _urllib_robotparser_moved_attributes
 
 _importer._add_module(
-    Module_six_moves_urllib_robotparser(__name__ + ".moves.urllib.robotparser"), "moves.urllib_robotparser",
-    "moves.urllib.robotparser"
-)
+    Module_six_moves_urllib_robotparser(__name__ + ".moves.urllib.robotparser"),
+    "moves.urllib_robotparser", "moves.urllib.robotparser")
 
 
 class Module_six_moves_urllib(types.ModuleType):
@@ -472,7 +488,8 @@ class Module_six_moves_urllib(types.ModuleType):
         return ['parse', 'error', 'request', 'response', 'robotparser']
 
 
-_importer._add_module(Module_six_moves_urllib(__name__ + ".moves.urllib"), "moves.urllib")
+_importer._add_module(Module_six_moves_urllib(__name__ + ".moves.urllib"),
+                      "moves.urllib")
 
 
 def add_move(move):
@@ -488,7 +505,7 @@ def remove_move(name):
         try:
             del moves.__dict__[name]
         except KeyError:
-            raise AttributeError("no such move, %r" % (name, ))
+            raise AttributeError("no such move, %r" % (name,))
 
 
 if PY3:
@@ -549,11 +566,13 @@ else:
         return types.MethodType(func, None, cls)
 
     class Iterator(object):
+
         def next(self):
             return type(self).__next__(self)
 
     callable = callable
-_add_doc(get_unbound_function, """Get the function out of a possibly unbound function""")
+_add_doc(get_unbound_function,
+         """Get the function out of a possibly unbound function""")
 
 get_method_function = operator.attrgetter(_meth_func)
 get_method_self = operator.attrgetter(_meth_self)
@@ -603,8 +622,10 @@ else:
 
 _add_doc(iterkeys, "Return an iterator over the keys of a dictionary.")
 _add_doc(itervalues, "Return an iterator over the values of a dictionary.")
-_add_doc(iteritems, "Return an iterator over the (key, value) pairs of a dictionary.")
-_add_doc(iterlists, "Return an iterator over the (key, [values]) pairs of a dictionary.")
+_add_doc(iteritems,
+         "Return an iterator over the (key, value) pairs of a dictionary.")
+_add_doc(iterlists,
+         "Return an iterator over the (key, [values]) pairs of a dictionary.")
 
 if PY3:
 
@@ -701,13 +722,11 @@ else:
 """)
 
 if sys.version_info[:2] == (3, 2):
-    exec_(
-        """def raise_from(value, from_value):
+    exec_("""def raise_from(value, from_value):
     if from_value is None:
         raise value
     raise value from from_value
-"""
-    )
+""")
 elif sys.version_info[:2] > (3, 2):
     exec_("""def raise_from(value, from_value):
     raise value from from_value
@@ -731,7 +750,8 @@ if print_ is None:
             if not isinstance(data, basestring):
                 data = str(data)
             # If the file has an encoding, encode unicode with it.
-            if (isinstance(fp, file) and isinstance(data, unicode) and fp.encoding is not None):
+            if (isinstance(fp, file) and isinstance(data, unicode) and
+                    fp.encoding is not None):
                 errors = getattr(fp, "errors", None)
                 if errors is None:
                     errors = "strict"
@@ -790,7 +810,10 @@ _add_doc(reraise, """Reraise an exception.""")
 
 if sys.version_info[0:2] < (3, 4):
 
-    def wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS, updated=functools.WRAPPER_UPDATES):
+    def wraps(wrapped,
+              assigned=functools.WRAPPER_ASSIGNMENTS,
+              updated=functools.WRAPPER_UPDATES):
+
         def wrapper(f):
             f = functools.wraps(wrapped, assigned, updated)(f)
             f.__wrapped__ = wrapped
@@ -808,6 +831,7 @@ def with_metaclass(meta, *bases):
     # metaclass for one level of class instantiation that replaces itself with
     # the actual metaclass.
     class metaclass(meta):
+
         def __new__(cls, name, this_bases, d):
             return meta(name, bases, d)
 
@@ -816,6 +840,7 @@ def with_metaclass(meta, *bases):
 
 def add_metaclass(metaclass):
     """Class decorator for creating a class with a metaclass."""
+
     def wrapper(cls):
         orig_vars = cls.__dict__.copy()
         slots = orig_vars.get('__slots__')
@@ -841,10 +866,9 @@ def python_2_unicode_compatible(klass):
     """
     if PY2:
         if '__str__' not in klass.__dict__:
-            raise ValueError(
-                "@python_2_unicode_compatible cannot be applied "
-                "to %s because it doesn't define __str__()." % klass.__name__
-            )
+            raise ValueError("@python_2_unicode_compatible cannot be applied "
+                             "to %s because it doesn't define __str__()." %
+                             klass.__name__)
         klass.__unicode__ = klass.__str__
         klass.__str__ = lambda self: self.__unicode__().encode('utf-8')
     return klass
@@ -866,7 +890,8 @@ if sys.meta_path:
         # be floating around. Therefore, we can't use isinstance() to check for
         # the six meta path importer, since the other six instance will have
         # inserted an importer with different class.
-        if (type(importer).__name__ == "_SixMetaPathImporter" and importer.name == __name__):
+        if (type(importer).__name__ == "_SixMetaPathImporter" and
+                importer.name == __name__):
             del sys.meta_path[i]
             break
     del i, importer

@@ -21,10 +21,8 @@ import OpenGL.GL.shaders
 
 
 def format_cudart_err(err):
-    return (
-        f"{cudart.cudaGetErrorName(err)[1].decode('utf-8')}({int(err)}): "
-        f"{cudart.cudaGetErrorString(err)[1].decode('utf-8')}"
-    )
+    return (f"{cudart.cudaGetErrorName(err)[1].decode('utf-8')}({int(err)}): "
+            f"{cudart.cudaGetErrorString(err)[1].decode('utf-8')}")
 
 
 def check_cudart_err(args):
@@ -49,6 +47,7 @@ def check_cudart_err(args):
 
 
 class CudaOpenGLMappedBuffer:
+
     def __init__(self, gl_buffer, flags=0):
         self._gl_buffer = int(gl_buffer)
         self._flags = int(flags)
@@ -93,14 +92,16 @@ class CudaOpenGLMappedBuffer:
     def register(self):
         if self.registered:
             return self._graphics_ressource
-        self._graphics_ressource = check_cudart_err(cudart.cudaGraphicsGLRegisterBuffer(self._gl_buffer, self._flags))
+        self._graphics_ressource = check_cudart_err(
+            cudart.cudaGraphicsGLRegisterBuffer(self._gl_buffer, self._flags))
         return self._graphics_ressource
 
     def unregister(self):
         if not self.registered:
             return self
         self.unmap()
-        self._graphics_ressource = check_cudart_err(cudart.cudaGraphicsUnregisterResource(self._graphics_ressource))
+        self._graphics_ressource = check_cudart_err(
+            cudart.cudaGraphicsUnregisterResource(self._graphics_ressource))
         return self
 
     def map(self, stream=None):
@@ -109,11 +110,16 @@ class CudaOpenGLMappedBuffer:
         if self.mapped:
             return self._cuda_buffer
 
-        check_cudart_err(cudart.cudaGraphicsMapResources(1, self._graphics_ressource, stream))
+        check_cudart_err(
+            cudart.cudaGraphicsMapResources(1, self._graphics_ressource,
+                                            stream))
 
-        ptr, size = check_cudart_err(cudart.cudaGraphicsResourceGetMappedPointer(self._graphics_ressource))
+        ptr, size = check_cudart_err(
+            cudart.cudaGraphicsResourceGetMappedPointer(
+                self._graphics_ressource))
 
-        self._cuda_buffer = cp.cuda.MemoryPointer(cp.cuda.UnownedMemory(ptr, size, self), 0)
+        self._cuda_buffer = cp.cuda.MemoryPointer(
+            cp.cuda.UnownedMemory(ptr, size, self), 0)
 
         return self._cuda_buffer
 
@@ -123,13 +129,22 @@ class CudaOpenGLMappedBuffer:
         if not self.mapped:
             return self
 
-        self._cuda_buffer = check_cudart_err(cudart.cudaGraphicsUnmapResources(1, self._graphics_ressource, stream))
+        self._cuda_buffer = check_cudart_err(
+            cudart.cudaGraphicsUnmapResources(1, self._graphics_ressource,
+                                              stream))
 
         return self
 
 
 class CudaOpenGLMappedArray(CudaOpenGLMappedBuffer):
-    def __init__(self, dtype, shape, gl_buffer, flags=0, strides=None, order='C'):
+
+    def __init__(self,
+                 dtype,
+                 shape,
+                 gl_buffer,
+                 flags=0,
+                 strides=None,
+                 order='C'):
         super().__init__(gl_buffer, flags)
         self._dtype = dtype
         self._shape = shape
@@ -190,7 +205,8 @@ def setup_buffers(Nx, Ny):
     EBO = glGenBuffers(1)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_bytes, None, GL_DYNAMIC_DRAW)
-    index_buffer = CudaOpenGLMappedArray(itype, (Ny - 1, Nx - 1, 2, 3), EBO, flags)
+    index_buffer = CudaOpenGLMappedArray(itype, (Ny - 1, Nx - 1, 2, 3), EBO,
+                                         flags)
 
     Ix = cp.arange(Nx - 1)[None, :]
     Iy = cp.arange(Ny - 1)[:, None]
@@ -280,7 +296,8 @@ def main():
         glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer.gl_buffer)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer.gl_buffer)
         glEnableVertexAttribArray(positionLoc)
-        glVertexAttribPointer(positionLoc, 3, GL_FLOAT, GL_FALSE, 12, ctypes.c_void_p(0))
+        glVertexAttribPointer(positionLoc, 3, GL_FLOAT, GL_FALSE, 12,
+                              ctypes.c_void_p(0))
         glDrawElements(GL_TRIANGLES, int(3 * Ntriangles), GL_UNSIGNED_INT, None)
 
         glfw.swap_buffers(window)

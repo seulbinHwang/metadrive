@@ -8,6 +8,7 @@ class DuplicateFilter(object):
     """
     For filtering specific messages
     """
+
     def __init__(self):
         self.msgs = set()
 

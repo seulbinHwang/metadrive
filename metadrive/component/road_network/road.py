@@ -23,9 +23,11 @@ class Road:
     def __neg__(self):
         sub_index = self.end_node.find(Road.NEGATIVE_DIR)
         if sub_index == -1:
-            return Road(Road.NEGATIVE_DIR + self.end_node, Road.NEGATIVE_DIR + self.start_node)
+            return Road(Road.NEGATIVE_DIR + self.end_node,
+                        Road.NEGATIVE_DIR + self.start_node)
         else:
-            return Road(self.end_node[sub_index + 1:], self.start_node[sub_index + 1:])
+            return Road(self.end_node[sub_index + 1:],
+                        self.start_node[sub_index + 1:])
 
     def is_negative_road(self):
         return False if self.end_node.find(Road.NEGATIVE_DIR) == -1 else True
@@ -40,7 +42,8 @@ class Road:
         return len(self.get_lanes(road_network))
 
     def block_ID(self):
-        search_node = self.end_node if not self.is_negative_road() else self.start_node
+        search_node = self.end_node if not self.is_negative_road(
+        ) else self.start_node
         if re.search(">", search_node) is not None:
             return ">"
         block_id = re.search("[a-zA-Z$]", search_node).group(0)

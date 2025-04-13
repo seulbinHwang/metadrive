@@ -33,19 +33,18 @@ from metadrive.render_pipeline.rpcore.rpobject import RPObject
 class Slider(RPObject):
     """ This is a simple wrapper around DirectSlider, providing a simpler
     interface """
-    def __init__(
-        self,
-        x=0,
-        y=0,
-        parent=None,
-        size=100,
-        min_value=0,
-        max_value=100,
-        value=50,
-        page_size=1,
-        callback=None,
-        extra_args=None
-    ):
+
+    def __init__(self,
+                 x=0,
+                 y=0,
+                 parent=None,
+                 size=100,
+                 min_value=0,
+                 max_value=100,
+                 value=50,
+                 page_size=1,
+                 callback=None,
+                 extra_args=None):
         """ Inits the slider """
         RPObject.__init__(self)
         if extra_args is None:

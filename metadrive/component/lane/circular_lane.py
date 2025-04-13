@@ -11,6 +11,7 @@ from metadrive.utils.math import wrap_to_pi, norm, Vector
 
 class CircularLane(PGLane):
     """A lane going in circle arc."""
+
     def __init__(
         self,
         center: Vector,
@@ -19,7 +20,8 @@ class CircularLane(PGLane):
         angle: float,
         clockwise: bool = True,
         width: float = PGLane.DEFAULT_WIDTH,
-        line_types: Tuple[PGLineType, PGLineType] = (PGLineType.BROKEN, PGLineType.BROKEN),
+        line_types: Tuple[PGLineType,
+                          PGLineType] = (PGLineType.BROKEN, PGLineType.BROKEN),
         forbidden: bool = False,
         speed_limit: float = 1000,
         priority: int = 0,
@@ -35,7 +37,8 @@ class CircularLane(PGLane):
         self.angle = angle
         # TODO(pzh): Don't do the wrap_to_pi for self.end_phase because sometime we might want to use self.end_phase
         #  - self.start_phase to get self.angle (or we probably should eliminate those use cases?)
-        self.end_phase = self.start_phase + (-self.angle if self.is_clockwise() else self.angle)
+        self.end_phase = self.start_phase + (-self.angle if self.is_clockwise()
+                                             else self.angle)
         self.direction = -1 if clockwise else 1
         self.width = width
         self.line_types = line_types
@@ -58,7 +61,8 @@ class CircularLane(PGLane):
         phi = self.direction * longitudinal / self.radius + self.start_phase
         # return self.center + (self.radius - lateral * self.direction) * np.array([math.cos(phi), math.sin(phi)])
         # return self.center + (self.radius - lateral * self.direction) * Vector((math.cos(phi), math.sin(phi)))
-        return self.center + (self.radius + lateral * self.direction) * Vector((math.cos(phi), math.sin(phi)))
+        return self.center + (self.radius + lateral * self.direction) * Vector(
+            (math.cos(phi), math.sin(phi)))
 
     def heading_theta_at(self, longitudinal: float) -> float:
         phi = self.direction * longitudinal / self.radius + self.start_phase
@@ -68,7 +72,8 @@ class CircularLane(PGLane):
     def width_at(self, longitudinal: float) -> float:
         return self.width
 
-    def local_coordinates(self, position: Tuple[float, float]) -> Tuple[float, float]:
+    def local_coordinates(self, position: Tuple[float,
+                                                float]) -> Tuple[float, float]:
         """Compute the local coordinates (longitude, lateral) of the given position in this circular lane.
 
         Args:
@@ -95,8 +100,7 @@ class CircularLane(PGLane):
                 f"Undetermined position. Relative phase of the given point to the start phase is"
                 f" {wrap_to_pi(abs_phase - start_phase)} while the phase to the end phase is "
                 f"{wrap_to_pi(abs_phase - end_phase)}. Both of them are > 180deg. "
-                f"We don't know how to compute the longitudinal in this case."
-            )
+                f"We don't know how to compute the longitudinal in this case.")
 
         # If the point is closer to the end point
         if diff_to_start_phase > diff_to_end_phase:
@@ -129,7 +133,8 @@ class CircularLane(PGLane):
             end_heading = self.heading_theta_at(self.length)
             end_dir = [math.cos(end_heading), math.sin(end_heading)]
             polygon = []
-            longs = np.arange(0, self.length + self.POLYGON_SAMPLE_RATE, self.POLYGON_SAMPLE_RATE)
+            longs = np.arange(0, self.length + self.POLYGON_SAMPLE_RATE,
+                              self.POLYGON_SAMPLE_RATE)
             for k, lateral in enumerate([+self.width / 2, -self.width / 2]):
                 if k == 1:
                     longs = longs[::-1]
@@ -142,28 +147,25 @@ class CircularLane(PGLane):
                             polygon.append([point[0], point[1]])
 
                         # extend
-                        polygon.append(
-                            [
-                                point[0] - start_dir[0] * self.POLYGON_SAMPLE_RATE,
-                                point[1] - start_dir[1] * self.POLYGON_SAMPLE_RATE
-                            ]
-                        )
+                        polygon.append([
+                            point[0] - start_dir[0] * self.POLYGON_SAMPLE_RATE,
+                            point[1] - start_dir[1] * self.POLYGON_SAMPLE_RATE
+                        ])
 
                         if k == 0:
                             # first point
                             polygon.append([point[0], point[1]])
-                    elif (t == 0 and k == 1) or (t == len(longs) - 1 and k == 0):
+                    elif (t == 0 and k == 1) or (t == len(longs) - 1 and
+                                                 k == 0):
 
                         if k == 0:
                             # second point
                             polygon.append([point[0], point[1]])
 
-                        polygon.append(
-                            [
-                                point[0] + end_dir[0] * self.POLYGON_SAMPLE_RATE,
-                                point[1] + end_dir[1] * self.POLYGON_SAMPLE_RATE
-                            ]
-                        )
+                        polygon.append([
+                            point[0] + end_dir[0] * self.POLYGON_SAMPLE_RATE,
+                            point[1] + end_dir[1] * self.POLYGON_SAMPLE_RATE
+                        ])
 
                         if k == 1:
                             # third point

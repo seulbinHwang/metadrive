@@ -26,25 +26,36 @@ RACING_CONFIG = dict(
 
     # We still want to use single-agent observation
     vehicle_config=dict(
-        lidar=dict(
-            num_lasers=72, distance=50, num_others=0, gaussian_noise=0.0, dropout_prob=0.0, add_others_navi=False
-        ),
-        side_detector=dict(num_lasers=72, distance=50, gaussian_noise=0.0, dropout_prob=0.0),
+        lidar=dict(num_lasers=72,
+                   distance=50,
+                   num_others=0,
+                   gaussian_noise=0.0,
+                   dropout_prob=0.0,
+                   add_others_navi=False),
+        side_detector=dict(num_lasers=72,
+                           distance=50,
+                           gaussian_noise=0.0,
+                           dropout_prob=0.0),
         enable_reverse=False,
         random_navi_mark_color=True,
         # show_navi_mark=True,
         # show_side_detector=True,
         # show_lidar=True,
     ),
-    sensors=dict(lidar=(Lidar, )),
+    sensors=dict(lidar=(Lidar,)),
 
     # Number of agents and map setting.
     num_agents=12,
-    map_config=dict(lane_num=2, exit_length=20, bottle_lane_num=4, neck_lane_num=1, neck_length=20),
+    map_config=dict(lane_num=2,
+                    exit_length=20,
+                    bottle_lane_num=4,
+                    neck_lane_num=1,
+                    neck_length=20),
 
     # Reward setting
     use_lateral=False,
-    out_of_road_penalty=5,  # Add little penalty to avoid hitting the wall (guardrail).
+    out_of_road_penalty=
+    5,  # Add little penalty to avoid hitting the wall (guardrail).
     idle_penalty=1,
     success_reward=20,
     crash_sidewalk_penalty=1,
@@ -75,6 +86,7 @@ RACING_CONFIG = dict(
 
 class RacingMap(PGMap):
     """Create a complex racing map by manually design the topology."""
+
     def _generate(self):
         """Generate the racing map.
 
@@ -82,245 +94,215 @@ class RacingMap(PGMap):
             None
         """
         parent_node_path, physics_world = self.engine.worldNP, self.engine.physics_world
-        assert len(self.road_network.graph) == 0, "These Map is not empty, please create a new map to read config"
+        assert len(
+            self.road_network.graph
+        ) == 0, "These Map is not empty, please create a new map to read config"
 
         LANE_NUM = self.config["lane_num"]
         LANE_WIDTH = self.config["lane_width"]
 
-        last_block = FirstPGBlock(
-            self.road_network,
-            lane_width=LANE_WIDTH,
-            lane_num=LANE_NUM,
-            render_root_np=parent_node_path,
-            physics_world=physics_world,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = FirstPGBlock(self.road_network,
+                                  lane_width=LANE_WIDTH,
+                                  lane_num=LANE_NUM,
+                                  render_root_np=parent_node_path,
+                                  physics_world=physics_world,
+                                  remove_negative_lanes=True,
+                                  side_lane_line_type=PGLineType.GUARDRAIL,
+                                  center_line_type=PGLineType.GUARDRAIL)
         self.blocks.append(last_block)
 
         block_index = 1
-        last_block = Straight(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
-        last_block.construct_from_config({Parameter.length: 100}, parent_node_path, physics_world)
+        last_block = Straight(block_index,
+                              last_block.get_socket(0),
+                              self.road_network,
+                              1,
+                              remove_negative_lanes=True,
+                              side_lane_line_type=PGLineType.GUARDRAIL,
+                              center_line_type=PGLineType.GUARDRAIL)
+        last_block.construct_from_config({Parameter.length: 100},
+                                         parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Curve(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Curve(block_index,
+                           last_block.get_socket(0),
+                           self.road_network,
+                           1,
+                           remove_negative_lanes=True,
+                           side_lane_line_type=PGLineType.GUARDRAIL,
+                           center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config(
             {
                 Parameter.length: 200,
                 Parameter.radius: 100,
                 Parameter.angle: 90,
                 Parameter.dir: 1,
-            }, parent_node_path, physics_world
-        )
+            }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Straight(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Straight(block_index,
+                              last_block.get_socket(0),
+                              self.road_network,
+                              1,
+                              remove_negative_lanes=True,
+                              side_lane_line_type=PGLineType.GUARDRAIL,
+                              center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config({
             Parameter.length: 100,
         }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Curve(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Curve(block_index,
+                           last_block.get_socket(0),
+                           self.road_network,
+                           1,
+                           remove_negative_lanes=True,
+                           side_lane_line_type=PGLineType.GUARDRAIL,
+                           center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config(
             {
                 Parameter.length: 100,
                 Parameter.radius: 60,
                 Parameter.angle: 90,
                 Parameter.dir: 1,
-            }, parent_node_path, physics_world
-        )
+            }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Curve(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Curve(block_index,
+                           last_block.get_socket(0),
+                           self.road_network,
+                           1,
+                           remove_negative_lanes=True,
+                           side_lane_line_type=PGLineType.GUARDRAIL,
+                           center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config(
             {
                 Parameter.length: 100,
                 Parameter.radius: 60,
                 Parameter.angle: 90,
                 Parameter.dir: 1,
-            }, parent_node_path, physics_world
-        )
+            }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Straight(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Straight(block_index,
+                              last_block.get_socket(0),
+                              self.road_network,
+                              1,
+                              remove_negative_lanes=True,
+                              side_lane_line_type=PGLineType.GUARDRAIL,
+                              center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config({
             Parameter.length: 200,
         }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Curve(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Curve(block_index,
+                           last_block.get_socket(0),
+                           self.road_network,
+                           1,
+                           remove_negative_lanes=True,
+                           side_lane_line_type=PGLineType.GUARDRAIL,
+                           center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config(
             {
                 Parameter.length: 80,
                 Parameter.radius: 40,
                 Parameter.angle: 90,
                 Parameter.dir: 1,
-            }, parent_node_path, physics_world
-        )
+            }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Curve(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Curve(block_index,
+                           last_block.get_socket(0),
+                           self.road_network,
+                           1,
+                           remove_negative_lanes=True,
+                           side_lane_line_type=PGLineType.GUARDRAIL,
+                           center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config(
             {
                 Parameter.length: 40,
                 Parameter.radius: 50,
                 Parameter.angle: 180,
                 Parameter.dir: 1,
-            }, parent_node_path, physics_world
-        )
+            }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Curve(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Curve(block_index,
+                           last_block.get_socket(0),
+                           self.road_network,
+                           1,
+                           remove_negative_lanes=True,
+                           side_lane_line_type=PGLineType.GUARDRAIL,
+                           center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config(
             {
                 Parameter.length: 40,
                 Parameter.radius: 50,
                 Parameter.angle: 220,
                 Parameter.dir: 0,
-            }, parent_node_path, physics_world
-        )
+            }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Curve(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Curve(block_index,
+                           last_block.get_socket(0),
+                           self.road_network,
+                           1,
+                           remove_negative_lanes=True,
+                           side_lane_line_type=PGLineType.GUARDRAIL,
+                           center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config(
             {
                 Parameter.length: 50,
                 Parameter.radius: 20,
                 Parameter.angle: 180,
                 Parameter.dir: 1,
-            }, parent_node_path, physics_world
-        )
+            }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Straight(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Straight(block_index,
+                              last_block.get_socket(0),
+                              self.road_network,
+                              1,
+                              remove_negative_lanes=True,
+                              side_lane_line_type=PGLineType.GUARDRAIL,
+                              center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config({
             Parameter.length: 100,
         }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
-        last_block = Curve(
-            block_index,
-            last_block.get_socket(0),
-            self.road_network,
-            1,
-            remove_negative_lanes=True,
-            side_lane_line_type=PGLineType.GUARDRAIL,
-            center_line_type=PGLineType.GUARDRAIL
-        )
+        last_block = Curve(block_index,
+                           last_block.get_socket(0),
+                           self.road_network,
+                           1,
+                           remove_negative_lanes=True,
+                           side_lane_line_type=PGLineType.GUARDRAIL,
+                           center_line_type=PGLineType.GUARDRAIL)
         last_block.construct_from_config(
             {
                 Parameter.length: 100,
                 Parameter.radius: 40,
                 Parameter.angle: 140,
                 Parameter.dir: 0,
-            }, parent_node_path, physics_world
-        )
+            }, parent_node_path, physics_world)
         self.blocks.append(last_block)
         block_index += 1
 
 
 class RacingMapManager(PGMapManager):
     """This map manager load the racing map directly, without the burden to manage multiple maps."""
+
     def __init__(self):
         super(RacingMapManager, self).__init__()
 
@@ -328,15 +310,20 @@ class RacingMapManager(PGMapManager):
         """Only initialize the RacingMap once."""
         config = self.engine.global_config
         if len(self.spawned_objects) == 0:
-            _map = self.spawn_object(RacingMap, map_config=config["map_config"], random_seed=None)
+            _map = self.spawn_object(RacingMap,
+                                     map_config=config["map_config"],
+                                     random_seed=None)
         else:
-            assert len(self.spawned_objects) == 1, "It is supposed to contain one map in this manager"
+            assert len(
+                self.spawned_objects
+            ) == 1, "It is supposed to contain one map in this manager"
             _map = self.spawned_objects.values()[0]
         self.load_map(_map)
 
 
 class MultiAgentRacingEnv(MultiAgentMetaDrive):
     """The Multi-agent Racing Environment"""
+
     def __init__(self, config):
         super(MultiAgentRacingEnv, self).__init__(config=config)
         self.movement_between_steps = defaultdict(lambda: deque(maxlen=100))
@@ -349,7 +336,8 @@ class MultiAgentRacingEnv(MultiAgentMetaDrive):
     @staticmethod
     def default_config() -> Config:
         """Use the RACING_CONFIG as the default config."""
-        return MultiAgentMetaDrive.default_config().update(RACING_CONFIG, allow_add_new_key=True)
+        return MultiAgentMetaDrive.default_config().update(
+            RACING_CONFIG, allow_add_new_key=True)
 
     def _is_out_of_road(self, vehicle):
         """Overwrite this function as we have guardrail in the map."""
@@ -359,7 +347,8 @@ class MultiAgentRacingEnv(MultiAgentMetaDrive):
         return False
 
     def done_function(self, vehicle_id):
-        done, done_info = super(MultiAgentRacingEnv, self).done_function(vehicle_id)
+        done, done_info = super(MultiAgentRacingEnv,
+                                self).done_function(vehicle_id)
         if done_info["max_step"]:
             return done, done_info
 
@@ -367,16 +356,19 @@ class MultiAgentRacingEnv(MultiAgentMetaDrive):
         if self.config["idle_done"] and self._is_idle(vehicle_id):
             done = True
             self.logger.debug(
-                "Episode ended! Scenario Index: {} Reason: IDLE.".format(self.current_seed), extra={"log_once": True}
-            )
+                "Episode ended! Scenario Index: {} Reason: IDLE.".format(
+                    self.current_seed),
+                extra={"log_once": True})
 
-        done_info[TerminationState.CRASH_SIDEWALK] = self.agents[vehicle_id].crash_sidewalk
-        if self.config["crash_sidewalk_done"] and self.agents[vehicle_id].crash_sidewalk:
+        done_info[TerminationState.
+                  CRASH_SIDEWALK] = self.agents[vehicle_id].crash_sidewalk
+        if self.config["crash_sidewalk_done"] and self.agents[
+                vehicle_id].crash_sidewalk:
             done = True
             self.logger.debug(
-                "Episode ended! Scenario Index: {} Reason: CRASH_SIDEWALK.".format(self.current_seed),
-                extra={"log_once": True}
-            )
+                "Episode ended! Scenario Index: {} Reason: CRASH_SIDEWALK.".
+                format(self.current_seed),
+                extra={"log_once": True})
 
         return done, done_info
 
@@ -408,14 +400,19 @@ class MultiAgentRacingEnv(MultiAgentMetaDrive):
         else:
             current_lane = vehicle.navigation.current_ref_lanes[0]
             current_road = vehicle.navigation.current_road
-        longitudinal_last, _ = current_lane.local_coordinates(vehicle.last_position)
-        longitudinal_now, lateral_now = current_lane.local_coordinates(vehicle.position)
+        longitudinal_last, _ = current_lane.local_coordinates(
+            vehicle.last_position)
+        longitudinal_now, lateral_now = current_lane.local_coordinates(
+            vehicle.position)
 
-        self.movement_between_steps[vehicle_id].append(abs(longitudinal_now - longitudinal_last))
+        self.movement_between_steps[vehicle_id].append(
+            abs(longitudinal_now - longitudinal_last))
 
         reward = 0.0
-        reward += self.config["driving_reward"] * (longitudinal_now - longitudinal_last)
-        reward += self.config["speed_reward"] * (vehicle.speed_km_h / vehicle.max_speed_km_h)
+        reward += self.config["driving_reward"] * (longitudinal_now -
+                                                   longitudinal_last)
+        reward += self.config["speed_reward"] * (vehicle.speed_km_h /
+                                                 vehicle.max_speed_km_h)
 
         step_info["progress"] = (longitudinal_now - longitudinal_last)
         step_info["speed_km_h"] = vehicle.speed_km_h
@@ -446,12 +443,13 @@ def _vis(generate_video=False):
     """
     FPS = 60
 
-    env = MultiAgentRacingEnv(dict(
-        use_render=generate_video,
-        window_size=(1600, 1200),
-        num_agents=12,
-        # debug=True
-    ))
+    env = MultiAgentRacingEnv(
+        dict(
+            use_render=generate_video,
+            window_size=(1600, 1200),
+            num_agents=12,
+            # debug=True
+        ))
     o, _ = env.reset()
 
     # env.engine.force_fps.disable()
@@ -463,7 +461,8 @@ def _vis(generate_video=False):
 
     try:
         for i in range(1, 100000):
-            o, r, tm, tc, info = env.step({k: [-0.0, 1] for k in env.agents.keys()})
+            o, r, tm, tc, info = env.step(
+                {k: [-0.0, 1] for k in env.agents.keys()})
             for r_ in r.values():
                 total_r += r_
             ep_s += 1
@@ -502,7 +501,8 @@ def _vis(generate_video=False):
         import os
         import mediapy
 
-        folder_name = "marl_racing_video_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        folder_name = "marl_racing_video_{}".format(
+            datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         os.makedirs(folder_name, exist_ok=True)
 
         video_base_name = f"{folder_name}/video"

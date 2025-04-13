@@ -7,6 +7,7 @@ from metadrive.third_party.procedural3d.base import *
 
 
 class TorusMaker(ModelMaker):
+
     @property
     def center(self):
         return self._center
@@ -87,27 +88,25 @@ class TorusMaker(ModelMaker):
     def thickness(self, thickness):
         self._thickness = thickness
 
-    def __init__(
-        self,
-        center=None,
-        ring_radius=2.,
-        section_radius=1.,
-        segments=None,
-        smooth_ring=True,
-        smooth_section=True,
-        ring_slice=0.,
-        section_slice=0.,
-        rotation=0.,
-        twist=0.,
-        thickness=None,
-        inverted=False,
-        vertex_color=None,
-        has_uvs=True,
-        tex_units=None,
-        tex_offset=None,
-        tex_rotation=None,
-        tex_scale=None
-    ):
+    def __init__(self,
+                 center=None,
+                 ring_radius=2.,
+                 section_radius=1.,
+                 segments=None,
+                 smooth_ring=True,
+                 smooth_section=True,
+                 ring_slice=0.,
+                 section_slice=0.,
+                 rotation=0.,
+                 twist=0.,
+                 thickness=None,
+                 inverted=False,
+                 vertex_color=None,
+                 has_uvs=True,
+                 tex_units=None,
+                 tex_offset=None,
+                 tex_rotation=None,
+                 tex_scale=None):
         """
         This class generates torus model primitives with the given parameters:
 
@@ -191,14 +190,13 @@ class TorusMaker(ModelMaker):
 
         """
 
-        surface_ids = (
-            "main", "ring_slice_start_cap", "ring_slice_end_cap", "section_slice_start_cap", "section_slice_end_cap",
-            "inner_main"
-        )
+        surface_ids = ("main", "ring_slice_start_cap", "ring_slice_end_cap",
+                       "section_slice_start_cap", "section_slice_end_cap",
+                       "inner_main")
 
-        ModelMaker.__init__(
-            self, segments, inverted, vertex_color, has_uvs, tex_units, tex_offset, tex_rotation, tex_scale, surface_ids
-        )
+        ModelMaker.__init__(self, segments, inverted, vertex_color, has_uvs,
+                            tex_units, tex_offset, tex_rotation, tex_scale,
+                            surface_ids)
 
         self._center = center
         self._ring_radius = ring_radius
@@ -226,9 +224,8 @@ class TorusMaker(ModelMaker):
         self._twist = 0.
         self._thickness = None
 
-    def __add_cap_data(
-        self, segs, point, vec, points, uvs, has_uvs, u_start, mirror_v, tex_size, radius, ring_arc, section_arc, mat
-    ):
+    def __add_cap_data(self, segs, point, vec, points, uvs, has_uvs, u_start,
+                       mirror_v, tex_size, radius, ring_arc, section_arc, mat):
 
         for i in range(segs + 1):
 
@@ -344,7 +341,8 @@ class TorusMaker(ModelMaker):
 
         for i in range(segs_r + 1):
 
-            angle_h = delta_angle_h * i + (0. if inverted else ring_slice_radians)
+            angle_h = delta_angle_h * i + (0.
+                                           if inverted else ring_slice_radians)
             c = cos(angle_h)
             s = sin(angle_h) * (-1. if inverted else 1.)
 
@@ -358,7 +356,9 @@ class TorusMaker(ModelMaker):
 
             if section_slice and (segs_sssc or segs_ssec) and thickness:
                 quat_h = Quat()
-                quat_h.set_from_axis_angle_rad(angle_h, Vec3.down() if inverted else Vec3.up())
+                quat_h.set_from_axis_angle_rad(
+                    angle_h,
+                    Vec3.down() if inverted else Vec3.up())
 
             for j in range(segs_s + 1):
 
@@ -371,7 +371,8 @@ class TorusMaker(ModelMaker):
                 ny = y - ring_radius * s
 
                 if smooth:
-                    normal = Vec3(nx, ny, z).normalized() * (-1. if inverted else 1.)
+                    normal = Vec3(nx, ny,
+                                  z).normalized() * (-1. if inverted else 1.)
 
                 if has_uvs:
                     v = 1. - j / segs_s
@@ -382,10 +383,15 @@ class TorusMaker(ModelMaker):
                 else:
                     v = 0.
 
-                vert = {"pos": (x, y, z), "normal": normal if smooth else None, "uv": (u, v)}
+                vert = {
+                    "pos": (x, y, z),
+                    "normal": normal if smooth else None,
+                    "uv": (u, v)
+                }
                 verts.append(vert)
 
-                if j in (0, segs_s) and section_slice and (segs_sssc or segs_ssec) and thickness:
+                if j in (0, segs_s) and section_slice and (
+                        segs_sssc or segs_ssec) and thickness:
 
                     quat_v = Quat()
                     quat_v.set_from_axis_angle_rad(angle_v, Vec3.forward())
@@ -399,19 +405,19 @@ class TorusMaker(ModelMaker):
                     uvs = []
 
                     if j == 0:
-                        self.__add_cap_data(
-                            segs_sssc, p1, r_vec, points, uvs, has_uvs, u_sc, False, tex_size_sssc, section_radius,
-                            ring_arc, section_arc, mat_sssc
-                        )
+                        self.__add_cap_data(segs_sssc, p1, r_vec, points, uvs,
+                                            has_uvs, u_sc, False, tex_size_sssc,
+                                            section_radius, ring_arc,
+                                            section_arc, mat_sssc)
 
                         n_vec *= 1. if inverted else -1.
                         cap_data["start"].append((points, uvs, n_vec))
 
                     elif j == segs_s:
-                        self.__add_cap_data(
-                            segs_ssec, p1, r_vec, points, uvs, has_uvs, u_sc, True, tex_size_ssec, section_radius,
-                            ring_arc, section_arc, mat_ssec
-                        )
+                        self.__add_cap_data(segs_ssec, p1, r_vec, points, uvs,
+                                            has_uvs, u_sc, True, tex_size_ssec,
+                                            section_radius, ring_arc,
+                                            section_arc, mat_ssec)
 
                         n_vec *= -1. if inverted else 1.
                         cap_data["end"].append((points, uvs, n_vec))
@@ -524,15 +530,21 @@ class TorusMaker(ModelMaker):
                             if has_uvs:
 
                                 if cap_id == "start":
-                                    u = .5 + .5 * r_ / section_radius * (-1. if inverted else 1.)
+                                    u = .5 + .5 * r_ / section_radius * (
+                                        -1. if inverted else 1.)
                                 else:
-                                    u = .5 - .5 * r_ / section_radius * (-1. if inverted else 1.)
+                                    u = .5 - .5 * r_ / section_radius * (
+                                        -1. if inverted else 1.)
 
                                 v = .5 + .5 * s / segs_sc
 
                                 if tex_size:
-                                    u = (u - .5) * 2. * section_radius / tex_size[0] + .5
-                                    v = (v - .5) * 2. * section_radius / tex_size[1] + .5
+                                    u = (
+                                        u - .5
+                                    ) * 2. * section_radius / tex_size[0] + .5
+                                    v = (
+                                        v - .5
+                                    ) * 2. * section_radius / tex_size[1] + .5
 
                                 if mat:
                                     u, v = mat.xform_point(Point2(u, v))
@@ -546,7 +558,8 @@ class TorusMaker(ModelMaker):
 
                         # Define the vertex order of the ring slice cap triangles
 
-                        for i in range(index_offset + 1, index_offset + 1 + segs_s):
+                        for i in range(index_offset + 1,
+                                       index_offset + 1 + segs_s):
                             if cap_id == "start":
                                 if inverted:
                                     indices.extend((index_offset, i + 1, i))
@@ -583,15 +596,21 @@ class TorusMaker(ModelMaker):
                             if has_uvs:
 
                                 if cap_id == "start":
-                                    u = .5 + .5 * r_ / section_radius * (-1. if inverted else 1.)
+                                    u = .5 + .5 * r_ / section_radius * (
+                                        -1. if inverted else 1.)
                                 else:
-                                    u = .5 - .5 * r_ / section_radius * (-1. if inverted else 1.)
+                                    u = .5 - .5 * r_ / section_radius * (
+                                        -1. if inverted else 1.)
 
                                 v = .5 + .5 * z / section_radius
 
                                 if tex_size:
-                                    u = (u - .5) * 2. * section_radius / tex_size[0] + .5
-                                    v = (v - .5) * 2. * section_radius / tex_size[1] + .5
+                                    u = (
+                                        u - .5
+                                    ) * 2. * section_radius / tex_size[0] + .5
+                                    v = (
+                                        v - .5
+                                    ) * 2. * section_radius / tex_size[1] + .5
 
                                 if mat:
                                     u, v = mat.xform_point(Point2(u, v))
@@ -605,7 +624,8 @@ class TorusMaker(ModelMaker):
 
                     # Define the vertex order of the ring slice cap quads
 
-                    index_offset = vertex_count + (segs_s + 1 if inner_radius else 1)
+                    index_offset = vertex_count + (segs_s +
+                                                   1 if inner_radius else 1)
 
                     for i in range(0 if inner_radius else 1, segs_sc):
                         for j in range(segs_s):
@@ -614,11 +634,19 @@ class TorusMaker(ModelMaker):
                             vi3 = vi2 + 1
                             vi4 = vi1 + 1
                             if inverted:
-                                indices.extend((vi1, vi2, vi3) if cap_id == "start" else (vi1, vi3, vi2))
-                                indices.extend((vi1, vi3, vi4) if cap_id == "start" else (vi1, vi4, vi3))
+                                indices.extend((vi1, vi2,
+                                                vi3) if cap_id == "start" else (
+                                                    vi1, vi3, vi2))
+                                indices.extend((vi1, vi3,
+                                                vi4) if cap_id == "start" else (
+                                                    vi1, vi4, vi3))
                             else:
-                                indices.extend((vi1, vi3, vi2) if cap_id == "start" else (vi1, vi2, vi3))
-                                indices.extend((vi1, vi4, vi3) if cap_id == "start" else (vi1, vi3, vi4))
+                                indices.extend((vi1, vi3,
+                                                vi2) if cap_id == "start" else (
+                                                    vi1, vi2, vi3))
+                                indices.extend((vi1, vi4,
+                                                vi3) if cap_id == "start" else (
+                                                    vi1, vi3, vi4))
 
                     surface_id = "ring_slice_{}_cap".format(cap_id)
                     vert_ranges[surface_id] = (vertex_count, len(verts))
@@ -650,8 +678,12 @@ class TorusMaker(ModelMaker):
                             vi2 = vi1 + segs_sc + 1
                             vi3 = vi2 + 1
                             vi4 = vi1 + 1
-                            indices.extend((vi1, vi2, vi3) if cap_id == "start" else (vi1, vi3, vi2))
-                            indices.extend((vi1, vi3, vi4) if cap_id == "start" else (vi1, vi4, vi3))
+                            indices.extend((vi1, vi2,
+                                            vi3) if cap_id == "start" else (
+                                                vi1, vi3, vi2))
+                            indices.extend((vi1, vi3,
+                                            vi4) if cap_id == "start" else (
+                                                vi1, vi4, vi3))
                         index_offset += segs_sc + 1
 
                     surface_id = "section_slice_{}_cap".format(cap_id)
@@ -701,24 +733,22 @@ class TorusMaker(ModelMaker):
             if tex_scale and "inner_main" in tex_scale:
                 inner_tex_scale["main"] = tex_scale["inner_main"]
 
-            model_maker = TorusMaker(
-                None,
-                ring_radius,
-                inner_radius,
-                segs,
-                smooth_ring,
-                smooth_section,
-                ring_slice,
-                section_slice,
-                rotation,
-                twist,
-                inverted=not inverted,
-                has_uvs=has_uvs,
-                tex_units=inner_tex_units,
-                tex_offset=inner_tex_offset,
-                tex_rotation=inner_tex_rot,
-                tex_scale=inner_tex_scale
-            )
+            model_maker = TorusMaker(None,
+                                     ring_radius,
+                                     inner_radius,
+                                     segs,
+                                     smooth_ring,
+                                     smooth_section,
+                                     ring_slice,
+                                     section_slice,
+                                     rotation,
+                                     twist,
+                                     inverted=not inverted,
+                                     has_uvs=has_uvs,
+                                     tex_units=inner_tex_units,
+                                     tex_offset=inner_tex_offset,
+                                     tex_rotation=inner_tex_rot,
+                                     tex_scale=inner_tex_scale)
             node = model_maker.generate()
 
             # Extend the geometry of the inner torus with the data of the outer torus
@@ -762,14 +792,17 @@ class TorusMaker(ModelMaker):
             tris_array.set_num_rows(new_row_count)
             memview = memoryview(tris_array).cast("B").cast(indices.typecode)
             memview[old_row_count:] = indices
-            tris_prim.offset_vertices(old_vert_count, old_row_count, new_row_count)
+            tris_prim.offset_vertices(old_vert_count, old_row_count,
+                                      new_row_count)
 
             inner_range = model_maker.vertex_ranges["main"]
 
             if inner_range:
                 vert_ranges["inner_main"] = inner_range
 
-            for surface_name in ("main", "ring_slice_start_cap", "ring_slice_end_cap", "section_slice_start_cap",
+            for surface_name in ("main", "ring_slice_start_cap",
+                                 "ring_slice_end_cap",
+                                 "section_slice_start_cap",
                                  "section_slice_end_cap"):
 
                 vert_range = vert_ranges[surface_name]
@@ -787,7 +820,8 @@ class TorusMaker(ModelMaker):
             else:
                 vertex_format = GeomVertexFormat.get_v3n3()
 
-            vertex_data = GeomVertexData("torus_data", vertex_format, Geom.UH_static)
+            vertex_data = GeomVertexData("torus_data", vertex_format,
+                                         Geom.UH_static)
             vertex_data.unclean_set_num_rows(len(verts))
             data_array = vertex_data.modify_array(0)
             memview = memoryview(data_array).cast("B").cast("f")

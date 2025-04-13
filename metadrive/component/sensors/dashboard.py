@@ -9,6 +9,7 @@ class DashBoard(ImageBuffer, BaseSensor):
     """
     Dashboard for showing the speed and brake/throttle/steering
     """
+
     def perceive(self, *args, **kwargs):
         """
         This is only used for GUI and won't provide any observation result
@@ -35,7 +36,8 @@ class DashBoard(ImageBuffer, BaseSensor):
         # make_buffer_func, make_camera_func = engine.win.makeTextureBuffer, engine.makeCamera
 
         # don't delete the space in word, it is used to set a proper position
-        for i, np_name in enumerate(["Steering", " Throttle", "     Brake", "    Speed"]):
+        for i, np_name in enumerate(
+            ["Steering", " Throttle", "     Brake", "    Speed"]):
             text = TextNode(np_name)
             text.setText(np_name)
             text.setSlant(0.1)
@@ -50,7 +52,9 @@ class DashBoard(ImageBuffer, BaseSensor):
             textNodePath.setPos(-1.125111, 0, 0.9 - i * 0.08)
             if i != 0:
                 cm = CardMaker(np_name)
-                cm.setFrame(0, self.PARA_VIS_LENGTH - 0.21, -self.PARA_VIS_HEIGHT / 2 + 0.1, self.PARA_VIS_HEIGHT / 2)
+                cm.setFrame(0, self.PARA_VIS_LENGTH - 0.21,
+                            -self.PARA_VIS_HEIGHT / 2 + 0.1,
+                            self.PARA_VIS_HEIGHT / 2)
                 cm.setHasNormals(True)
                 card = textNodePath.attachNewNode(cm.generate())
                 tmp_node_path_list.append(card)
@@ -61,9 +65,9 @@ class DashBoard(ImageBuffer, BaseSensor):
                 # left
                 name = "Left"
                 cm = CardMaker(name)
-                cm.setFrame(
-                    0, (self.PARA_VIS_LENGTH - 0.4) / 2, -self.PARA_VIS_HEIGHT / 2 + 0.1, self.PARA_VIS_HEIGHT / 2
-                )
+                cm.setFrame(0, (self.PARA_VIS_LENGTH - 0.4) / 2,
+                            -self.PARA_VIS_HEIGHT / 2 + 0.1,
+                            self.PARA_VIS_HEIGHT / 2)
                 cm.setHasNormals(True)
                 card = textNodePath.attachNewNode(cm.generate())
                 tmp_node_path_list.append(card)
@@ -73,18 +77,20 @@ class DashBoard(ImageBuffer, BaseSensor):
                 # right
                 name = "Right"
                 cm = CardMaker(np_name)
-                cm.setFrame(
-                    -(self.PARA_VIS_LENGTH - 0.1) / 2, 0, -self.PARA_VIS_HEIGHT / 2 + 0.1, self.PARA_VIS_HEIGHT / 2
-                )
+                cm.setFrame(-(self.PARA_VIS_LENGTH - 0.1) / 2, 0,
+                            -self.PARA_VIS_HEIGHT / 2 + 0.1,
+                            self.PARA_VIS_HEIGHT / 2)
                 cm.setHasNormals(True)
                 card = textNodePath.attachNewNode(cm.generate())
                 tmp_node_path_list.append(card)
 
                 card.setPos(0.2 + self.PARA_VIS_LENGTH / 2, 0, 0.22)
                 self.para_vis_np[name] = card
-        super(DashBoard, self).__init__(
-            self.BUFFER_W, self.BUFFER_H, self.BKG_COLOR, parent_node=self.aspect2d_np, engine=engine
-        )
+        super(DashBoard, self).__init__(self.BUFFER_W,
+                                        self.BUFFER_H,
+                                        self.BKG_COLOR,
+                                        parent_node=self.aspect2d_np,
+                                        engine=engine)
         self.origin = NodePath("DashBoard")
         self._node_path_list.extend(tmp_node_path_list)
 
@@ -92,7 +98,8 @@ class DashBoard(ImageBuffer, BaseSensor):
         """
         Create orthogonal camera for the buffer
         """
-        self.cam = cam = self.engine.makeCamera(self.buffer, clearColor=bkg_color)
+        self.cam = cam = self.engine.makeCamera(self.buffer,
+                                                clearColor=bkg_color)
         cam.node().setCameraMask(self.CAM_MASK)
 
         self.cam.reparentTo(parent_node)

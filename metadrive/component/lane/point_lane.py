@@ -22,18 +22,16 @@ class PointLane(AbstractLane, InterpolatingLine):
     VIS_LANE_WIDTH = 6.5
     POLYGON_SAMPLE_RATE = 1
 
-    def __init__(
-        self,
-        center_line_points: Union[list, np.ndarray],
-        width: float,
-        polygon=None,
-        forbidden: bool = False,
-        speed_limit: float = 1000,
-        priority: int = 0,
-        need_lane_localization=True,
-        auto_generate_polygon=True,
-        metadrive_type=MetaDriveType.LANE_SURFACE_STREET
-    ):
+    def __init__(self,
+                 center_line_points: Union[list, np.ndarray],
+                 width: float,
+                 polygon=None,
+                 forbidden: bool = False,
+                 speed_limit: float = 1000,
+                 priority: int = 0,
+                 need_lane_localization=True,
+                 auto_generate_polygon=True,
+                 metadrive_type=MetaDriveType.LANE_SURFACE_STREET):
         center_line_points = np.array(center_line_points)[..., :2]
         AbstractLane.__init__(self, metadrive_type)
         InterpolatingLine.__init__(self, center_line_points)
@@ -48,12 +46,16 @@ class PointLane(AbstractLane, InterpolatingLine):
         self.priority = priority
         # waymo lane line will be processed separately
         self.line_types = (PGLineType.NONE, PGLineType.NONE)
-        self.is_straight = True if abs(self.heading_theta_at(0.1) -
-                                       self.heading_theta_at(self.length - 0.1)) < np.deg2rad(10) else False
+        self.is_straight = True if abs(
+            self.heading_theta_at(0.1) -
+            self.heading_theta_at(self.length -
+                                  0.1)) < np.deg2rad(10) else False
         self.start = self.position(0, 0)
-        assert np.linalg.norm(self.start - center_line_points[0]) < 0.1, "Start point error!"
+        assert np.linalg.norm(self.start -
+                              center_line_points[0]) < 0.1, "Start point error!"
         self.end = self.position(self.length, 0)
-        assert np.linalg.norm(self.end - center_line_points[-1]) < 1, "End point error!"
+        assert np.linalg.norm(self.end -
+                              center_line_points[-1]) < 1, "End point error!"
 
     def auto_generate_polygon(self):
         start_heading = self.heading_theta_at(0)
@@ -62,7 +64,8 @@ class PointLane(AbstractLane, InterpolatingLine):
         end_heading = self.heading_theta_at(self.length)
         end_dir = [math.cos(end_heading), math.sin(end_heading)]
         polygon = []
-        longs = np.arange(0, self.length + self.POLYGON_SAMPLE_RATE, self.POLYGON_SAMPLE_RATE)
+        longs = np.arange(0, self.length + self.POLYGON_SAMPLE_RATE,
+                          self.POLYGON_SAMPLE_RATE)
         for k in range(2):
             if k == 1:
                 longs = longs[::-1]
@@ -77,12 +80,10 @@ class PointLane(AbstractLane, InterpolatingLine):
                         polygon.append([point[0], point[1]])
 
                     # extend
-                    polygon.append(
-                        [
-                            point[0] - start_dir[0] * self.POLYGON_SAMPLE_RATE,
-                            point[1] - start_dir[1] * self.POLYGON_SAMPLE_RATE
-                        ]
-                    )
+                    polygon.append([
+                        point[0] - start_dir[0] * self.POLYGON_SAMPLE_RATE,
+                        point[1] - start_dir[1] * self.POLYGON_SAMPLE_RATE
+                    ])
 
                     if k == 0:
                         # first point
@@ -93,12 +94,10 @@ class PointLane(AbstractLane, InterpolatingLine):
                         # second point
                         polygon.append([point[0], point[1]])
 
-                    polygon.append(
-                        [
-                            point[0] + end_dir[0] * self.POLYGON_SAMPLE_RATE,
-                            point[1] + end_dir[1] * self.POLYGON_SAMPLE_RATE
-                        ]
-                    )
+                    polygon.append([
+                        point[0] + end_dir[0] * self.POLYGON_SAMPLE_RATE,
+                        point[1] + end_dir[1] * self.POLYGON_SAMPLE_RATE
+                    ])
 
                     if k == 1:
                         # third point
@@ -119,8 +118,11 @@ class PointLane(AbstractLane, InterpolatingLine):
     def position(self, longitudinal: float, lateral: float) -> np.ndarray:
         return InterpolatingLine.position(self, longitudinal, lateral)
 
-    def local_coordinates(self, position: Tuple[float, float], only_in_lane_point=False):
-        return InterpolatingLine.local_coordinates(self, position, only_in_lane_point)
+    def local_coordinates(self,
+                          position: Tuple[float, float],
+                          only_in_lane_point=False):
+        return InterpolatingLine.local_coordinates(self, position,
+                                                   only_in_lane_point)
 
     def is_in_same_direction(self, another_lane):
         """
@@ -132,9 +134,11 @@ class PointLane(AbstractLane, InterpolatingLine):
         my_end_heading = self.heading_theta_at(self.length - 0.1)
         another_end_heading = another_lane.heading_theta_at(self.length - 0.1)
 
-        return True if abs(wrap_to_pi(my_end_heading) - wrap_to_pi(another_end_heading)) < 0.2 and abs(
-            wrap_to_pi(my_start_heading) - wrap_to_pi(another_start_heading)
-        ) < 0.2 else False
+        return True if abs(
+            wrap_to_pi(my_end_heading) -
+            wrap_to_pi(another_end_heading)) < 0.2 and abs(
+                wrap_to_pi(my_start_heading) -
+                wrap_to_pi(another_start_heading)) < 0.2 else False
 
     def get_bounding_box(self):
         return self._bounding_box

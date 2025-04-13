@@ -36,14 +36,14 @@ class Plugin(BasePlugin):
     author = "tobspr <tobias.springer1@gmail.com>"
     description = (
         "This plugin adds support for a technique called Bloom, which "
-        "makes very bright objects like the sun have a halo."
-    )
+        "makes very bright objects like the sun have a halo.")
     version = "1.2"
 
     def on_stage_setup(self):
         self._bloom_stage = self.create_stage(BloomStage)
         self._bloom_stage.num_mips = self.get_setting("num_mipmaps")
-        self._bloom_stage.remove_fireflies = self.get_setting("remove_fireflies")
+        self._bloom_stage.remove_fireflies = self.get_setting(
+            "remove_fireflies")
 
     def on_pipeline_created(self):
         dirt_tex = RPLoader.load_texture(self.get_resource("lens_dirt.txo"))

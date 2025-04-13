@@ -31,12 +31,12 @@ def test_naive_multi_agent_metadrive():
         config={
             "map": "SSS",
             "num_agents": 4,
-            "agent_configs": {"agent{}".format(i): {
-                "spawn_longitude": i * 5
+            "agent_configs": {
+                "agent{}".format(i): {
+                    "spawn_longitude": i * 5
+                } for i in range(4)
             }
-                              for i in range(4)}
-        }
-    )
+        })
     try:
         assert isinstance(env.action_space, gym.spaces.Dict)
         obs, _ = env.reset()
@@ -48,9 +48,13 @@ def test_naive_multi_agent_metadrive():
             o, r, tm, tc, i = env.step(a)
             if len(o) > 2:
                 obses = list(o.values())
-                assert not np.isclose(obses[0], obses[1], rtol=1e-3, atol=1e-3).all()
+                assert not np.isclose(obses[0], obses[1], rtol=1e-3,
+                                      atol=1e-3).all()
 
-            pos_z_list = [v.chassis.getNode(0).transform.pos[2] for v in env.agents.values()]
+            pos_z_list = [
+                v.chassis.getNode(0).transform.pos[2]
+                for v in env.agents.values()
+            ]
             for p in pos_z_list:
                 assert p < 5.0 or step <= 10
 

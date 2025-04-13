@@ -40,6 +40,7 @@ from metadrive.render_pipeline.rpcore.loader import RPLoader
 
 class ScatteringMethod(RPObject):
     """ Base class for all scattering methods """
+
     def __init__(self, plugin_handle):
         RPObject.__init__(self)
         self.handle = plugin_handle
@@ -55,15 +56,15 @@ class ScatteringMethod(RPObject):
 
 class ScatteringMethodHosekWilkie(ScatteringMethod):
     """ Scattering as suggested by Hosek and Wilkie """
+
     def load(self):
         """ Loads the scattering method """
-        lut_src = self.handle.get_resource("hosek_wilkie_scattering/scattering_lut.txo")
+        lut_src = self.handle.get_resource(
+            "hosek_wilkie_scattering/scattering_lut.txo")
 
         if not isfile(lut_src):
-            self.error(
-                "Could not find precompiled LUT for the Hosek Wilkie "
-                "Scattering! Make sure you compiled the algorithm code!"
-            )
+            self.error("Could not find precompiled LUT for the Hosek Wilkie "
+                       "Scattering! Make sure you compiled the algorithm code!")
             return
 
         lut_tex = RPLoader.load_sliced_3d_texture(lut_src, 512, 128, 100)
@@ -87,6 +88,7 @@ class ScatteringMethodHosekWilkie(ScatteringMethod):
 
 class ScatteringMethodEricBruneton(ScatteringMethod):
     """ Precomputed atmospheric scattering by Eric Bruneton """
+
     def load(self):
         """ Inits parameters, those should match with the ones specified in common.glsl """
         self.use_32_bit = False
@@ -105,13 +107,24 @@ class ScatteringMethodEricBruneton(ScatteringMethod):
         img_2d, img_3d = Image.create_2d, Image.create_3d
 
         self.textures = {
-            "transmittance": img_2d("scat-trans", self.trans_w, self.trans_h, tex_format),
-            "irradiance": img_2d("scat-irrad", self.sky_w, self.sky_h, tex_format),
-            "inscatter": img_3d("scat-inscat", self.res_mu_s_nu, self.res_mu, self.res_r, tex_format),  # noqa # pylint: disable=line-too-long
-            "delta_e": img_2d("scat-dx-e", self.sky_w, self.sky_h, tex_format),
-            "delta_sr": img_3d("scat-dx-sr", self.res_mu_s_nu, self.res_mu, self.res_r, tex_format),
-            "delta_sm": img_3d("scat-dx-sm", self.res_mu_s_nu, self.res_mu, self.res_r, tex_format),
-            "delta_j": img_3d("scat-dx-j", self.res_mu_s_nu, self.res_mu, self.res_r, tex_format),
+            "transmittance":
+                img_2d("scat-trans", self.trans_w, self.trans_h, tex_format),
+            "irradiance":
+                img_2d("scat-irrad", self.sky_w, self.sky_h, tex_format),
+            "inscatter":
+                img_3d("scat-inscat", self.res_mu_s_nu, self.res_mu, self.res_r,
+                       tex_format),  # noqa # pylint: disable=line-too-long
+            "delta_e":
+                img_2d("scat-dx-e", self.sky_w, self.sky_h, tex_format),
+            "delta_sr":
+                img_3d("scat-dx-sr", self.res_mu_s_nu, self.res_mu, self.res_r,
+                       tex_format),
+            "delta_sm":
+                img_3d("scat-dx-sm", self.res_mu_s_nu, self.res_mu, self.res_r,
+                       tex_format),
+            "delta_j":
+                img_3d("scat-dx-j", self.res_mu_s_nu, self.res_mu, self.res_r,
+                       tex_format),
         }
 
         for img in itervalues(self.textures):
@@ -132,7 +145,11 @@ class ScatteringMethodEricBruneton(ScatteringMethod):
                 shader_obj = RPLoader.load_shader(fpath)
                 self.shaders[shader_name] = shader_obj
 
-    def exec_compute_shader(self, shader_obj, shader_inputs, exec_size, workgroup_size=(16, 16, 1)):
+    def exec_compute_shader(self,
+                            shader_obj,
+                            shader_inputs,
+                            exec_size,
+                            workgroup_size=(16, 16, 1)):
         """ Executes a compute shader. The shader object should be a shader
         loaded with Shader.load_compute, the shader inputs should be a dict where
         the keys are the names of the shader inputs and the values are the
@@ -147,7 +164,8 @@ class ScatteringMethodEricBruneton(ScatteringMethod):
         nodepath.set_shader_inputs(**shader_inputs)
 
         attr = nodepath.get_attrib(ShaderAttrib)
-        Globals.base.graphicsEngine.dispatch_compute((ntx, nty, ntz), attr, Globals.base.win.gsg)
+        Globals.base.graphicsEngine.dispatch_compute((ntx, nty, ntz), attr,
+                                                     Globals.base.win.gsg)
 
     def compute(self):
         """ Precomputes the scattering """
@@ -156,17 +174,16 @@ class ScatteringMethodEricBruneton(ScatteringMethod):
         exec_cshader = self.exec_compute_shader
 
         # Transmittance
-        exec_cshader(
-            self.shaders["transmittance"], {"dest": self.textures["transmittance"]}, (self.trans_w, self.trans_h, 1)
-        )
+        exec_cshader(self.shaders["transmittance"],
+                     {"dest": self.textures["transmittance"]},
+                     (self.trans_w, self.trans_h, 1))
 
         # Delta E
         exec_cshader(
             self.shaders["delta_e"], {
                 "transmittanceSampler": self.textures["transmittance"],
                 "dest": self.textures["delta_e"]
-            }, (self.sky_w, self.sky_h, 1)
-        )
+            }, (self.sky_w, self.sky_h, 1))
 
         # Delta S
         exec_cshader(
@@ -174,8 +191,7 @@ class ScatteringMethodEricBruneton(ScatteringMethod):
                 "transmittanceSampler": self.textures["transmittance"],
                 "destDeltaSR": self.textures["delta_sr"],
                 "destDeltaSM": self.textures["delta_sm"]
-            }, (self.res_mu_s_nu, self.res_mu, self.res_r), (8, 8, 8)
-        )
+            }, (self.res_mu_s_nu, self.res_mu, self.res_r), (8, 8, 8))
 
         # Copy deltaE to irradiance texture
         exec_cshader(
@@ -183,8 +199,7 @@ class ScatteringMethodEricBruneton(ScatteringMethod):
                 "k": 0.0,
                 "deltaESampler": self.textures["delta_e"],
                 "dest": self.textures["irradiance"]
-            }, (self.sky_w, self.sky_h, 1)
-        )
+            }, (self.sky_w, self.sky_h, 1))
 
         # Copy delta s into inscatter texture
         exec_cshader(
@@ -192,8 +207,7 @@ class ScatteringMethodEricBruneton(ScatteringMethod):
                 "deltaSRSampler": self.textures["delta_sr"],
                 "deltaSMSampler": self.textures["delta_sm"],
                 "dest": self.textures["inscatter"]
-            }, (self.res_mu_s_nu, self.res_mu, self.res_r), (8, 8, 8)
-        )
+            }, (self.res_mu_s_nu, self.res_mu, self.res_r), (8, 8, 8))
 
         for order in range(2, 5):
             first = order == 2
@@ -207,8 +221,7 @@ class ScatteringMethodEricBruneton(ScatteringMethod):
                     "deltaESampler": self.textures["delta_e"],
                     "dest": self.textures["delta_j"],
                     "first": first
-                }, (self.res_mu_s_nu, self.res_mu, self.res_r), (8, 8, 8)
-            )
+                }, (self.res_mu_s_nu, self.res_mu, self.res_r), (8, 8, 8))
 
             # Delta E
             exec_cshader(
@@ -218,8 +231,7 @@ class ScatteringMethodEricBruneton(ScatteringMethod):
                     "deltaSMSampler": self.textures["delta_sm"],
                     "dest": self.textures["delta_e"],
                     "first": first
-                }, (self.sky_w, self.sky_h, 1)
-            )
+                }, (self.sky_w, self.sky_h, 1))
 
             # Delta Sr
             exec_cshader(
@@ -228,29 +240,25 @@ class ScatteringMethodEricBruneton(ScatteringMethod):
                     "deltaJSampler": self.textures["delta_j"],
                     "dest": self.textures["delta_sr"],
                     "first": first
-                }, (self.res_mu_s_nu, self.res_mu, self.res_r), (8, 8, 8)
-            )
+                }, (self.res_mu_s_nu, self.res_mu, self.res_r), (8, 8, 8))
 
             # Add delta E to irradiance
             exec_cshader(
                 self.shaders["add_delta_e"], {
                     "deltaESampler": self.textures["delta_e"],
                     "dest": self.textures["irradiance"],
-                }, (self.sky_w, self.sky_h, 1)
-            )
+                }, (self.sky_w, self.sky_h, 1))
 
             # Add deltaSr to inscatter texture
             exec_cshader(
                 self.shaders["add_delta_sr"], {
                     "deltaSSampler": self.textures["delta_sr"],
                     "dest": self.textures["inscatter"]
-                }, (self.res_mu_s_nu, self.res_mu, self.res_r), (8, 8, 8)
-            )
+                }, (self.res_mu_s_nu, self.res_mu, self.res_r), (8, 8, 8))
 
         # Make stages available
         for stage in [self.handle.display_stage, self.handle.envmap_stage]:
             stage.set_shader_inputs(
                 InscatterSampler=self.textures["inscatter"],
                 transmittanceSampler=self.textures["transmittance"],
-                IrradianceSampler=self.textures["irradiance"]
-            )
+                IrradianceSampler=self.textures["irradiance"])

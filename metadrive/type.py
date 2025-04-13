@@ -94,7 +94,9 @@ class MetaDriveType:
 
     @classmethod
     def is_traffic_object(cls, type):
-        return type in [cls.TRAFFIC_CONE, cls.TRAFFIC_BARRIER, cls.TRAFFIC_OBJECT]
+        return type in [
+            cls.TRAFFIC_CONE, cls.TRAFFIC_BARRIER, cls.TRAFFIC_OBJECT
+        ]
 
     @classmethod
     def has_type(cls, type_string: str):
@@ -108,8 +110,8 @@ class MetaDriveType:
     @classmethod
     def is_lane(cls, type):
         return type in [
-            cls.LANE_SURFACE_STREET, cls.LANE_SURFACE_UNSTRUCTURE, cls.LANE_UNKNOWN, cls.LANE_BIKE_LANE,
-            cls.LANE_FREEWAY
+            cls.LANE_SURFACE_STREET, cls.LANE_SURFACE_UNSTRUCTURE,
+            cls.LANE_UNKNOWN, cls.LANE_BIKE_LANE, cls.LANE_FREEWAY
         ]
 
     @classmethod
@@ -119,31 +121,38 @@ class MetaDriveType:
         is in the boundary or not.
         """
         return line in [
-            cls.LINE_UNKNOWN, cls.LINE_BROKEN_SINGLE_WHITE, cls.LINE_SOLID_SINGLE_WHITE, cls.LINE_SOLID_DOUBLE_WHITE,
-            cls.LINE_BROKEN_SINGLE_YELLOW, cls.LINE_BROKEN_DOUBLE_YELLOW, cls.LINE_SOLID_SINGLE_YELLOW,
-            cls.LINE_SOLID_DOUBLE_YELLOW, cls.LINE_PASSING_DOUBLE_YELLOW
+            cls.LINE_UNKNOWN, cls.LINE_BROKEN_SINGLE_WHITE,
+            cls.LINE_SOLID_SINGLE_WHITE, cls.LINE_SOLID_DOUBLE_WHITE,
+            cls.LINE_BROKEN_SINGLE_YELLOW, cls.LINE_BROKEN_DOUBLE_YELLOW,
+            cls.LINE_SOLID_SINGLE_YELLOW, cls.LINE_SOLID_DOUBLE_YELLOW,
+            cls.LINE_PASSING_DOUBLE_YELLOW
         ]
 
     @classmethod
     def is_yellow_line(cls, line):
         return line in [
-            cls.LINE_SOLID_DOUBLE_YELLOW, cls.LINE_PASSING_DOUBLE_YELLOW, cls.LINE_SOLID_SINGLE_YELLOW,
-            cls.LINE_BROKEN_DOUBLE_YELLOW, cls.LINE_BROKEN_SINGLE_YELLOW
+            cls.LINE_SOLID_DOUBLE_YELLOW, cls.LINE_PASSING_DOUBLE_YELLOW,
+            cls.LINE_SOLID_SINGLE_YELLOW, cls.LINE_BROKEN_DOUBLE_YELLOW,
+            cls.LINE_BROKEN_SINGLE_YELLOW
         ]
 
     @classmethod
     def is_white_line(cls, line):
-        return MetaDriveType.is_road_line(line) and not MetaDriveType.is_yellow_line(line)
+        return MetaDriveType.is_road_line(
+            line) and not MetaDriveType.is_yellow_line(line)
 
     @classmethod
     def is_broken_line(cls, line):
-        return line in [cls.LINE_BROKEN_DOUBLE_YELLOW, cls.LINE_BROKEN_SINGLE_YELLOW, cls.LINE_BROKEN_SINGLE_WHITE]
+        return line in [
+            cls.LINE_BROKEN_DOUBLE_YELLOW, cls.LINE_BROKEN_SINGLE_YELLOW,
+            cls.LINE_BROKEN_SINGLE_WHITE
+        ]
 
     @classmethod
     def is_solid_line(cls, line):
         return line in [
-            cls.LINE_SOLID_DOUBLE_WHITE, cls.LINE_SOLID_DOUBLE_YELLOW, cls.LINE_SOLID_SINGLE_YELLOW,
-            cls.LINE_SOLID_SINGLE_WHITE
+            cls.LINE_SOLID_DOUBLE_WHITE, cls.LINE_SOLID_DOUBLE_YELLOW,
+            cls.LINE_SOLID_SINGLE_YELLOW, cls.LINE_SOLID_SINGLE_WHITE
         ]
 
     @classmethod
@@ -151,7 +160,9 @@ class MetaDriveType:
         """
         This function relates to is_road_line.
         """
-        return edge in [cls.BOUNDARY_UNKNOWN, cls.BOUNDARY_LINE, cls.BOUNDARY_MEDIAN]
+        return edge in [
+            cls.BOUNDARY_UNKNOWN, cls.BOUNDARY_LINE, cls.BOUNDARY_MEDIAN
+        ]
 
     @classmethod
     def is_sidewalk(cls, edge):
@@ -187,7 +198,8 @@ class MetaDriveType:
 
     @classmethod
     def is_participant(cls, type):
-        return type in (cls.CYCLIST, cls.PEDESTRIAN, cls.VEHICLE, cls.UNSET, cls.OTHER)
+        return type in (cls.CYCLIST, cls.PEDESTRIAN, cls.VEHICLE, cls.UNSET,
+                        cls.OTHER)
 
     @classmethod
     def is_traffic_light_in_yellow(cls, light):
@@ -222,17 +234,27 @@ class MetaDriveType:
         """
         Convert status to red/yellow/green/unknown
         """
-        if status in [cls.LANE_STATE_UNKNOWN, cls.LANE_STATE_FLASHING_STOP, cls.LIGHT_UNKNOWN, None]:
+        if status in [
+                cls.LANE_STATE_UNKNOWN, cls.LANE_STATE_FLASHING_STOP,
+                cls.LIGHT_UNKNOWN, None
+        ]:
             return cls.LIGHT_UNKNOWN
-        elif status in [cls.LANE_STATE_ARROW_STOP, cls.LANE_STATE_STOP, cls.LIGHT_RED]:
+        elif status in [
+                cls.LANE_STATE_ARROW_STOP, cls.LANE_STATE_STOP, cls.LIGHT_RED
+        ]:
             return cls.LIGHT_RED
-        elif status in [cls.LANE_STATE_ARROW_CAUTION, cls.LANE_STATE_CAUTION, cls.LANE_STATE_FLASHING_CAUTION,
-                        cls.LIGHT_YELLOW]:
+        elif status in [
+                cls.LANE_STATE_ARROW_CAUTION, cls.LANE_STATE_CAUTION,
+                cls.LANE_STATE_FLASHING_CAUTION, cls.LIGHT_YELLOW
+        ]:
             return cls.LIGHT_YELLOW
-        elif status in [cls.LANE_STATE_ARROW_GO, cls.LANE_STATE_GO, cls.LIGHT_GREEN]:
+        elif status in [
+                cls.LANE_STATE_ARROW_GO, cls.LANE_STATE_GO, cls.LIGHT_GREEN
+        ]:
             return cls.LIGHT_GREEN
         else:
-            logger.warning("TrafficLightStatus: {} is not MetaDriveType".format(status))
+            logger.warning(
+                "TrafficLightStatus: {} is not MetaDriveType".format(status))
             return cls.LIGHT_UNKNOWN
 
     def __init__(self, type=None):

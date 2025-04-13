@@ -9,19 +9,24 @@ logger = get_logger()
 
 
 class LaneChangePolicy(EnvInputPolicy):
+
     def __init__(self, obj, seed):
         # Since control object may change
         super(LaneChangePolicy, self).__init__(obj, seed)
         self.discrete_action = self.engine.global_config["discrete_action"]
         assert self.discrete_action, "Must set discrete_action=True for using this control policy"
-        self.use_multi_discrete = self.engine.global_config["use_multi_discrete"]
+        self.use_multi_discrete = self.engine.global_config[
+            "use_multi_discrete"]
         self.steering_unit = 1.0
         self.throttle_unit = 2.0 / (
             self.engine.global_config["discrete_throttle_dim"] - 1
         )  # for discrete actions space
         self.discrete_steering_dim = 3  # only left or right
-        self.discrete_throttle_dim = self.engine.global_config["discrete_throttle_dim"]
-        logger.info("The discrete_steering_dim for {} is set to 3 [left, keep, right]".format(self.name))
+        self.discrete_throttle_dim = self.engine.global_config[
+            "discrete_throttle_dim"]
+        logger.info(
+            "The discrete_steering_dim for {} is set to 3 [left, keep, right]".
+            format(self.name))
 
         self.heading_pid = PIDController(1.7, 0.01, 3.5)
         self.lateral_pid = PIDController(0.3, .002, 0.05)
@@ -34,11 +39,12 @@ class LaneChangePolicy(EnvInputPolicy):
         if steering == 0.0:
             target_lane = current_lane
         elif steering == 1.0:
-            target_lane = self.control_object.navigation.current_ref_lanes[max(current_lane.index[-1] - 1, 0)]
+            target_lane = self.control_object.navigation.current_ref_lanes[max(
+                current_lane.index[-1] - 1, 0)]
         elif steering == -1.0:
             lane_num = len(self.control_object.navigation.current_ref_lanes)
-            target_lane = self.control_object.navigation.current_ref_lanes[
-                min(current_lane.index[-1] + 1, lane_num - 1)]
+            target_lane = self.control_object.navigation.current_ref_lanes[min(
+                current_lane.index[-1] + 1, lane_num - 1)]
         else:
             raise ValueError("Steering Error, can only be in [-1, 0, 1]")
         action = [self.steering_control(target_lane), throttle]
@@ -57,9 +63,11 @@ class LaneChangePolicy(EnvInputPolicy):
         discrete_steering_dim = 3
 
         if use_multi_discrete:
-            return gym.spaces.MultiDiscrete([discrete_steering_dim, discrete_throttle_dim])
+            return gym.spaces.MultiDiscrete(
+                [discrete_steering_dim, discrete_throttle_dim])
         else:
-            return gym.spaces.Discrete(discrete_steering_dim * discrete_throttle_dim)
+            return gym.spaces.Discrete(discrete_steering_dim *
+                                       discrete_throttle_dim)
 
     def steering_control(self, target_lane) -> float:
         # heading control following a lateral distance control
@@ -67,6 +75,7 @@ class LaneChangePolicy(EnvInputPolicy):
         long, lat = target_lane.local_coordinates(ego_vehicle.position)
         lane_heading = target_lane.heading_theta_at(long + 1)
         v_heading = ego_vehicle.heading_theta
-        steering = self.heading_pid.get_result(-wrap_to_pi(lane_heading - v_heading))
+        steering = self.heading_pid.get_result(-wrap_to_pi(lane_heading -
+                                                           v_heading))
         steering += self.lateral_pid.get_result(-lat)
         return float(steering)

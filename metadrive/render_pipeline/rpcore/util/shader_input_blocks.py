@@ -35,6 +35,7 @@ class SimpleInputBlock(RPObject):
     """ Simplest possible uniform buffer which just stores a set of values.
     This does not use any fancy uniform buffer objects under the hood, and
     instead just sets every value as a shader input. """
+
     def __init__(self, name):
         """ Creates the ubo with the given name """
         RPObject.__init__(self)
@@ -77,7 +78,8 @@ class GroupedInputBlock(RPObject):
         self.ptas = {}
         self._inputs = {}
         self.name = name
-        self.use_ubo = bool(TypeRegistry.ptr().find_type("GLUniformBufferContext"))
+        self.use_ubo = bool(
+            TypeRegistry.ptr().find_type("GLUniformBufferContext"))
 
         # Acquire a unique index for each UBO to store its binding
         self.bind_id = GroupedInputBlock.UBO_BINDING_INDEX
@@ -139,7 +141,8 @@ class GroupedInputBlock(RPObject):
 
             # Single input, simply add it to the input list
             if len(parts) == 1:
-                inputs.append(self.pta_to_glsl_type(handle) + " " + input_name + ";")
+                inputs.append(
+                    self.pta_to_glsl_type(handle) + " " + input_name + ";")
 
             # Nested input, like scattering.sun_color
             elif len(parts) == 2:
@@ -147,15 +150,23 @@ class GroupedInputBlock(RPObject):
                 actual_input_name = parts[1]
                 if struct_name in structs:
                     # Struct is already defined, add member definition
-                    structs[struct_name].append(self.pta_to_glsl_type(handle) + " " + actual_input_name + ";")
+                    structs[struct_name].append(
+                        self.pta_to_glsl_type(handle) + " " +
+                        actual_input_name + ";")
                 else:
                     # Construct a new struct and add it to the list of inputs
-                    inputs.append(struct_name + "_UBOSTRUCT " + struct_name + ";")
-                    structs[struct_name] = [self.pta_to_glsl_type(handle) + " " + actual_input_name + ";"]
+                    inputs.append(struct_name + "_UBOSTRUCT " + struct_name +
+                                  ";")
+                    structs[struct_name] = [
+                        self.pta_to_glsl_type(handle) + " " +
+                        actual_input_name + ";"
+                    ]
 
             # Nested input, like scattering.some_setting.sun_color, not supported yet
             else:
-                self.warn("Structure definition too nested, not supported (yet):", input_name)
+                self.warn(
+                    "Structure definition too nested, not supported (yet):",
+                    input_name)
 
         # Add structures
         for struct_name, members in iteritems(structs):
@@ -170,7 +181,8 @@ class GroupedInputBlock(RPObject):
         else:
             if self.use_ubo:
 
-                content += "layout(shared, binding={}) uniform {}_UBO {{\n".format(self.bind_id, self.name)
+                content += "layout(shared, binding={}) uniform {}_UBO {{\n".format(
+                    self.bind_id, self.name)
                 for ipt in inputs:
                     content += " " * 4 + ipt + "\n"
                 content += "} " + self.name + ";\n"

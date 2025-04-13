@@ -37,6 +37,7 @@ from metadrive.render_pipeline.rpcore.native import GPUCommand, GPUCommandList
 class GPUCommandQueue(RPObject):
     """ This class offers an interface to the gpu, allowing commands to be
     pushed to a queue which then get executed on the gpu """
+
     def __init__(self, pipeline):
         RPObject.__init__(self)
         self._pipeline = pipeline
@@ -74,14 +75,15 @@ class GPUCommandQueue(RPObject):
     def process_queue(self):
         """ Processes the n first commands of the queue """
         pointer = self._data_texture.modify_ram_image()
-        num_commands_exec = self._command_list.write_commands_to(pointer, self._commands_per_frame)
+        num_commands_exec = self._command_list.write_commands_to(
+            pointer, self._commands_per_frame)
         self._pta_num_commands[0] = num_commands_exec
 
     def reload_shaders(self):
         """ Reloads the command shader """
         shader = RPLoader.load_shader(
-            "/$$rp/shader/default_post_process.vert.glsl", "/$$rp/shader/process_command_queue.frag.glsl"
-        )
+            "/$$rp/shader/default_post_process.vert.glsl",
+            "/$$rp/shader/process_command_queue.frag.glsl")
         self._command_target.shader = shader
 
     def register_input(self, key, val):
@@ -102,11 +104,14 @@ class GPUCommandQueue(RPObject):
         """ Creates the buffer used to transfer commands """
         command_buffer_size = self._commands_per_frame * 32
         self.debug("Allocating command buffer of size", command_buffer_size)
-        self._data_texture = Image.create_buffer("CommandQueue", command_buffer_size, "R32")
+        self._data_texture = Image.create_buffer("CommandQueue",
+                                                 command_buffer_size, "R32")
 
     def _create_command_target(self):
         """ Creates the target which processes the commands """
         self._command_target = RenderTarget("ExecCommandTarget")
         self._command_target.size = 1, 1
         self._command_target.prepare_buffer()
-        self._command_target.set_shader_inputs(CommandQueue=self._data_texture, commandCount=self._pta_num_commands)
+        self._command_target.set_shader_inputs(
+            CommandQueue=self._data_texture,
+            commandCount=self._pta_num_commands)

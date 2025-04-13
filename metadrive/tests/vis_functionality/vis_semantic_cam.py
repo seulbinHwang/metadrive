@@ -17,24 +17,22 @@ if __name__ == "__main__":
         # rgb_cam.save_image(env.agent, "rgb_{}.jpg".format(h))
         # env.engine.screenshot()
 
-    env = ScenarioEnv(
-        {
-            "use_render": True,
-            "image_observation": False,
-            "num_scenarios": 10,
-            "debug": True,
-            "debug_static_world": True,
-            "norm_pixel": True,
-            "show_interface": True,
-            "show_sidewalk": True,
-            "show_crosswalk": True,
-            "agent_policy": ReplayEgoCarPolicy,
-            "interface_panel": ["semantic_camera"],
-            "sensors": dict(semantic_camera=(SemanticCamera, 800, 600)),
-            "vehicle_config": dict(image_source="semantic_camera"),
-            "data_directory": AssetLoader.file_path("nuscenes", unix_style=False),
-        }
-    )
+    env = ScenarioEnv({
+        "use_render": True,
+        "image_observation": False,
+        "num_scenarios": 10,
+        "debug": True,
+        "debug_static_world": True,
+        "norm_pixel": True,
+        "show_interface": True,
+        "show_sidewalk": True,
+        "show_crosswalk": True,
+        "agent_policy": ReplayEgoCarPolicy,
+        "interface_panel": ["semantic_camera"],
+        "sensors": dict(semantic_camera=(SemanticCamera, 800, 600)),
+        "vehicle_config": dict(image_source="semantic_camera"),
+        "data_directory": AssetLoader.file_path("nuscenes", unix_style=False),
+    })
     start = time.time()
     env.reset(seed=0)
     print(time.time() - start)

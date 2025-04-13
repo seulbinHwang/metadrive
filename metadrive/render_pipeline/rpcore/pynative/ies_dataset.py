@@ -33,6 +33,7 @@ from panda3d.core import PNMImage
 class IESDataset(object):
     """ Please refer to the native C++ implementation for docstrings and comments.
     This is just the python implementation, which does not contain documentation! """
+
     def __init__(self):
         self._vertical_angles = None
         self._horizontal_angles = None
@@ -69,15 +70,18 @@ class IESDataset(object):
         # generate much faster.
         return self.get_vertical_candela_value(0, vertical_angle)
 
-    def get_candela_value_from_index(self, vertical_angle_idx, horizontal_angle_idx):
-        index = vertical_angle_idx + horizontal_angle_idx * len(self._vertical_angles)
+    def get_candela_value_from_index(self, vertical_angle_idx,
+                                     horizontal_angle_idx):
+        index = vertical_angle_idx + horizontal_angle_idx * len(
+            self._vertical_angles)
         return self._candela_values[index]
 
     def get_vertical_candela_value(self, horizontal_angle_idx, vertical_angle):
         if vertical_angle < 0.0:
             return 0.0
 
-        if vertical_angle > self._vertical_angles[len(self._vertical_angles) - 1]:
+        if vertical_angle > self._vertical_angles[len(self._vertical_angles) -
+                                                  1]:
             return 0.0
 
         for vertical_index in range(1, len(self._vertical_angles)):
@@ -85,8 +89,10 @@ class IESDataset(object):
 
             if curr_angle > vertical_angle:
                 prev_angle = self._vertical_angles[vertical_index - 1]
-                prev_value = self.get_candela_value_from_index(vertical_index - 1, horizontal_angle_idx)
-                curr_value = self.get_candela_value_from_index(vertical_index, horizontal_angle_idx)
+                prev_value = self.get_candela_value_from_index(
+                    vertical_index - 1, horizontal_angle_idx)
+                curr_value = self.get_candela_value_from_index(
+                    vertical_index, horizontal_angle_idx)
                 lerp = (vertical_angle - prev_angle) / (curr_angle - prev_angle)
                 assert lerp >= 0.0 and lerp <= 1.0
                 return curr_value * lerp + prev_value * (1.0 - lerp)

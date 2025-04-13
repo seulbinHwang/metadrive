@@ -9,32 +9,30 @@ from metadrive.utils import setup_logger
 
 if __name__ == "__main__":
     setup_logger(True)
-    env = MetaDriveEnv(
-        {
-            "num_scenarios": 10,
-            "traffic_density": 0.2,
-            "traffic_mode": "hybrid",
-            "start_seed": 22,
-            "debug": True,
-            "manual_control": True,
-            "use_render": True,
-            "decision_repeat": 5,
-            "interface_panel": [MiniMap, DashBoard, RGBCamera],
-            "need_inverse_traffic": False,
-            "norm_pixel": True,
-            "map": "SSS",
-            # "agent_policy": IDMPolicy,
-            "random_traffic": False,
-            "random_lane_width": True,
-            "random_agent_model": True,
-            "driving_reward": 1.0,
-            "force_destroy": False,
-            "show_interface": False,
-            "vehicle_config": {
-                "enable_reverse": False,
-            },
-        }
-    )
+    env = MetaDriveEnv({
+        "num_scenarios": 10,
+        "traffic_density": 0.2,
+        "traffic_mode": "hybrid",
+        "start_seed": 22,
+        "debug": True,
+        "manual_control": True,
+        "use_render": True,
+        "decision_repeat": 5,
+        "interface_panel": [MiniMap, DashBoard, RGBCamera],
+        "need_inverse_traffic": False,
+        "norm_pixel": True,
+        "map": "SSS",
+        # "agent_policy": IDMPolicy,
+        "random_traffic": False,
+        "random_lane_width": True,
+        "random_agent_model": True,
+        "driving_reward": 1.0,
+        "force_destroy": False,
+        "show_interface": False,
+        "vehicle_config": {
+            "enable_reverse": False,
+        },
+    })
     import time
 
     start = time.time()
@@ -76,5 +74,4 @@ if __name__ == "__main__":
                 "lane_width": env.agent.lane.width,
                 "lateral": env.agent.lane.local_coordinates(env.agent.position),
                 "current_seed": env.current_seed
-            }
-        )
+            })

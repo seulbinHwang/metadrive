@@ -22,6 +22,7 @@ from . import spec
 
 
 class GeomMixin(object):
+
     def _get_joints(self, gltf_node):
         results = {}
 
@@ -42,63 +43,58 @@ class GeomMixin(object):
             },
         }
 
-        channel = self._buffer.add_channel(
-            {
-                # 'componentType': spec.TYPE_UNSIGNED_SHORT,
-                'componentType': spec.TYPE_UNSIGNED_INT,
-                'type': 'SCALAR',
-                'extras': {
-                    'reference': 'indices',
-                },
-            }
-        )
+        channel = self._buffer.add_channel({
+            # 'componentType': spec.TYPE_UNSIGNED_SHORT,
+            'componentType': spec.TYPE_UNSIGNED_INT,
+            'type': 'SCALAR',
+            'extras': {
+                'reference': 'indices',
+            },
+        })
         gltf_primitive['indices'] = channel['bufferView']
 
         if gltf_mesh['primitives'] and not self._split_primitives:
-            gltf_primitive['attributes'] = gltf_mesh['primitives'][0]['attributes']
+            gltf_primitive['attributes'] = gltf_mesh['primitives'][0][
+                'attributes']
             if 'targets' in gltf_mesh['primitives'][0]:
-                gltf_primitive['targets'] = gltf_mesh['primitives'][0]['targets']
+                gltf_primitive['targets'] = gltf_mesh['primitives'][0][
+                    'targets']
 
         else:
-            channel = self._buffer.add_channel(
-                {
-                    'componentType': spec.TYPE_FLOAT,
-                    'type': 'VEC3',
-                    'extras': {
-                        'reference': 'NORMAL',
-                    },
-                }
-            )
+            channel = self._buffer.add_channel({
+                'componentType': spec.TYPE_FLOAT,
+                'type': 'VEC3',
+                'extras': {
+                    'reference': 'NORMAL',
+                },
+            })
             gltf_primitive['attributes']['NORMAL'] = channel['bufferView']
 
-            channel = self._buffer.add_channel(
-                {
-                    'componentType': spec.TYPE_FLOAT,
-                    'type': 'VEC3',
-                    'extras': {
-                        'reference': 'POSITION',
-                    },
-                }
-            )
+            channel = self._buffer.add_channel({
+                'componentType': spec.TYPE_FLOAT,
+                'type': 'VEC3',
+                'extras': {
+                    'reference': 'POSITION',
+                },
+            })
             gltf_primitive['attributes']['POSITION'] = channel['bufferView']
 
-            for sk_id, sk_name in enumerate(gltf_primitive['extras']['targetNames']):
+            for sk_id, sk_name in enumerate(
+                    gltf_primitive['extras']['targetNames']):
                 gltf_target = {
                     # '_extras': {
                     #     'name': sk_name,
                     # },
                 }
 
-                channel = self._buffer.add_channel(
-                    {
-                        'componentType': spec.TYPE_FLOAT,
-                        'type': 'VEC3',
-                        'extras': {
-                            'reference': 'POSITION',
-                            'target': sk_name,
-                        },
-                    }
-                )
+                channel = self._buffer.add_channel({
+                    'componentType': spec.TYPE_FLOAT,
+                    'type': 'VEC3',
+                    'extras': {
+                        'reference': 'POSITION',
+                        'target': sk_name,
+                    },
+                })
                 gltf_target['POSITION'] = channel['bufferView']
 
                 if 'targets' not in gltf_primitive:
@@ -135,7 +131,8 @@ class GeomMixin(object):
                     continue
 
                 # material
-                for i, child in enumerate(self._root['materials']):  # existing material
+                for i, child in enumerate(
+                        self._root['materials']):  # existing material
                     if child['name'] == material.name:
                         gltf_materials[material.name] = i
                         break
@@ -143,13 +140,16 @@ class GeomMixin(object):
                     gltf_material = self.make_material(material)
                     self._root['materials'].append(gltf_material)
 
-                    gltf_materials[material.name] = len(self._root['materials']) - 1
+                    gltf_materials[material.name] = len(
+                        self._root['materials']) - 1
 
                 # textures
                 if not self._no_textures:
-                    for type_, gltf_sampler, gltf_image in self.make_textures(material):
+                    for type_, gltf_sampler, gltf_image in self.make_textures(
+                            material):
                         tname = gltf_image['name']
-                        for i, child in enumerate(self._root['images']):  # existing texture
+                        for i, child in enumerate(
+                                self._root['images']):  # existing texture
                             if child['name'] == tname:
                                 texid = i
                                 break
@@ -188,7 +188,8 @@ class GeomMixin(object):
                     matid = gltf_primitive['material']
                     mname = self._root['materials'][matid]['name']
                 gltf_primitives[mname] = gltf_primitive
-                gltf_primitive_indices[mname] = gltf_primitive['extras']['highest_index']
+                gltf_primitive_indices[mname] = gltf_primitive['extras'][
+                    'highest_index']
 
         gltf_vertices = {}
 
@@ -267,17 +268,21 @@ class GeomMixin(object):
                 use_smooth = (
                     polygon.use_smooth and
                     # vertex_id not in sharp_vertices and
-                    not is_collision(obj)
-                )
+                    not is_collision(obj))
 
                 # try to reuse shared vertices
                 if mname not in gltf_vertices:
                     gltf_vertices[mname] = {}
-                if (polygon.use_smooth and vertex_id in gltf_vertices[mname] and not is_collision(obj)):
+                if (polygon.use_smooth and vertex_id in gltf_vertices[mname] and
+                        not is_collision(obj)):
                     shared = False
-                    for gltf_vertex_index, gltf_vertex_uv, gltf_vertex_normal in gltf_vertices[mname][vertex_id]:
-                        if self.can_share_vertex(mesh, vertex, loop_id, gltf_vertex_uv, gltf_vertex_normal):
-                            self._buffer.write(gltf_primitive['indices'], gltf_vertex_index)
+                    for gltf_vertex_index, gltf_vertex_uv, gltf_vertex_normal in gltf_vertices[
+                            mname][vertex_id]:
+                        if self.can_share_vertex(mesh, vertex, loop_id,
+                                                 gltf_vertex_uv,
+                                                 gltf_vertex_normal):
+                            self._buffer.write(gltf_primitive['indices'],
+                                               gltf_vertex_index)
                             shared = True
                             break
                     if shared:
@@ -289,22 +294,21 @@ class GeomMixin(object):
                     can_merge_vertices = True
                 elif is_collision(obj):
                     can_merge_vertices = False
-                self.make_vertex(
-                    obj_matrix,
-                    gltf_primitive,
-                    mesh,
-                    polygon,
-                    vertex,
-                    vertex_id,
-                    loop_id,
-                    use_smooth=use_smooth,
-                    can_merge=can_merge_vertices
-                )
+                self.make_vertex(obj_matrix,
+                                 gltf_primitive,
+                                 mesh,
+                                 polygon,
+                                 vertex,
+                                 vertex_id,
+                                 loop_id,
+                                 use_smooth=use_smooth,
+                                 can_merge=can_merge_vertices)
 
                 # uv layers, active first
                 active_uv = 0, 0
                 if not is_collision(obj):
-                    uv_layers = sorted(mesh.uv_layers.items(), key=lambda x: not x[1].active)
+                    uv_layers = sorted(mesh.uv_layers.items(),
+                                       key=lambda x: not x[1].active)
                     for uv_id, (uv_name, uv_layer) in enumerate(uv_layers):
                         # <-- vertex uv
                         uv_loop = uv_layer.data[loop_id]
@@ -318,9 +322,10 @@ class GeomMixin(object):
                             active_uv = u, v
                         self._write_uv(gltf_primitive, uv_id, u, v)
                         if uv_name in uv_tb and uv_layer.active:
-                            self._write_tbs(
-                                obj_matrix, gltf_primitive, *uv_tb[uv_name][loop_id], can_merge=can_merge_vertices
-                            )
+                            self._write_tbs(obj_matrix,
+                                            gltf_primitive,
+                                            *uv_tb[uv_name][loop_id],
+                                            can_merge=can_merge_vertices)
                         # vertex uv -->
 
                 # generate new ID, add vertex and save last ID
@@ -331,23 +336,24 @@ class GeomMixin(object):
                 else:
                     idx = gltf_mesh_vertices_index
                 self._buffer.write(gltf_primitive['indices'], idx)
-                gltf_primitive['extras']['highest_index'] = gltf_primitive_indices[mname]
+                gltf_primitive['extras'][
+                    'highest_index'] = gltf_primitive_indices[mname]
 
                 # save vertex data for sharing
                 if vertex_id not in gltf_vertices[mname]:
                     gltf_vertices[mname][vertex_id] = []
-                gltf_vertices[mname][vertex_id].append(
-                    (
-                        idx,
-                        active_uv,
-                        mesh.loops[loop_id].normal if use_smooth else polygon.normal,
-                    )
-                )
+                gltf_vertices[mname][vertex_id].append((
+                    idx,
+                    active_uv,
+                    mesh.loops[loop_id].normal
+                    if use_smooth else polygon.normal,
+                ))
 
                 # attach joints to vertex
                 if gltf_joints:
                     joints_weights = []
-                    vertex_groups = reversed(sorted(vertex.groups, key=lambda vg: vg.weight))
+                    vertex_groups = reversed(
+                        sorted(vertex.groups, key=lambda vg: vg.weight))
                     for vertex_group in vertex_groups:
                         obj_vertex_group = obj.vertex_groups[vertex_group.group]
 
@@ -368,7 +374,8 @@ class GeomMixin(object):
                         joints_weights.append([joint_id, 1])
 
                     # padding
-                    while ((len(joints_weights) % 4 != 0) or (len(joints_weights) < max_joint_layers * 4)):
+                    while ((len(joints_weights) % 4 != 0) or
+                           (len(joints_weights) < max_joint_layers * 4)):
                         joints_weights.append([0, 0])
 
                     # limit by max joints
@@ -394,7 +401,9 @@ class GeomMixin(object):
                         group = joints_weights[j * 4:j * 4 + 4]
                         joints_weights_groups.append(group)
 
-                    self._write_joints_weights(gltf_primitive, len(tuple(gltf_joints.keys())), joints_weights_groups)
+                    self._write_joints_weights(gltf_primitive,
+                                               len(tuple(gltf_joints.keys())),
+                                               joints_weights_groups)
 
                 # vertex -->
             # polygon -->

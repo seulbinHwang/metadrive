@@ -115,7 +115,8 @@ def find_longest_parallel_edges(polygon: Union[shapely.geometry.Polygon, list]):
 
     edges = []
     longest_parallel_edges = None
-    coords = list(polygon.exterior.coords) if isinstance(polygon, shapely.geometry.Polygon) else polygon
+    coords = list(polygon.exterior.coords) if isinstance(
+        polygon, shapely.geometry.Polygon) else polygon
 
     # Extract the edges from the polygon
     for i in range(len(coords) - 1):
@@ -131,7 +132,8 @@ def find_longest_parallel_edges(polygon: Union[shapely.geometry.Polygon, list]):
         # Check if the slopes are equal (or both are vertical)
         if abs(slope1 - slope2) < 0.5:
             max_len = max(length(edge1), length(edge2))
-            if longest_parallel_edges is None or max_len > longest_parallel_edges[-1]:
+            if longest_parallel_edges is None or max_len > longest_parallel_edges[
+                    -1]:
                 longest_parallel_edges = ((edge1, edge2), max_len)
 
     if longest_parallel_edges:
@@ -150,7 +152,8 @@ def find_longest_edge(polygon: Union[shapely.geometry.Polygon, list]):
     Returns: the longest edge
 
     """
-    coords = list(polygon.exterior.coords) if isinstance(polygon, shapely.geometry.Polygon) else polygon
+    coords = list(polygon.exterior.coords) if isinstance(
+        polygon, shapely.geometry.Polygon) else polygon
     edges = []
     # Extract the edges from the polygon
     for i in range(len(coords) - 1):
@@ -161,17 +164,14 @@ def find_longest_edge(polygon: Union[shapely.geometry.Polygon, list]):
 
 
 if __name__ == '__main__':
-    polygon = Polygon(
-        [
-            [356.83858017, -234.46019451], [355.12995531, -239.44667613], [358.76606674, -240.73795931],
-            [360.27632766, -235.80099687], [356.83858017, -234.46019451]
-        ]
-    )
+    polygon = Polygon([[356.83858017, -234.46019451],
+                       [355.12995531, -239.44667613],
+                       [358.76606674, -240.73795931],
+                       [360.27632766, -235.80099687],
+                       [356.83858017, -234.46019451]])
     parallel_edges = find_longest_parallel_edges(polygon)
     assert parallel_edges == [
-        (
-            ((355.12995531, -239.44667613), (358.76606674, -240.73795931)),
-            ((360.27632766, -235.80099687), (356.83858017, -234.46019451))
-        )
+        (((355.12995531, -239.44667613), (358.76606674, -240.73795931)),
+         ((360.27632766, -235.80099687), (356.83858017, -234.46019451)))
     ]
     print(parallel_edges)

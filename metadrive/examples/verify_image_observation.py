@@ -18,7 +18,10 @@ import os
 from metadrive.policy.idm_policy import IDMPolicy
 
 
-def _test_rgb_camera_as_obs(render=False, image_on_cuda=True, debug=False, camera="main"):
+def _test_rgb_camera_as_obs(render=False,
+                            image_on_cuda=True,
+                            debug=False,
+                            camera="main"):
     res = (800, 600)
     mapping = {
         "depth": {
@@ -50,19 +53,17 @@ def _test_rgb_camera_as_obs(render=False, image_on_cuda=True, debug=False, camer
             show_interface=False,
             show_logo=False,
             show_fps=False,
-        )
-    )
-    print(
-        "Use {} with resolution {}".format(
-            env.config["vehicle_config"]["image_source"],
-            (env.observation_space["image"].shape[0], env.observation_space["image"].shape[1])
-        )
-    )
+        ))
+    print("Use {} with resolution {}".format(
+        env.config["vehicle_config"]["image_source"],
+        (env.observation_space["image"].shape[0],
+         env.observation_space["image"].shape[1])))
     o, i = env.reset()
 
     # for debug
     if debug:
-        ret = o["image"].get()[..., -1] if env.config["image_on_cuda"] else o["image"][..., -1]
+        ret = o["image"].get()[
+            ..., -1] if env.config["image_on_cuda"] else o["image"][..., -1]
         cv2.imwrite("reset_frame.png", ret * 255)
 
     action = [0.0, 0.1]
@@ -81,15 +82,17 @@ def _test_rgb_camera_as_obs(render=False, image_on_cuda=True, debug=False, camer
         if debug:
             cv2.imwrite(
                 "{}_frame.png".format(i),
-                (o["image"].get()[..., -1] if env.config["image_on_cuda"] else o["image"][..., -1]) * 255
-            )
+                (o["image"].get()[..., -1]
+                 if env.config["image_on_cuda"] else o["image"][..., -1]) * 255)
 
         if render:
-            ret = o["image"].get()[..., -1] if env.config["image_on_cuda"] else o["image"][..., -1]
+            ret = o["image"].get()[
+                ..., -1] if env.config["image_on_cuda"] else o["image"][..., -1]
             cv2.imshow("window", ret)
             cv2.waitKey(1)
         if d:
-            print("FPS: {}".format((i - fps_cal_start_frame) / (time.time() - start)))
+            print("FPS: {}".format(
+                (i - fps_cal_start_frame) / (time.time() - start)))
             break
 
 
@@ -98,12 +101,16 @@ if __name__ == "__main__":
     parser.add_argument("--render", action="store_true")
     parser.add_argument("--cuda", action="store_true")
     parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--camera", default="main", choices=["main", "rgb", "depth", "semantic"])
+    parser.add_argument("--camera",
+                        default="main",
+                        choices=["main", "rgb", "depth", "semantic"])
     args = parser.parse_args()
     if args.cuda:
         assert torch_available, "You have to install torch to use CUDA"
-    _test_rgb_camera_as_obs(args.render, image_on_cuda=args.cuda, debug=args.debug, camera=args.camera)
+    _test_rgb_camera_as_obs(args.render,
+                            image_on_cuda=args.cuda,
+                            debug=args.debug,
+                            camera=args.camera)
     print(
         "Test Successful !! The FPS should go beyond 400 FPS, if you are using CUDA in offscreen mode "
-        "with GPUs better than RTX 3060."
-    )
+        "with GPUs better than RTX 3060.")

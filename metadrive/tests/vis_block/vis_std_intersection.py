@@ -16,7 +16,8 @@ if __name__ == "__main__":
     intersection.construct_block(test.render, test.world)
     id = 4
     for socket_idx in range(intersection.SOCKET_NUM):
-        block = StdTInterSection(id, intersection.get_socket(socket_idx), global_network, id)
+        block = StdTInterSection(id, intersection.get_socket(socket_idx),
+                                 global_network, id)
         block.construct_block(test.render, test.world)
         id += 1
     test.show_bounding_box(global_network)

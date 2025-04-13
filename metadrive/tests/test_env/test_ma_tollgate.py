@@ -33,7 +33,8 @@ def _check_shape(env):
     c = set(env.action_space.spaces.keys())
     d = set(env.agents.keys())
     e = set(env.engine.agents.keys())
-    f = set([k for k in env.observation_space.spaces.keys() if not env.dones[k]])
+    f = set(
+        [k for k in env.observation_space.spaces.keys() if not env.dones[k]])
     assert d == e == f, (b, c, d, e, f)
     assert c.issuperset(d)
     _check_space(env)
@@ -62,7 +63,8 @@ def _act(env, action):
     _check_shape(env)
     if not terminated["__all__"]:
         assert len(env.agents) > 0
-    if not (set(obs.keys()) == set(reward.keys()) == set(env.observation_space.spaces.keys())):
+    if not (set(obs.keys()) == set(reward.keys()) == set(
+            env.observation_space.spaces.keys())):
         raise ValueError
     assert env.observation_space.contains(obs)
     assert isinstance(reward, dict)
@@ -73,15 +75,53 @@ def _act(env, action):
 
 
 def test_ma_toll_env():
-    for env in [MultiAgentTollgateEnv({"delay_done": 0, "num_agents": 1, "vehicle_config": {"lidar": {"num_others": 8}}}
-                                      ), MultiAgentTollgateEnv({"num_agents": 1, "delay_done": 0,
-                                                                "vehicle_config": {"lidar": {"num_others": 0}}}),
-                MultiAgentTollgateEnv({"num_agents": 4, "delay_done": 0,
-                                       "vehicle_config": {"lidar": {"num_others": 8}}}),
-                MultiAgentTollgateEnv({"num_agents": 4, "delay_done": 0,
-                                       "vehicle_config": {"lidar": {"num_others": 0}}}),
-                MultiAgentTollgateEnv({"num_agents": 8, "delay_done": 0,
-                                       "vehicle_config": {"lidar": {"num_others": 0}}})]:
+    for env in [
+            MultiAgentTollgateEnv({
+                "delay_done": 0,
+                "num_agents": 1,
+                "vehicle_config": {
+                    "lidar": {
+                        "num_others": 8
+                    }
+                }
+            }),
+            MultiAgentTollgateEnv({
+                "num_agents": 1,
+                "delay_done": 0,
+                "vehicle_config": {
+                    "lidar": {
+                        "num_others": 0
+                    }
+                }
+            }),
+            MultiAgentTollgateEnv({
+                "num_agents": 4,
+                "delay_done": 0,
+                "vehicle_config": {
+                    "lidar": {
+                        "num_others": 8
+                    }
+                }
+            }),
+            MultiAgentTollgateEnv({
+                "num_agents": 4,
+                "delay_done": 0,
+                "vehicle_config": {
+                    "lidar": {
+                        "num_others": 0
+                    }
+                }
+            }),
+            MultiAgentTollgateEnv({
+                "num_agents": 8,
+                "delay_done": 0,
+                "vehicle_config": {
+                    "lidar": {
+                        "num_others": 0
+                    }
+                }
+            })
+    ]:
         try:
             _check_spaces_before_reset(env)
             obs, _ = env.reset()
@@ -100,21 +140,21 @@ def test_ma_toll_env():
 
 def test_ma_toll_horizon():
     # test horizon
-    for _ in range(10):  # This function is really easy to break, repeat multiple times!
-        env = MultiAgentTollgateEnv(
-            {
-                "horizon": 100,
-                "num_agents": 4,
-                "vehicle_config": {
-                    "lidar": {
-                        "num_others": 2
-                    }
-                },
-                "out_of_road_penalty": 777,
-                "out_of_road_cost": 778,
-                "crash_done": False
-            }
-        )
+    for _ in range(
+            10
+    ):  # This function is really easy to break, repeat multiple times!
+        env = MultiAgentTollgateEnv({
+            "horizon": 100,
+            "num_agents": 4,
+            "vehicle_config": {
+                "lidar": {
+                    "num_others": 2
+                }
+            },
+            "out_of_road_penalty": 777,
+            "out_of_road_cost": 778,
+            "crash_done": False
+        })
         try:
             _check_spaces_before_reset(env)
             obs, _ = env.reset()
@@ -142,7 +182,8 @@ def test_ma_toll_horizon():
                         assert i[kkk]["out_of_road"]
 
                 for kkk, iii in i.items():
-                    if "out_of_road" in iii and (iii["out_of_road"] or iii["cost"] == 778):
+                    if "out_of_road" in iii and (iii["out_of_road"] or
+                                                 iii["cost"] == 778):
                         assert tm[kkk]
                         assert i[kkk]["cost"] == 778
                         assert i[kkk]["out_of_road"]
@@ -182,7 +223,11 @@ def test_ma_toll_reset():
         env.close()
 
     # Put vehicles to destination and then reset. This might cause error if agent is assigned destination BEFORE reset.
-    env = MultiAgentTollgateEnv({"horizon": 100, "num_agents": 32, "success_reward": 777})
+    env = MultiAgentTollgateEnv({
+        "horizon": 100,
+        "num_agents": 32,
+        "success_reward": 777
+    })
     try:
         _check_spaces_before_reset(env)
         success_count = 0
@@ -207,12 +252,13 @@ def test_ma_toll_reset():
                     pos = v.position
                     np.testing.assert_almost_equal(pos, loc, decimal=3)
                     new_loc = v.navigation.final_lane.end
-                    long, lat = v.navigation.final_lane.local_coordinates(v.position)
-                    flag1 = (v.navigation.final_lane.length - 5 < long < v.navigation.final_lane.length + 5)
-                    flag2 = (
-                        v.navigation.get_current_lane_width() / 2 >= lat >=
-                        (0.5 - v.navigation.get_current_lane_num()) * v.navigation.get_current_lane_width()
-                    )
+                    long, lat = v.navigation.final_lane.local_coordinates(
+                        v.position)
+                    flag1 = (v.navigation.final_lane.length - 5 < long <
+                             v.navigation.final_lane.length + 5)
+                    flag2 = (v.navigation.get_current_lane_width() / 2 >= lat >=
+                             (0.5 - v.navigation.get_current_lane_num()) *
+                             v.navigation.get_current_lane_width())
                     # if not env._is_arrive_destination(v):
                     # print('sss')
                     assert env._is_arrive_destination(v)
@@ -248,25 +294,25 @@ def test_ma_toll_reset():
 
 
 def test_ma_toll_close_spawn():
+
     def _no_close_spawn(vehicles):
         vehicles = list(vehicles.values())
         for c1, v1 in enumerate(vehicles):
             for c2 in range(c1 + 1, len(vehicles)):
                 v2 = vehicles[c2]
-                dis = norm(v1.position[0] - v2.position[0], v1.position[1] - v2.position[1])
+                dis = norm(v1.position[0] - v2.position[0],
+                           v1.position[1] - v2.position[1])
                 assert distance_greater(v1.position, v2.position, length=2.2)
 
     MultiAgentTollgateEnv._DEBUG_RANDOM_SEED = 1
-    env = MultiAgentTollgateEnv(
-        {
-            # "use_render": True,
-            "horizon": 50,
-            "num_agents": 12,
-            "map_config": {
-                "exit_length": 30
-            }
+    env = MultiAgentTollgateEnv({
+        # "use_render": True,
+        "horizon": 50,
+        "num_agents": 12,
+        "map_config": {
+            "exit_length": 30
         }
-    )
+    })
     env.seed(100)
     try:
         _check_spaces_before_reset(env)
@@ -274,7 +320,8 @@ def test_ma_toll_close_spawn():
             obs, _ = env.reset()
             _check_spaces_after_reset(env)
             for _ in range(10):
-                o, r, tm, tc, i = env.step({k: [0, 0] for k in env.agents.keys()})
+                o, r, tm, tc, i = env.step(
+                    {k: [0, 0] for k in env.agents.keys()})
                 assert not any(tm.values())
             _no_close_spawn(env.agents)
             # print('Finish {} resets.'.format(num_r))
@@ -285,7 +332,12 @@ def test_ma_toll_close_spawn():
 
 def test_ma_toll_reward_done_alignment_1():
     # out of road
-    env = MultiAgentTollgateEnv({"horizon": 200, "num_agents": 4, "out_of_road_penalty": 777, "crash_done": False})
+    env = MultiAgentTollgateEnv({
+        "horizon": 200,
+        "num_agents": 4,
+        "out_of_road_penalty": 777,
+        "crash_done": False
+    })
     try:
         _check_spaces_before_reset(env)
         obs, _ = env.reset()
@@ -296,7 +348,8 @@ def test_ma_toll_reward_done_alignment_1():
                 act = {k: [action, 1] for k in env.agents.keys()}
                 o, r, tm, tc, i = _act(env, act)
                 for kkk, ddd in tm.items():
-                    if ddd and kkk != "__all__" and not tm["__all__"] and not i[kkk]["max_step"]:
+                    if ddd and kkk != "__all__" and not tm["__all__"] and not i[
+                            kkk]["max_step"]:
                         if r[kkk] != -777:
                             raise ValueError
                         # assert r[kkk] == -777
@@ -314,19 +367,17 @@ def test_ma_toll_reward_done_alignment_1():
         env.close()
 
     # crash
-    env = MultiAgentTollgateEnv(
-        {
-            "horizon": 100,
-            "num_agents": 2,
-            "crash_vehicle_penalty": 1.7777,
-            "crash_done": True,
-            "delay_done": 0,
+    env = MultiAgentTollgateEnv({
+        "horizon": 100,
+        "num_agents": 2,
+        "crash_vehicle_penalty": 1.7777,
+        "crash_done": True,
+        "delay_done": 0,
 
-            # "use_render": True,
-            #
-            "top_down_camera_initial_z": 160
-        }
-    )
+        # "use_render": True,
+        #
+        "top_down_camera_initial_z": 160
+    })
     # Force the seed here so that the agent1 and agent2 are in same heading! Otherwise they might be in vertical
     # heading and cause one of the vehicle raise "out of road" error!
     env._DEBUG_RANDOM_SEED = 1
@@ -337,7 +388,8 @@ def test_ma_toll_reward_done_alignment_1():
         for step in range(5):
             act = {k: [0, 0] for k in env.agents.keys()}
             o, r, tm, tc, i = _act(env, act)
-        env.agents["agent0"].set_position(env.agents["agent1"].position, height=1.2)
+        env.agents["agent0"].set_position(env.agents["agent1"].position,
+                                          height=1.2)
         for step in range(5000):
             act = {k: [0, 0] for k in env.agents.keys()}
             o, r, tm, tc, i = _act(env, act)
@@ -378,20 +430,18 @@ def test_ma_toll_reward_done_alignment_1():
 
 def test_ma_toll_reward_done_alignment_2():
     # crash 2
-    env = MultiAgentTollgateEnv(
-        {
-            "map_config": {
-                "exit_length": 110,
-                "lane_num": 1
-            },
-            # "use_render": True,
-            #
-            "horizon": 200,
-            "num_agents": 24,
-            "crash_vehicle_penalty": 1.7777,
-            "crash_done": False
-        }
-    )
+    env = MultiAgentTollgateEnv({
+        "map_config": {
+            "exit_length": 110,
+            "lane_num": 1
+        },
+        # "use_render": True,
+        #
+        "horizon": 200,
+        "num_agents": 24,
+        "crash_vehicle_penalty": 1.7777,
+        "crash_done": False
+    })
     try:
         _check_spaces_before_reset(env)
         obs, _ = env.reset()
@@ -413,7 +463,8 @@ def test_ma_toll_reward_done_alignment_2():
                     # #assert r[kkk] == -1.7777
             for kkk, ddd in tm.items():
                 if ddd and kkk != "__all__" and not tm["__all__"]:
-                    assert i[kkk]["out_of_road"] or i[kkk]["arrive_dest"] or i[kkk]["crash_building"]
+                    assert i[kkk]["out_of_road"] or i[kkk]["arrive_dest"] or i[
+                        kkk]["crash_building"]
                     # # print('{} done passed!'.format(kkk))
             for kkk, rrr in r.items():
                 if rrr == -1.7777:
@@ -429,20 +480,19 @@ def test_ma_toll_reward_done_alignment_2():
         env.close()
 
     # success
-    env = MultiAgentTollgateEnv(
-        {
-            "horizon": 100,
-            "num_agents": 2,
-            "success_reward": 999,
-            "out_of_road_penalty": 555,
-            "crash_done": True
-        }
-    )
+    env = MultiAgentTollgateEnv({
+        "horizon": 100,
+        "num_agents": 2,
+        "success_reward": 999,
+        "out_of_road_penalty": 555,
+        "crash_done": True
+    })
     try:
         _check_spaces_before_reset(env)
         obs, _ = env.reset()
         _check_spaces_after_reset(env)
-        env.agents["agent0"].set_position(env.agents["agent0"].navigation.final_lane.end)
+        env.agents["agent0"].set_position(
+            env.agents["agent0"].navigation.final_lane.end)
         assert env.observation_space.contains(obs)
         for step in range(5000):
             act = {k: [0, 0] for k in env.agents.keys()}
@@ -469,14 +519,17 @@ def test_ma_toll_reward_sign():
     straight road before coming into toll.
     However, some bugs cause the vehicles receive negative reward by doing this behavior!
     """
+
     class TestEnv(MultiAgentTollgateEnv):
         _respawn_count = 0
 
         @property
         def _safe_places(self):
             safe_places = []
-            for c, bid in enumerate(self.engine.spawn_manager.safe_spawn_places.keys()):
-                safe_places.append((bid, self.engine.spawn_manager.safe_spawn_places[bid]))
+            for c, bid in enumerate(
+                    self.engine.spawn_manager.safe_spawn_places.keys()):
+                safe_places.append(
+                    (bid, self.engine.spawn_manager.safe_spawn_places[bid]))
             return safe_places
 
     env = TestEnv({"num_agents": 1})
@@ -511,18 +564,20 @@ def test_ma_toll_init_space():
                         env_config = dict(
                             start_seed=start_seed,
                             num_agents=num_agents,
-                            vehicle_config=dict(lidar=dict(num_others=num_others)),
-                            crash_vehicle_penalty=crash_vehicle_penalty
-                        )
+                            vehicle_config=dict(lidar=dict(
+                                num_others=num_others)),
+                            crash_vehicle_penalty=crash_vehicle_penalty)
                         env = MultiAgentTollgateEnv(env_config)
 
                         single_space = env.observation_space["agent0"]
                         assert single_space.shape is not None, single_space
-                        assert np.prod(single_space.shape) is not None, single_space
+                        assert np.prod(
+                            single_space.shape) is not None, single_space
 
                         single_space = env.action_space["agent0"]
                         assert single_space.shape is not None, single_space
-                        assert np.prod(single_space.shape) is not None, single_space
+                        assert np.prod(
+                            single_space.shape) is not None, single_space
 
                         _check_spaces_before_reset(env)
                         env.reset()
@@ -549,7 +604,10 @@ def test_ma_toll_no_short_episode():
         tm = {"__all__": False}
         for step in range(2000):
             # act = {k: actions[np.random.choice(len(actions))] for k in o.keys()}
-            act = {k: actions[np.random.choice(len(actions))] for k in env.agents.keys()}
+            act = {
+                k: actions[np.random.choice(len(actions))]
+                for k in env.agents.keys()
+            }
             o_keys = set(o.keys()).union({"__all__"})
             a_keys = set(env.action_space.spaces.keys()).union(set(tm.keys()))
             assert o_keys == a_keys
@@ -579,20 +637,20 @@ def test_ma_toll_horizon_termination(vis=False):
     Instead of driving out of road, it may collide with other cars as well! so assertion may fail.
     """
     # test horizon
-    env = MultiAgentTollgateEnv(
-        {
-            "horizon": 100,
-            "num_agents": 8,
-            "debug_static_world": True,
-            "debug_physics_world": True,
-            "use_render": vis,
-            "debug": True,
-            "crash_done": False,
-            "log_level": 50,
-        }
-    )
+    env = MultiAgentTollgateEnv({
+        "horizon": 100,
+        "num_agents": 8,
+        "debug_static_world": True,
+        "debug_physics_world": True,
+        "use_render": vis,
+        "debug": True,
+        "crash_done": False,
+        "log_level": 50,
+    })
     try:
-        for _ in range(1):  # This function is really easy to break, repeat multiple times!
+        for _ in range(
+                1
+        ):  # This function is really easy to break, repeat multiple times!
             _check_spaces_before_reset(env)
             obs, _ = env.reset()
             # env.engine.toggleDebug()
@@ -649,6 +707,7 @@ def test_ma_toll_horizon_termination(vis=False):
 
 
 def test_ma_toll_40_agent_reset_after_respawn():
+
     def check_pos(vehicles):
         while vehicles:
             v_1 = vehicles[0]
@@ -695,7 +754,12 @@ def test_ma_no_reset_error():
                 raise ValueError("Vehicles overlap after reset()")
             vehicles.remove(v_1)
 
-    env = MultiAgentTollgateEnv({"horizon": 300, "num_agents": 36, "delay_done": 0, "use_render": False})
+    env = MultiAgentTollgateEnv({
+        "horizon": 300,
+        "num_agents": 36,
+        "delay_done": 0,
+        "use_render": False
+    })
     try:
         _check_spaces_before_reset(env)
         obs, _ = env.reset()
@@ -713,7 +777,11 @@ def test_ma_no_reset_error():
 
 def test_randomize_spawn_place():
     last_pos = {}
-    env = MultiAgentTollgateEnv({"num_agents": 4, "use_render": False, "force_seed_spawn_manager": False})
+    env = MultiAgentTollgateEnv({
+        "num_agents": 4,
+        "use_render": False,
+        "force_seed_spawn_manager": False
+    })
     try:
         obs, _ = env.reset()
         for step in range(100):
@@ -723,7 +791,8 @@ def test_randomize_spawn_place():
             obs, _ = env.reset()
             new_pos = {kkk: v.position for kkk, v in env.agents.items()}
             for kkk, new_p in new_pos.items():
-                assert not np.all(new_p == last_pos[kkk]), (new_p, last_pos[kkk], kkk)
+                assert not np.all(new_p == last_pos[kkk]), (new_p,
+                                                            last_pos[kkk], kkk)
     finally:
         env.close()
 

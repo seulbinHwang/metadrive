@@ -19,13 +19,20 @@ from panda3d.egg import EggVertex, EggVertexUV
 
 
 class VertexMixin(object):
+
     def _get_uv_name(self, uv_layer):
         if uv_layer.active:
             return ''
         else:
             return uv_layer.name.replace(' ', '_')
 
-    def make_vertex(self, parent_obj_matrix, obj_matrix, polygon, vertex, use_smooth=False, can_merge=False):
+    def make_vertex(self,
+                    parent_obj_matrix,
+                    obj_matrix,
+                    polygon,
+                    vertex,
+                    use_smooth=False,
+                    can_merge=False):
         egg_vertex = EggVertex()
         egg_vertex.set_color((1, 1, 1, 1))
 

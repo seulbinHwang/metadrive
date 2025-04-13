@@ -11,7 +11,10 @@ from pygments.token import Keyword, Name, Comment, String, Error, \
     Number, Operator, Generic, Token, Whitespace, Punctuation
 
 
-def generate_gif(frames, gif_name="demo.gif", is_pygame_surface=False, duration=30):
+def generate_gif(frames,
+                 gif_name="demo.gif",
+                 is_pygame_surface=False,
+                 duration=30):
     """
 
     Args:
@@ -24,9 +27,16 @@ def generate_gif(frames, gif_name="demo.gif", is_pygame_surface=False, duration=
 
     """
     assert gif_name.endswith("gif"), "File name should end with .gif"
-    imgs = [pygame.surfarray.array3d(frame) if is_pygame_surface else frame for frame in frames]
+    imgs = [
+        pygame.surfarray.array3d(frame) if is_pygame_surface else frame
+        for frame in frames
+    ]
     imgs = [Image.fromarray(img) for img in imgs]
-    imgs[0].save(gif_name, save_all=True, append_images=imgs[1:], duration=duration, loop=0)
+    imgs[0].save(gif_name,
+                 save_all=True,
+                 append_images=imgs[1:],
+                 duration=duration,
+                 loop=0)
 
 
 CONFIG = {
@@ -161,7 +171,9 @@ def print_source(x, start_end=None, colorscheme=FUNC, **kwargs):
     """
     code = get_source(x, start_end)
 
-    print(highlight(code, PythonLexer(), TerminalFormatter(colorscheme=colorscheme, **kwargs)))
+    print(
+        highlight(code, PythonLexer(),
+                  TerminalFormatter(colorscheme=colorscheme, **kwargs)))
 
 
 def get_source(x, start_end=None):
@@ -189,6 +201,9 @@ def list_files(path, prefix='', depth=2, current_depth=0):
     if path.is_dir() and current_depth < depth:
         print(prefix + path.name + '/')
         for child in path.iterdir():
-            list_files(child, prefix + '    ', depth, current_depth=current_depth + 1)
+            list_files(child,
+                       prefix + '    ',
+                       depth,
+                       current_depth=current_depth + 1)
     else:
         print(prefix + path.name)

@@ -16,23 +16,22 @@ def predict(current_state, actions, model):
 def _test_bicycle_model():
     horizon = 10
     setup_logger(True)
-    env = MetaDriveEnv(
-        {
-            "num_scenarios": 1,
-            "traffic_density": .0,
-            "use_render": True,
-            # "manual_control": True,
-            "map": "CCCC",
-            "vehicle_config": {
-                "enable_reverse": False,
-            }
+    env = MetaDriveEnv({
+        "num_scenarios": 1,
+        "traffic_density": .0,
+        "use_render": True,
+        # "manual_control": True,
+        "map": "CCCC",
+        "vehicle_config": {
+            "enable_reverse": False,
         }
-    )
+    })
     bicycle_model = BicycleModel()
     o, _ = env.reset()
     vehicle = env.current_track_agent
     v_dir = vehicle.velocity_direction
-    bicycle_model.reset(*vehicle.position, vehicle.speed, vehicle.heading_theta, np.arctan2(v_dir[1], v_dir[0]))
+    bicycle_model.reset(*vehicle.position, vehicle.speed, vehicle.heading_theta,
+                        np.arctan2(v_dir[1], v_dir[0]))
     actions = []
     for steering in [1.0, 0.8, 0.6, 0.4, 0.2, 0]:
         for dir in [-1, 1]:
@@ -44,15 +43,12 @@ def _test_bicycle_model():
         vehicle = env.current_track_agent
         v_dir = vehicle.velocity_direction
         predict_states.append(
-            predict(
-                current_state=(
-                    *env.current_track_agent.position, env.current_track_agent.speed,
-                    env.current_track_agent.heading_theta, np.arctan2(v_dir[1], v_dir[0])
-                ),
-                actions=[actions[i] for i in range(s, s + horizon)],
-                model=bicycle_model
-            )
-        )
+            predict(current_state=(*env.current_track_agent.position,
+                                   env.current_track_agent.speed,
+                                   env.current_track_agent.heading_theta,
+                                   np.arctan2(v_dir[1], v_dir[0])),
+                    actions=[actions[i] for i in range(s, s + horizon)],
+                    model=bicycle_model))
         o, r, tm, tc, info = env.step(actions[s])
         index = s - horizon
         if index >= 0:

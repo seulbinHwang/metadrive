@@ -139,7 +139,8 @@ class RenderStage(RPObject):
         # If only one shader is specified, assume its a postprocess fragment shader,
         # and use the default vertex shader
         if len(args) == 1:
-            path_args = ["/$$rp/shader/default_post_process.vert.glsl"] + path_args
+            path_args = ["/$$rp/shader/default_post_process.vert.glsl"
+                        ] + path_args
         return RPLoader.load_shader(*path_args)
 
     def _get_plugin_id(self):

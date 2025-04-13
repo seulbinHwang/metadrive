@@ -67,6 +67,7 @@ class Line(Geometry):
 
     (Section 5.3.4.1.1 of OpenDRIVE 1.4)
     """
+
     def calc_position(self, s_pos):
         """
 
@@ -76,7 +77,8 @@ class Line(Geometry):
         Returns:
 
         """
-        pos = self.start_position + np.array([s_pos * np.cos(self.heading), s_pos * np.sin(self.heading)])
+        pos = self.start_position + np.array(
+            [s_pos * np.cos(self.heading), s_pos * np.sin(self.heading)])
         tangent = self.heading
 
         return (pos, tangent)
@@ -88,9 +90,12 @@ class Arc(Geometry):
 
     (Section 5.3.4.1.3 of OpenDRIVE 1.4)
     """
+
     def __init__(self, start_position, heading, length, curvature):
         self.curvature = curvature
-        super().__init__(start_position=start_position, heading=heading, length=length)
+        super().__init__(start_position=start_position,
+                         heading=heading,
+                         length=length)
 
     def calc_position(self, s_pos):
         """
@@ -124,12 +129,16 @@ class Spiral(Geometry):
 
     (Section 5.3.4.1.2 of OpenDRIVE 1.4)
     """
+
     def __init__(self, start_position, heading, length, curvStart, curvEnd):
         self._curvStart = curvStart
         self._curvEnd = curvEnd
 
-        super().__init__(start_position=start_position, heading=heading, length=length)
-        self._spiral = EulerSpiral.createFromLengthAndCurvature(self.length, self._curvStart, self._curvEnd)
+        super().__init__(start_position=start_position,
+                         heading=heading,
+                         length=length)
+        self._spiral = EulerSpiral.createFromLengthAndCurvature(
+            self.length, self._curvStart, self._curvEnd)
 
     def calc_position(self, s_pos):
         """
@@ -157,12 +166,15 @@ class Poly3(Geometry):
 
     (Section 5.3.4.1.4 of OpenDRIVE 1.4)
     """
+
     def __init__(self, start_position, heading, length, a, b, c, d):
         self._a = a
         self._b = b
         self._c = c
         self._d = d
-        super().__init__(start_position=start_position, heading=heading, length=length)
+        super().__init__(start_position=start_position,
+                         heading=heading,
+                         length=length)
 
         # raise NotImplementedError()
 
@@ -190,7 +202,8 @@ class Poly3(Geometry):
         dCoeffs = coeffs[1:] * np.array(np.arange(1, len(coeffs)))
         tangent = np.polynomial.polynomial.polyval(s_pos, dCoeffs)
 
-        return (self.start_position + np.array([srot, trot]), self.heading + tangent)
+        return (self.start_position + np.array([srot, trot]),
+                self.heading + tangent)
 
 
 class ParamPoly3(Geometry):
@@ -202,8 +215,12 @@ class ParamPoly3(Geometry):
 
     (Section 5.3.4.1.5 of OpenDRIVE 1.4)
     """
-    def __init__(self, start_position, heading, length, aU, bU, cU, dU, aV, bV, cV, dV, pRange):
-        super().__init__(start_position=start_position, heading=heading, length=length)
+
+    def __init__(self, start_position, heading, length, aU, bU, cU, dU, aV, bV,
+                 cV, dV, pRange):
+        super().__init__(start_position=start_position,
+                         heading=heading,
+                         length=length)
 
         self._aU = aU
         self._bU = bU
@@ -250,4 +267,5 @@ class ParamPoly3(Geometry):
 
         tangent = np.arctan2(dy, dx)
 
-        return (self.start_position + np.array([xrot, yrot]), self.heading + tangent)
+        return (self.start_position + np.array([xrot, yrot]),
+                self.heading + tangent)

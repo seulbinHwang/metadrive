@@ -29,20 +29,26 @@ class SemanticCamera(BaseCamera):
         # setup camera
         cam = self.get_cam().node()
         cam.setTagStateKey(CameraTagStateKey.Semantic)
-        for t in [v for v, m in vars(Semantics).items() if not (v.startswith('_') or callable(m))]:
+        for t in [
+                v for v, m in vars(Semantics).items()
+                if not (v.startswith('_') or callable(m))
+        ]:
             label, c = getattr(Semantics, t)
             if label == Semantics.TERRAIN.label:
                 from metadrive.engine.core.terrain import Terrain
                 cam.setTagState(
-                    label, Terrain.make_render_state(self.engine, "terrain.vert.glsl", "terrain_semantics.frag.glsl")
-                )
+                    label,
+                    Terrain.make_render_state(self.engine, "terrain.vert.glsl",
+                                              "terrain_semantics.frag.glsl"))
             else:
 
-                if label == Semantics.PEDESTRIAN.label and not self.engine.global_config.get("use_bounding_box", False):
+                if label == Semantics.PEDESTRIAN.label and not self.engine.global_config.get(
+                        "use_bounding_box", False):
                     # rendering pedestrian with glasses, shoes, etc. [Synbody]
                     base_color = LColor(c[0] / 255, c[1] / 255, c[2] / 255, 1)
                     material = Material()
-                    material.setDiffuse((base_color[0], base_color[1], base_color[2], 1))
+                    material.setDiffuse(
+                        (base_color[0], base_color[1], base_color[2], 1))
                     material.setSpecular((0, 0, 0, 1))
                     material.setShininess(0)
 
@@ -53,16 +59,15 @@ class SemanticCamera(BaseCamera):
                             LightAttrib.makeAllOff(),
                             TextureAttrib.makeOff(),
                             MaterialAttrib.make(material),
-                            ColorAttrib.makeFlat((c[0] / 255, c[1] / 255, c[2] / 255, 1)),
-                            1
-                        )
-                    )
+                            ColorAttrib.makeFlat(
+                                (c[0] / 255, c[1] / 255, c[2] / 255, 1)),
+                            1))
 
                 else:
                     cam.setTagState(
                         label,
                         RenderState.make(
-                            ShaderAttrib.makeOff(), LightAttrib.makeAllOff(), TextureAttrib.makeOff(),
-                            ColorAttrib.makeFlat((c[0] / 255, c[1] / 255, c[2] / 255, 1)), 1
-                        )
-                    )
+                            ShaderAttrib.makeOff(), LightAttrib.makeAllOff(),
+                            TextureAttrib.makeOff(),
+                            ColorAttrib.makeFlat(
+                                (c[0] / 255, c[1] / 255, c[2] / 255, 1)), 1))

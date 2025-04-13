@@ -36,6 +36,7 @@ from metadrive.render_pipeline.rpcore.pynative.shadow_atlas import ShadowAtlas
 class ShadowManager(object):
     """ Please refer to the native C++ implementation for docstrings and comments.
     This is just the python implementation, which does not contain documentation! """
+
     def __init__(self):
         self._max_updates = 10
         self._atlas = None
@@ -49,7 +50,8 @@ class ShadowManager(object):
 
     def set_max_updates(self, max_updates):
         if max_updates == 0:
-            print("Warning: max_updates set to 0, no shadow updates will happen")
+            print(
+                "Warning: max_updates set to 0, no shadow updates will happen")
         self._max_updates = max_updates
 
     def set_atlas_size(self, atlas_size):
@@ -110,7 +112,8 @@ class ShadowManager(object):
             self._display_regions[i].set_active(True)
             self._cameras[i].get_lens().set_user_mat(source.get_mvp())
             uv = source.get_uv_region()
-            self._display_regions[i].set_dimensions(uv.x, uv.x + uv.z, uv.y, uv.y + uv.w)
+            self._display_regions[i].set_dimensions(uv.x, uv.x + uv.z, uv.y,
+                                                    uv.y + uv.w)
 
         self._queued_updates = []
 

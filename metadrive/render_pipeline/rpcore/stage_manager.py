@@ -39,6 +39,7 @@ from metadrive.render_pipeline.rpcore.stages.update_previous_pipes_stage import 
 class StageManager(RPObject):
     """ This manager takes a list of RenderStages and puts them into an order,
     while connecting the different pipes, inputs, ubos and defines. """
+
     def __init__(self, pipeline):
         """ Constructs the stage manager """
         RPObject.__init__(self)
@@ -69,7 +70,9 @@ class StageManager(RPObject):
     def add_stage(self, stage):
         """ Adds a new stage """
         if stage.stage_id not in self._stage_order:
-            self.error("The stage type", stage.debug_name, "is not registered yet! Please add it to the StageManager!")
+            self.error(
+                "The stage type", stage.debug_name,
+                "is not registered yet! Please add it to the StageManager!")
             return
 
         if self.created:
@@ -98,7 +101,8 @@ class StageManager(RPObject):
         for stage in to_remove:
             self.stages.remove(stage)
 
-        self.stages.sort(key=lambda stage: self._stage_order.index(stage.stage_id))
+        self.stages.sort(
+            key=lambda stage: self._stage_order.index(stage.stage_id))
 
     def _bind_pipes_to_stage(self, stage):
         """ Sets all required pipes on a stage """
@@ -122,10 +126,12 @@ class StageManager(RPObject):
                     if "depth" in pipe_name.lower():
                         tex_format = "R32"
 
-                    pipe_tex = Image.create_2d("Prev-" + pipe_name, 0, 0, tex_format)
+                    pipe_tex = Image.create_2d("Prev-" + pipe_name, 0, 0,
+                                               tex_format)
                     pipe_tex.clear_image()
                     self.previous_pipes[pipe_name] = pipe_tex
-                stage.set_shader_input("Previous_" + pipe_name, self.previous_pipes[pipe_name])
+                stage.set_shader_input("Previous_" + pipe_name,
+                                       self.previous_pipes[pipe_name])
                 continue
 
             elif pipe.startswith("FuturePipe::"):
@@ -158,7 +164,8 @@ class StageManager(RPObject):
                 continue
 
             if input_binding in self.inputs:
-                stage.set_shader_input(input_binding, self.inputs[input_binding])
+                stage.set_shader_input(input_binding,
+                                       self.inputs[input_binding])
             elif input_binding in self.input_blocks:
                 self.input_blocks[input_binding].bind_to(stage)
             else:
@@ -197,10 +204,9 @@ class StageManager(RPObject):
             for prev_pipe, prev_tex in iteritems(self.previous_pipes):
 
                 if prev_pipe not in self.pipes:
-                    self.error(
-                        "Attempted to use previous frame data from pipe", prev_pipe,
-                        "- however, that pipe was never created!"
-                    )
+                    self.error("Attempted to use previous frame data from pipe",
+                               prev_pipe,
+                               "- however, that pipe was never created!")
                     return False
 
                 # Tell the stage to transfer the data from the current pipe to
@@ -279,7 +285,8 @@ class StageManager(RPObject):
             output += "#define " + key + " " + str(value) + "\n"
 
         try:
-            with open("/$$rptemp/$$pipeline_shader_config.inc.glsl", "w") as handle:
+            with open("/$$rptemp/$$pipeline_shader_config.inc.glsl",
+                      "w") as handle:
                 handle.write(output)
         except IOError as msg:
             self.error("Error writing shader autoconfig:", msg)

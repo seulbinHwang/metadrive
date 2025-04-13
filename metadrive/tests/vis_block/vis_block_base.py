@@ -17,6 +17,7 @@ from metadrive.engine.core.physics_world import PhysicsWorld
 
 
 class TestBlock(ShowBase.ShowBase):
+
     def __init__(self, debug=False, window_type="onscreen"):
         self.debug = True
         super(TestBlock, self).__init__(windowType=window_type)
@@ -80,7 +81,8 @@ class TestBlock(ShowBase.ShowBase):
 
         # Ground (static)
         shape = BulletPlaneShape(Vec3(0, 0, 1), 0)
-        self.groundNP = self.worldNP.attachNewNode(BulletRigidBodyNode('Ground'))
+        self.groundNP = self.worldNP.attachNewNode(
+            BulletRigidBodyNode('Ground'))
         self.groundNP.node().addShape(shape)
         self.groundNP.setPos(0, 0, 0)
         self.groundNP.setCollideMask(CollisionGroup.AllOn)
@@ -111,7 +113,8 @@ class TestBlock(ShowBase.ShowBase):
     def re_add(self):
         self.map.load_map(self)
 
-    def _draw_line_3d(self, start_p: Union[Vec3, Tuple], end_p: Union[Vec3, Tuple], color, thickness: float):
+    def _draw_line_3d(self, start_p: Union[Vec3, Tuple],
+                      end_p: Union[Vec3, Tuple], color, thickness: float):
         line_seg = LineSegs("interface")
         line_seg.setColor(*color)
         line_seg.moveTo(start_p)

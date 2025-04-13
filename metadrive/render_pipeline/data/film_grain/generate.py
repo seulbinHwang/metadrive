@@ -27,10 +27,12 @@ THE SOFTWARE.
 # This script precomputes the noise for the film grain to improve performance
 
 import os
+
 curr_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(curr_dir)
 
 import sys
+
 sys.path.insert(0, "../../rpcore")
 sys.path.insert(0, "../../")
 
@@ -41,6 +43,7 @@ from direct.showbase.ShowBase import ShowBase
 
 
 class Application(ShowBase):
+
     def __init__(self):
         load_prc_file_data(
             "", """
@@ -51,19 +54,20 @@ class Application(ShowBase):
             notify-level-display error
             print-pipe-types #f
             gl-version 4 3
-        """
-        )
+        """)
 
         ShowBase.__init__(self)
 
         dest_tex = Texture()
-        dest_tex.setup_2d_texture(2048, 2048, Texture.T_unsigned_byte, Texture.F_rgba8)
+        dest_tex.setup_2d_texture(2048, 2048, Texture.T_unsigned_byte,
+                                  Texture.F_rgba8)
         cshader = Shader.load_compute(Shader.SL_GLSL, "grain.compute.glsl")
         node = NodePath("")
         node.set_shader(cshader)
         node.set_shader_input("DestTex", dest_tex)
         attr = node.get_attrib(ShaderAttrib)
-        self.graphicsEngine.dispatch_compute((2048 // 16, 2048 // 16, 1), attr, self.win.gsg)
+        self.graphicsEngine.dispatch_compute((2048 // 16, 2048 // 16, 1), attr,
+                                             self.win.gsg)
 
         base.graphicsEngine.extract_texture_data(dest_tex, base.win.gsg)
 

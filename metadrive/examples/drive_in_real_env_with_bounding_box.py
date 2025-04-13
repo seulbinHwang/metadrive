@@ -27,34 +27,39 @@ if __name__ == "__main__":
     use_waymo = args.waymo
     print(HELP_MESSAGE)
     try:
-        env = ScenarioEnv(
-            {
-                "manual_control": True,
-                "sequential_seed": True,
-                "reactive_traffic": True if args.reactive_traffic else False,
-                "use_render": True if not args.top_down else False,
-                "data_directory": AssetLoader.file_path(
-                    asset_path, "waymo" if use_waymo else "nuscenes", unix_style=False
-                ),
-                "num_scenarios": 3 if use_waymo else 10,
-                "debug": True,
-                "use_bounding_box": True,
-                "vehicle_config": {
-                    "show_line_to_dest": True,
-                    "show_line_to_navi_mark": True,
-                },
-                "disable_collision": True,
-            }
-        )
+        env = ScenarioEnv({
+            "manual_control":
+                True,
+            "sequential_seed":
+                True,
+            "reactive_traffic":
+                True if args.reactive_traffic else False,
+            "use_render":
+                True if not args.top_down else False,
+            "data_directory":
+                AssetLoader.file_path(asset_path,
+                                      "waymo" if use_waymo else "nuscenes",
+                                      unix_style=False),
+            "num_scenarios":
+                3 if use_waymo else 10,
+            "debug":
+                True,
+            "use_bounding_box":
+                True,
+            "vehicle_config": {
+                "show_line_to_dest": True,
+                "show_line_to_navi_mark": True,
+            },
+            "disable_collision":
+                True,
+        })
         o, _ = env.reset()
 
         for i in range(1, 100000):
             o, r, tm, tc, info = env.step([1.0, 0.])
-            env.render(
-                mode="top_down" if args.top_down else None,
-                text=None if args.top_down else RENDER_MESSAGE,
-                **extra_args
-            )
+            env.render(mode="top_down" if args.top_down else None,
+                       text=None if args.top_down else RENDER_MESSAGE,
+                       **extra_args)
             if tm or tc:
                 env.reset()
     finally:

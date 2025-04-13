@@ -42,15 +42,17 @@ class Plugin(BasePlugin):
 
     name = "Sun Shadows"
     author = "tobspr <tobias.springer1@gmail.com>"
-    description = ("This plugin adds support for Parallel Split Shadow Maps " "(PSSM), and also sun lighting.")
+    description = ("This plugin adds support for Parallel Split Shadow Maps "
+                   "(PSSM), and also sun lighting.")
     version = "1.2"
-    required_plugins = ("scattering", )
+    required_plugins = ("scattering",)
 
     def on_stage_setup(self):
 
         if not NATIVE_CXX_LOADED:
             self.debug("Setting max splits to 1 since python is used")
-            self._pipeline.plugin_mgr.settings["pssm"]["split_count"].set_value(1)
+            self._pipeline.plugin_mgr.settings["pssm"]["split_count"].set_value(
+                1)
 
         self.update_enabled = True
         self.pta_sun_vector = PTAVecBase3f.empty_array(1)
@@ -63,15 +65,20 @@ class Plugin(BasePlugin):
         self.shadow_stage.split_resolution = self.get_setting("resolution")
 
         self.scene_shadow_stage = self.create_stage(PSSMSceneShadowStage)
-        self.scene_shadow_stage.resolution = self.get_setting("scene_shadow_resolution")
-        self.scene_shadow_stage.sun_distance = self.get_setting("scene_shadow_sundist")
+        self.scene_shadow_stage.resolution = self.get_setting(
+            "scene_shadow_resolution")
+        self.scene_shadow_stage.sun_distance = self.get_setting(
+            "scene_shadow_sundist")
 
         # Enable distant shadow map if specified
         if self.get_setting("use_distant_shadows"):
             self.dist_shadow_stage = self.create_stage(PSSMDistShadowStage)
-            self.dist_shadow_stage.resolution = self.get_setting("dist_shadow_resolution")
-            self.dist_shadow_stage.clip_size = self.get_setting("dist_shadow_clipsize")
-            self.dist_shadow_stage.sun_distance = self.get_setting("dist_shadow_sundist")
+            self.dist_shadow_stage.resolution = self.get_setting(
+                "dist_shadow_resolution")
+            self.dist_shadow_stage.clip_size = self.get_setting(
+                "dist_shadow_clipsize")
+            self.dist_shadow_stage.sun_distance = self.get_setting(
+                "dist_shadow_sundist")
 
             self.pssm_stage.required_pipes.append("PSSMDistSunShadowMap")
             self.pssm_stage.required_inputs.append("PSSMDistSunShadowMapMVP")
@@ -86,7 +93,8 @@ class Plugin(BasePlugin):
         self.camera_rig = PSSMCameraRig(self.get_setting("split_count"))  # noqa # pylint: disable=undefined-variable
         self.camera_rig.set_sun_distance(self.get_setting("sun_distance"))
         self.camera_rig.set_pssm_distance(self.get_setting("max_distance"))
-        self.camera_rig.set_logarithmic_factor(self.get_setting("logarithmic_factor"))
+        self.camera_rig.set_logarithmic_factor(
+            self.get_setting("logarithmic_factor"))
         self.camera_rig.set_border_bias(self.get_setting("border_bias"))
         self.camera_rig.set_use_stable_csm(True)
         self.camera_rig.set_use_fixed_film_size(True)
@@ -110,14 +118,14 @@ class Plugin(BasePlugin):
 
         # Set inputs
         self.pssm_stage.set_shader_inputs(
-            pssm_mvps=self.camera_rig.get_mvp_array(), pssm_nearfar=self.camera_rig.get_nearfar_array()
-        )
+            pssm_mvps=self.camera_rig.get_mvp_array(),
+            pssm_nearfar=self.camera_rig.get_nearfar_array())
 
         if self.is_plugin_enabled("volumetrics"):
             handle = self.get_plugin_instance("volumetrics")
             handle.stage.set_shader_inputs(
-                pssm_mvps=self.camera_rig.get_mvp_array(), pssm_nearfar=self.camera_rig.get_nearfar_array()
-            )
+                pssm_mvps=self.camera_rig.get_mvp_array(),
+                pssm_nearfar=self.camera_rig.get_nearfar_array())
 
     def on_pre_render_update(self):
         sun_vector = self.get_plugin_instance("scattering").sun_vector
@@ -158,7 +166,8 @@ class Plugin(BasePlugin):
         self.camera_rig.set_pssm_distance(self.get_setting("max_distance"))
 
     def update_logarithmic_factor(self):
-        self.camera_rig.set_logarithmic_factor(self.get_setting("logarithmic_factor"))
+        self.camera_rig.set_logarithmic_factor(
+            self.get_setting("logarithmic_factor"))
 
     def update_border_bias(self):
         self.camera_rig.set_border_bias(self.get_setting("border_bias"))
@@ -167,13 +176,16 @@ class Plugin(BasePlugin):
         self.camera_rig.set_sun_distance(self.get_setting("sun_distance"))
 
     def update_dist_shadow_clipsize(self):
-        self.dist_shadow_stage.clip_size = self.get_setting("dist_shadow_clipsize")
+        self.dist_shadow_stage.clip_size = self.get_setting(
+            "dist_shadow_clipsize")
 
     def update_dist_shadow_sundist(self):
-        self.dist_shadow_stage.sun_distance = self.get_setting("dist_shadow_sundist")
+        self.dist_shadow_stage.sun_distance = self.get_setting(
+            "dist_shadow_sundist")
 
     def update_scene_shadow_sundist(self):
-        self.scene_shadow_stage.sun_distance = self.get_setting("scene_shadow_sundist")
+        self.scene_shadow_stage.sun_distance = self.get_setting(
+            "scene_shadow_sundist")
 
     def toggle_update_enabled(self):
         self.update_enabled = not self.update_enabled

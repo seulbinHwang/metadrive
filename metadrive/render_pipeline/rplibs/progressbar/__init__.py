@@ -109,17 +109,23 @@ class ProgressBar(object):
      - percentage(): progress in percent [0..100]
     '''
 
-    __slots__ = (
-        'currval', 'fd', 'finished', 'last_update_time', 'left_justify', 'maxval', 'next_update', 'num_intervals',
-        'poll', 'seconds_elapsed', 'signal_set', 'start_time', 'term_width', 'update_interval', 'widgets',
-        '_time_sensitive', '__iterable'
-    )
+    __slots__ = ('currval', 'fd', 'finished', 'last_update_time',
+                 'left_justify', 'maxval', 'next_update', 'num_intervals',
+                 'poll', 'seconds_elapsed', 'signal_set', 'start_time',
+                 'term_width', 'update_interval', 'widgets', '_time_sensitive',
+                 '__iterable')
 
     _DEFAULT_MAXVAL = 100
     _DEFAULT_TERMSIZE = 80
     _DEFAULT_WIDGETS = [Percentage(), ' ', Bar()]
 
-    def __init__(self, maxval=None, widgets=None, term_width=None, poll=1, left_justify=True, fd=sys.stderr):
+    def __init__(self,
+                 maxval=None,
+                 widgets=None,
+                 term_width=None,
+                 poll=1,
+                 left_justify=True,
+                 fd=sys.stderr):
         '''Initializes a progress bar with sane defaults'''
 
         # Don't share a reference with any other progress bars
@@ -249,13 +255,15 @@ class ProgressBar(object):
     def _update_widgets(self):
         'Checks all widgets for the time sensitive bit'
 
-        self._time_sensitive = any(getattr(w, 'TIME_SENSITIVE', False) for w in self.widgets)
+        self._time_sensitive = any(
+            getattr(w, 'TIME_SENSITIVE', False) for w in self.widgets)
 
     def update(self, value=None):
         'Updates the ProgressBar to a new value.'
 
         if value is not None and value is not UnknownLength:
-            if (self.maxval is not UnknownLength and not 0 <= value <= self.maxval):
+            if (self.maxval is not UnknownLength and
+                    not 0 <= value <= self.maxval):
 
                 raise ValueError('Value out of range')
 

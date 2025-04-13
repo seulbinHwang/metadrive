@@ -12,6 +12,7 @@ from metadrive.utils.opendrive.map_load import get_lane_id
 class OpenDriveLane(PointLane):
     ARC_SEGMENT_LENGTH = 1  # m
     """An OpenDrive Lane"""
+
     def __init__(self, width, lane_data) -> None:
         self.lane_data = lane_data
         self.width = width
@@ -35,11 +36,16 @@ class OpenDriveLane(PointLane):
                 points.append(start)
                 # if geo is geos[-1]:
                 #     # last geo
-                end = start + np.array([np.cos(heading) * length, np.sin(heading) * length])
+                end = start + np.array(
+                    [np.cos(heading) * length,
+                     np.sin(heading) * length])
                 points.append(end)
             elif isinstance(geo, Arc):
                 continue
-                arc_points = self._arc_interpolate(1 / geo.curvature, geo.length, geo.start_position, geo.heading)
+                arc_points = self._arc_interpolate(1 / geo.curvature,
+                                                   geo.length,
+                                                   geo.start_position,
+                                                   geo.heading)
                 points += arc_points
                 if geo is not geos[-1] and len(arc_points) > 1:
                     # not last geo
@@ -52,12 +58,16 @@ class OpenDriveLane(PointLane):
         ret = []
         arc_degree = ((radius / length) + np.pi) % np.pi * 2 - np.pi
         start_degree = start_phase
-        origin = start_position - np.array([np.cos(start_degree) * radius, np.sin(start_degree) * radius])
+        origin = start_position - np.array(
+            [np.cos(start_degree) * radius,
+             np.sin(start_degree) * radius])
         num_to_seg = math.floor(length / self.ARC_SEGMENT_LENGTH)
         if num_to_seg == 0:
             degree = start_degree - arc_degree
             degree = (degree + np.pi) % np.pi * 2 - np.pi
-            ret.append(np.array([np.cos(degree) * radius, np.sin(degree) * radius]) + origin)
+            ret.append(
+                np.array([np.cos(degree) * radius,
+                          np.sin(degree) * radius]) + origin)
             ret.append(degree)
         # else:
         #     each_seg_degree = arc_degree / num_to_seg
@@ -69,7 +79,8 @@ class OpenDriveLane(PointLane):
 
     def is_lane_line(self):
         return True if self.roadMark_type in [
-            "solid", "broken", "broken broken", "solid solid", "solid broken", "broken solid"
+            "solid", "broken", "broken broken", "solid solid", "solid broken",
+            "broken solid"
         ] else False
 
     def destroy(self):

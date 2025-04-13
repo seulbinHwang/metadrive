@@ -33,6 +33,7 @@ from panda3d.core import LVecBase4i, LVecBase4
 class ShadowAtlas(object):
     """ Please refer to the native C++ implementation for docstrings and comments.
     This is just the python implementation, which does not contain documentation! """
+
     def __init__(self, size, tile_size=32):
         self._size = size
         self._tile_size = tile_size
@@ -69,7 +70,8 @@ class ShadowAtlas(object):
                 if self.region_is_free(x, y, tile_width, tile_height):
                     self.reserve_region(x, y, tile_width, tile_height)
                     return LVecBase4i(x, y, tile_width, tile_height)
-        print("Failed to find a free region of size", tile_width, "x", tile_height)
+        print("Failed to find a free region of size", tile_width, "x",
+              tile_height)
         return LVecBase4i(-1)
 
     def free_region(self, region):

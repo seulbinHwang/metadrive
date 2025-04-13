@@ -24,7 +24,8 @@ from panda3d.egg import EggComment, EggData, EggGroup, EggPolygon, EggTransform
 from metadrive.third_party.kitsunetsuki.base.armature import get_armature
 from metadrive.third_party.kitsunetsuki.base.collections import get_object_collection
 from metadrive.third_party.kitsunetsuki.base.matrices import get_object_matrix, get_bone_matrix
-from metadrive.third_party.kitsunetsuki.base.objects import (is_collision, get_object_properties, set_active_object)
+from metadrive.third_party.kitsunetsuki.base.objects import (
+    is_collision, get_object_properties, set_active_object)
 
 from metadrive.third_party.kitsunetsuki.exporter.base import Exporter
 
@@ -39,10 +40,12 @@ def matrix_to_panda(matrix):
     return LMatrix4d(*itertools.chain(*map(tuple, matrix.col)))
 
 
-class EggExporter(AnimationMixin, GeomMixin, MaterialMixin, TextureMixin, VertexMixin, Exporter):
+class EggExporter(AnimationMixin, GeomMixin, MaterialMixin, TextureMixin,
+                  VertexMixin, Exporter):
     """
     BLEND to EGG converter.
     """
+
     def __init__(self, args):
         super().__init__(args)
         self._output = args.output or args.inputs[0].replace('.blend', '.egg')
@@ -53,8 +56,7 @@ class EggExporter(AnimationMixin, GeomMixin, MaterialMixin, TextureMixin, Vertex
 
         egg_comment = EggComment(
             '', 'KITSUNETSUKI Asset Tools by kitsune.ONE - '
-            'https://github.com/kitsune-ONE-team/KITSUNETSUKI-Asset-Tools'
-        )
+            'https://github.com/kitsune-ONE-team/KITSUNETSUKI-Asset-Tools')
         egg_root.add_child(egg_comment)
 
         return egg_root
@@ -91,7 +93,9 @@ class EggExporter(AnimationMixin, GeomMixin, MaterialMixin, TextureMixin, Vertex
             # custom shape
             if obj.rigid_body.collision_shape == 'CONVEX_HULL':
                 # trying to guess the best shape
-                polygons = list(filter(lambda x: isinstance(x, EggPolygon), node.get_children()))
+                polygons = list(
+                    filter(lambda x: isinstance(x, EggPolygon),
+                           node.get_children()))
                 if len(polygons) == 1 and polygons[0].is_planar():
                     # shape = EggGroup.CST_plane  # <- is it infinite?
                     shape = EggGroup.CST_polygon
@@ -110,7 +114,8 @@ class EggExporter(AnimationMixin, GeomMixin, MaterialMixin, TextureMixin, Vertex
                 set_active_object(obj)
                 x1, y1, z1 = obj.location
                 # set origin to the center of bounds
-                bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
+                bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY',
+                                          center='BOUNDS')
                 x2, y2, z2 = obj.location
                 node.set_tag('origin', json.dumps([x2 - x1, y2 - y1, z2 - z1]))
 
@@ -174,7 +179,8 @@ class EggExporter(AnimationMixin, GeomMixin, MaterialMixin, TextureMixin, Vertex
             collection = get_object_collection(obj)
 
             for child in parent_node.get_children():
-                if (isinstance(child, EggGroup) and child.get_name() == collection.name):
+                if (isinstance(child, EggGroup) and
+                        child.get_name() == collection.name):
                     egg_group = child
                     break
             else:
@@ -210,7 +216,8 @@ class EggExporter(AnimationMixin, GeomMixin, MaterialMixin, TextureMixin, Vertex
         egg_group.set_tag('far', '{:.3f}'.format(obj.data.shadow_soft_size))
 
         if obj.data.type == 'SPOT':
-            egg_group.set_tag('fov', '{:.3f}'.format(math.degrees(obj.data.spot_size)))
+            egg_group.set_tag('fov',
+                              '{:.3f}'.format(math.degrees(obj.data.spot_size)))
 
         self._setup_node(egg_group, obj)
         parent_node.add_child(egg_group)

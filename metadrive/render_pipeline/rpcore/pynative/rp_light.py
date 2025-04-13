@@ -53,7 +53,8 @@ def color_from_temperature(temperature):
     xyz = Vec3(x / y, 1, (1 - x - y) / y)
 
     # Convert XYZ to linearized sRGB.
-    xyz_to_rgb = Mat3(3.2406, -0.9689, 0.0557, -1.5372, 1.8758, -0.2050, -0.4986, 0.0415, 1.0570)
+    xyz_to_rgb = Mat3(3.2406, -0.9689, 0.0557, -1.5372, 1.8758, -0.2050,
+                      -0.4986, 0.0415, 1.0570)
 
     return xyz_to_rgb.xform(xyz)
 
@@ -125,7 +126,8 @@ class RPLight(object):
 
     def set_color(self, *args):
         self._color = Vec3(*args)
-        self._color /= (0.2126 * self._color.x + 0.7152 * self._color.y + 0.0722 * self._color.z)
+        self._color /= (0.2126 * self._color.x + 0.7152 * self._color.y +
+                        0.0722 * self._color.z)
         self.set_needs_update(True)
 
     def set_color_from_temperature(self, temperature):
@@ -167,7 +169,8 @@ class RPLight(object):
     def get_shadow_map_resolution(self):
         return self._source_resolution
 
-    shadow_map_resolution = property(get_shadow_map_resolution, set_shadow_map_resolution)
+    shadow_map_resolution = property(get_shadow_map_resolution,
+                                     set_shadow_map_resolution)
 
     def set_ies_profile(self, profile):
         self._ies_profile = profile

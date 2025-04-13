@@ -34,7 +34,9 @@ class ForwardStage(RenderStage):
     """ Forward shading stage, which first renders all forward objects,
     and then merges them with the scene """
 
-    required_inputs = ["DefaultEnvmap", "PrefilteredBRDF", "PrefilteredCoatBRDF"]
+    required_inputs = [
+        "DefaultEnvmap", "PrefilteredBRDF", "PrefilteredCoatBRDF"
+    ]
     required_pipes = ["SceneDepth", "ShadedScene", "CellIndices"]
 
     @property
@@ -44,7 +46,8 @@ class ForwardStage(RenderStage):
     def create(self):
         self.forward_cam = Camera("ForwardShadingCam")
         self.forward_cam.set_lens(Globals.base.camLens)
-        self.forward_cam_np = Globals.base.camera.attach_new_node(self.forward_cam)
+        self.forward_cam_np = Globals.base.camera.attach_new_node(
+            self.forward_cam)
 
         self.target = self.create_target("ForwardShading")
         self.target.add_color_attachment(bits=16, alpha=True)
@@ -57,7 +60,8 @@ class ForwardStage(RenderStage):
         self.target_merge = self.create_target("MergeWithDeferred")
         self.target_merge.add_color_attachment(bits=16)
         self.target_merge.prepare_buffer()
-        self.target_merge.set_shader_inputs(ForwardDepth=self.target.depth_tex, ForwardColor=self.target.color_tex)
+        self.target_merge.set_shader_inputs(ForwardDepth=self.target.depth_tex,
+                                            ForwardColor=self.target.color_tex)
 
     def set_shader_input(self, *args):
         Globals.base.render.set_shader_input(*args)
@@ -68,4 +72,5 @@ class ForwardStage(RenderStage):
         RenderStage.set_shader_inputs(self, **kwargs)
 
     def reload_shaders(self):
-        self.target_merge.shader = self.load_plugin_shader("merge_with_deferred.frag.glsl")
+        self.target_merge.shader = self.load_plugin_shader(
+            "merge_with_deferred.frag.glsl")

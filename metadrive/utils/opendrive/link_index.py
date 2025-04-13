@@ -18,6 +18,7 @@ class LinkIndex:
     Overall index of all links in the file, save everything as successors,
     predecessors can be found via a reverse search
     """
+
     def __init__(self):
         self._successors = {}
 
@@ -35,28 +36,31 @@ class LinkIndex:
         for road in opendrive.roads:
             for lane_section in road.lanes.lane_sections:
                 for lane in lane_section.allLanes:
-                    parametric_lane_id = encode_road_section_lane_width_id(road.id, lane_section.idx, lane.id, -1)
+                    parametric_lane_id = encode_road_section_lane_width_id(
+                        road.id, lane_section.idx, lane.id, -1)
 
                     # Not the last lane section? > Next lane section in same road
                     if lane_section.idx < road.lanes.getLastLaneSectionIdx():
                         successorId = encode_road_section_lane_width_id(
-                            road.id, lane_section.idx + 1, lane.link.successorId, -1
-                        )
+                            road.id, lane_section.idx + 1,
+                            lane.link.successorId, -1)
 
-                        self.add_link(parametric_lane_id, successorId, lane.id >= 0)
+                        self.add_link(parametric_lane_id, successorId, lane.id
+                                      >= 0)
 
                     # Last lane section! > Next road in first lane section
                     # Try to get next road
-                    elif (road.link.successor is not None and road.link.successor.elementType != "junction"):
+                    elif (road.link.successor is not None and
+                          road.link.successor.elementType != "junction"):
 
-                        next_road = opendrive.getRoad(road.link.successor.element_id)
+                        next_road = opendrive.getRoad(
+                            road.link.successor.element_id)
 
                         if next_road is not None:
 
                             if road.link.successor.contactPoint == "start":
                                 successorId = encode_road_section_lane_width_id(
-                                    next_road.id, 0, lane.link.successorId, -1
-                                )
+                                    next_road.id, 0, lane.link.successorId, -1)
 
                             else:  # contact point = end
                                 successorId = encode_road_section_lane_width_id(
@@ -65,28 +69,31 @@ class LinkIndex:
                                     lane.link.successorId,
                                     -1,
                                 )
-                            self.add_link(parametric_lane_id, successorId, lane.id >= 0)
+                            self.add_link(parametric_lane_id, successorId,
+                                          lane.id >= 0)
 
                     # Not first lane section? > Previous lane section in same road
                     if lane_section.idx > 0:
                         predecessorId = encode_road_section_lane_width_id(
-                            road.id, lane_section.idx - 1, lane.link.predecessorId, -1
-                        )
+                            road.id, lane_section.idx - 1,
+                            lane.link.predecessorId, -1)
 
-                        self.add_link(predecessorId, parametric_lane_id, lane.id >= 0)
+                        self.add_link(predecessorId, parametric_lane_id, lane.id
+                                      >= 0)
 
                     # First lane section! > Previous road
                     # Try to get previous road
-                    elif (road.link.predecessor is not None and road.link.predecessor.elementType != "junction"):
+                    elif (road.link.predecessor is not None and
+                          road.link.predecessor.elementType != "junction"):
 
-                        prevRoad = opendrive.getRoad(road.link.predecessor.element_id)
+                        prevRoad = opendrive.getRoad(
+                            road.link.predecessor.element_id)
 
                         if prevRoad is not None:
 
                             if road.link.predecessor.contactPoint == "start":
                                 predecessorId = encode_road_section_lane_width_id(
-                                    prevRoad.id, 0, lane.link.predecessorId, -1
-                                )
+                                    prevRoad.id, 0, lane.link.predecessorId, -1)
 
                             else:  # contact point = end
                                 predecessorId = encode_road_section_lane_width_id(
@@ -95,7 +102,8 @@ class LinkIndex:
                                     lane.link.predecessorId,
                                     -1,
                                 )
-                            self.add_link(predecessorId, parametric_lane_id, lane.id >= 0)
+                            self.add_link(predecessorId, parametric_lane_id,
+                                          lane.id >= 0)
 
     def add_link(self, parametric_lane_id, successor, reverse: bool = False):
         """
@@ -146,31 +154,35 @@ class LinkIndex:
 
                         # decide which lane section to use (first or last)
                         if lane_link.fromId < 0:
-                            lane_section_idx = (incoming_road.lanes.getLastLaneSectionIdx())
+                            lane_section_idx = (
+                                incoming_road.lanes.getLastLaneSectionIdx())
                         else:
                             lane_section_idx = 0
                         incoming_road_id = encode_road_section_lane_width_id(
-                            incoming_road.id, lane_section_idx, lane_link.fromId, -1
-                        )
+                            incoming_road.id, lane_section_idx,
+                            lane_link.fromId, -1)
                         connecting_road_id = encode_road_section_lane_width_id(
-                            connecting_road.id, 0, lane_link.toId, -1
-                        )
-                        self.add_link(incoming_road_id, connecting_road_id, lane_link.toId > 0)
+                            connecting_road.id, 0, lane_link.toId, -1)
+                        self.add_link(incoming_road_id, connecting_road_id,
+                                      lane_link.toId > 0)
                     else:
                         # decide which lane section to use (first or last)
                         if lane_link.fromId < 0:
                             lane_section_idx = 0
 
                         else:
-                            lane_section_idx = (incoming_road.lanes.getLastLaneSectionIdx())
-                        incoming_road_id = encode_road_section_lane_width_id(incoming_road.id, 0, lane_link.fromId, -1)
+                            lane_section_idx = (
+                                incoming_road.lanes.getLastLaneSectionIdx())
+                        incoming_road_id = encode_road_section_lane_width_id(
+                            incoming_road.id, 0, lane_link.fromId, -1)
                         connecting_road_id = encode_road_section_lane_width_id(
                             connecting_road.id,
                             connecting_road.lanes.getLastLaneSectionIdx(),
                             lane_link.toId,
                             -1,
                         )
-                        self.add_link(incoming_road_id, connecting_road_id, lane_link.toId < 0)
+                        self.add_link(incoming_road_id, connecting_road_id,
+                                      lane_link.toId < 0)
 
     def remove(self, parametric_lane_id):
         """

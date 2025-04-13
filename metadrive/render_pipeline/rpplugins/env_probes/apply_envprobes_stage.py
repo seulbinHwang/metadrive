@@ -36,14 +36,20 @@ class ApplyEnvprobesStage(RenderStage):
 
     @property
     def produced_pipes(self):
-        return {"EnvmapAmbientSpec": self.target.color_tex, "EnvmapAmbientDiff": self.target.aux_tex[0]}
+        return {
+            "EnvmapAmbientSpec": self.target.color_tex,
+            "EnvmapAmbientDiff": self.target.aux_tex[0]
+        }
 
     def create(self):
         self.target = self.create_target("ApplyEnvmap")
         self.target.add_color_attachment(bits=16, alpha=True)
         self.target.add_aux_attachment(bits=16)
         self.target.prepare_buffer()
-        AmbientStage.required_pipes += ["EnvmapAmbientSpec", "EnvmapAmbientDiff"]
+        AmbientStage.required_pipes += [
+            "EnvmapAmbientSpec", "EnvmapAmbientDiff"
+        ]
 
     def reload_shaders(self):
-        self.target.shader = self.load_plugin_shader("apply_envprobes.frag.glsl")
+        self.target.shader = self.load_plugin_shader(
+            "apply_envprobes.frag.glsl")

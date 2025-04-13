@@ -69,15 +69,18 @@ class MixWaymoPGEnv(ScenarioEnv):
         MIX_WAYMO_PG_ENV_CONFIG.update(
             dict(
                 map_config={
-                    BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_NUM,
-                    BaseMap.GENERATE_CONFIG: MIX_WAYMO_PG_ENV_CONFIG["block_num"],
+                    BaseMap.GENERATE_TYPE:
+                        MapGenerateMethod.BIG_BLOCK_NUM,
+                    BaseMap.GENERATE_CONFIG:
+                        MIX_WAYMO_PG_ENV_CONFIG["block_num"],
                     # it can be a file path / block num / block ID sequence
-                    BaseMap.LANE_WIDTH: 3.5,
-                    BaseMap.LANE_NUM: 3,
-                    "exit_length": 50,
-                }
-            )
-        )
+                    BaseMap.LANE_WIDTH:
+                        3.5,
+                    BaseMap.LANE_NUM:
+                        3,
+                    "exit_length":
+                        50,
+                }))
         config.update(MIX_WAYMO_PG_ENV_CONFIG)
         return config
 
@@ -88,8 +91,10 @@ class MixWaymoPGEnv(ScenarioEnv):
         self.pg_map_manager = None
         self.pg_traffic_manager = None
 
-        self.total_environment = self.config["num_scenarios"] + self.config["num_scenarios"]
-        self.real_data_ratio = self.config["num_scenarios"] / self.total_environment
+        self.total_environment = self.config["num_scenarios"] + self.config[
+            "num_scenarios"]
+        self.real_data_ratio = self.config[
+            "num_scenarios"] / self.total_environment
         self.is_current_real_data = True
 
     def setup_engine(self):
@@ -106,10 +111,12 @@ class MixWaymoPGEnv(ScenarioEnv):
             self.engine.register_manager("data_manager", ScenarioDataManager())
             self.engine.register_manager("map_manager", self.waymo_map_manager)
             if not self.config["no_traffic"]:
-                self.engine.register_manager("traffic_manager", self.waymo_traffic_manager)
+                self.engine.register_manager("traffic_manager",
+                                             self.waymo_traffic_manager)
         else:
             self.is_current_real_data = False
-            self.engine.register_manager("traffic_manager", self.pg_traffic_manager)
+            self.engine.register_manager("traffic_manager",
+                                         self.pg_traffic_manager)
             self.engine.register_manager("map_manager", self.pg_map_manager)
             self._init_pg_episode()
         self.engine.accept("s", self.stop)
@@ -121,36 +128,42 @@ class MixWaymoPGEnv(ScenarioEnv):
             # must lazy initialize at first
             if get_np_random(None).rand() < self.real_data_ratio:
                 # change to real environment
-                self.engine.update_manager("map_manager", self.waymo_map_manager, destroy_previous_manager=False)
-                self.engine.update_manager(
-                    "traffic_manager", self.waymo_traffic_manager, destroy_previous_manager=False
-                )
+                self.engine.update_manager("map_manager",
+                                           self.waymo_map_manager,
+                                           destroy_previous_manager=False)
+                self.engine.update_manager("traffic_manager",
+                                           self.waymo_traffic_manager,
+                                           destroy_previous_manager=False)
                 self.is_current_real_data = True
             else:
                 self.is_current_real_data = False
                 # change to PG environment
-                self.engine.update_manager("map_manager", self.pg_map_manager, destroy_previous_manager=False)
-                self.engine.update_manager("traffic_manager", self.pg_traffic_manager, destroy_previous_manager=False)
+                self.engine.update_manager("map_manager",
+                                           self.pg_map_manager,
+                                           destroy_previous_manager=False)
+                self.engine.update_manager("traffic_manager",
+                                           self.pg_traffic_manager,
+                                           destroy_previous_manager=False)
                 self._init_pg_episode()
 
     def _init_pg_episode(self):
         self.config["agent_configs"]["default_agent"]["spawn_lane_index"] = (
-            FirstPGBlock.NODE_1, FirstPGBlock.NODE_2, self.engine.np_random.randint(3)
-        )
+            FirstPGBlock.NODE_1, FirstPGBlock.NODE_2,
+            self.engine.np_random.randint(3))
         self.config["agent_configs"]["default_agent"]["destination"] = None
 
     def reset(self, seed: Union[None, int] = None):
         self.change_suite()
         # ===== same as BaseEnv =====
-        self.lazy_init()  # it only works the first time when reset() is called to avoid the error when render
+        self.lazy_init(
+        )  # it only works the first time when reset() is called to avoid the error when render
         self._reset_global_seed(seed)
         if self.engine is None:
             raise ValueError(
                 "Current MetaDrive instance is broken. Please make sure there is only one active MetaDrive "
                 "environment exists in one process. You can try to call env.close() and then call "
                 "env.reset() to rescue this environment. However, a better and safer solution is to check the "
-                "singleton of MetaDrive and restart your program."
-            )
+                "singleton of MetaDrive and restart your program.")
         reset_info = self.engine.reset()
         if self.top_down_renderer is not None:
             self.top_down_renderer.clear()
@@ -165,14 +178,17 @@ class MixWaymoPGEnv(ScenarioEnv):
 
         if not self.is_current_real_data:
             # give a initial speed when on metadrive
-            self.agent.set_velocity(self.agent.heading, self.engine.np_random.randint(10))
+            self.agent.set_velocity(self.agent.heading,
+                                    self.engine.np_random.randint(10))
         return self._get_reset_return(reset_info)
 
     def _reset_global_seed(self, force_seed=None):
-        current_seed = force_seed if force_seed is not None else get_np_random(None).randint(
-            self.config["start_scenario_index"], self.config["start_scenario_index"] +
-            self.config["num_scenarios"] if self.is_current_real_data else self.config["num_scenarios"]
-        )
+        current_seed = force_seed if force_seed is not None else get_np_random(
+            None).randint(
+                self.config["start_scenario_index"],
+                self.config["start_scenario_index"] +
+                self.config["num_scenarios"]
+                if self.is_current_real_data else self.config["num_scenarios"])
         self.seed(current_seed)
 
     def done_function(self, vehicle_id: str):
@@ -191,7 +207,8 @@ class MixWaymoPGEnv(ScenarioEnv):
         if self.is_current_real_data:
             return super(MixWaymoPGEnv, self)._is_out_of_road(vehicle)
         else:
-            return vehicle.on_yellow_continuous_line or vehicle.crash_sidewalk or (not vehicle.on_lane)
+            return vehicle.on_yellow_continuous_line or vehicle.crash_sidewalk or (
+                not vehicle.on_lane)
 
 
 class MixWaymoPGEnvWrapper(MixWaymoPGEnv):
@@ -208,10 +225,11 @@ class MixWaymoPGEnvWrapper(MixWaymoPGEnv):
         env_config = config.copy()
         ratio = config["real_data_ratio"]
         assert 0 <= ratio <= 1, "ratio should be in [0, 1]"
-        env_config["num_scenarios"] = int(config.get("total_num_scenarios", self.TOTAL_SCENARIO) * ratio)
         env_config["num_scenarios"] = int(
-            config.get("total_num_scenarios", self.TOTAL_SCENARIO) - env_config["num_scenarios"]
-        )
+            config.get("total_num_scenarios", self.TOTAL_SCENARIO) * ratio)
+        env_config["num_scenarios"] = int(
+            config.get("total_num_scenarios", self.TOTAL_SCENARIO) -
+            env_config["num_scenarios"])
         if "real_data_ratio" in env_config:
             env_config.pop("real_data_ratio")
         if "total_num_scenarios" in env_config:
@@ -227,9 +245,7 @@ if __name__ == "__main__":
             data_directory=AssetLoader.file_path("waymo", unix_style=False),
             # # start_scenario=32,
             total_num_scenarios=10,
-            real_data_ratio=0.3
-        )
-    )
+            real_data_ratio=0.3))
     env.reset()
     while True:
         o, r, tm, tc, i = env.step(env.action_space.sample())

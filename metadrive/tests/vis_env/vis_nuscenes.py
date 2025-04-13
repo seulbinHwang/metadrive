@@ -11,59 +11,73 @@ from metadrive.component.sensors.instance_camera import InstanceCamera
 NuScenesEnv = ScenarioEnv
 
 if __name__ == "__main__":
-    env = NuScenesEnv(
-        {
-            "use_render": True,
-            "agent_policy": ReplayEgoCarPolicy,
-            # "manual_control": True,
-            "show_interface": True,
-            # "debug_static_world": True,
-            # "need_lane_localization": False,
-            # "image_observation": True,
-            "show_logo": False,
-            "no_traffic": False,
-            "store_data": False,
-            "sequential_seed": True,
-            # "pstats": True,
-            # "debug_static_world": True,
-            # "sequential_seed": True,
-            # "reactive_traffic": True,
-            "curriculum_level": 1,
-            "show_fps": True,
-            "show_sidewalk": True,
-            "show_crosswalk": True,
-            # "show_coordinates": True,
-            "sensors": {
-                "semantic": (SemanticCamera, 400, 300),
-                "depth": (DepthCamera, 400, 300),
-                "rgb": (RGBCamera, 400, 300),
-            },
-            # "pstats": True,
-            # "use_mesh_terrain": True,
-            # "debug": True,
-            # "no_static_vehicles": False,
-            # "pstats": True,
-            # "render_pipeline": True,
-            # "window_size": (1600, 900),
-            "camera_dist": 9,
-            "interface_panel": ["semantic", "depth", "rgb"],
-            "start_scenario_index": 0,
-            "num_scenarios": 10,
-            # "force_reuse_object_name": True,
-            "horizon": 1000,
-            "vehicle_config": dict(
+    env = NuScenesEnv({
+        "use_render":
+            True,
+        "agent_policy":
+            ReplayEgoCarPolicy,
+        # "manual_control": True,
+        "show_interface":
+            True,
+        # "debug_static_world": True,
+        # "need_lane_localization": False,
+        # "image_observation": True,
+        "show_logo":
+            False,
+        "no_traffic":
+            False,
+        "store_data":
+            False,
+        "sequential_seed":
+            True,
+        # "pstats": True,
+        # "debug_static_world": True,
+        # "sequential_seed": True,
+        # "reactive_traffic": True,
+        "curriculum_level":
+            1,
+        "show_fps":
+            True,
+        "show_sidewalk":
+            True,
+        "show_crosswalk":
+            True,
+        # "show_coordinates": True,
+        "sensors": {
+            "semantic": (SemanticCamera, 400, 300),
+            "depth": (DepthCamera, 400, 300),
+            "rgb": (RGBCamera, 400, 300),
+        },
+        # "pstats": True,
+        # "use_mesh_terrain": True,
+        # "debug": True,
+        # "no_static_vehicles": False,
+        # "pstats": True,
+        # "render_pipeline": True,
+        # "window_size": (1600, 900),
+        "camera_dist":
+            9,
+        "interface_panel": ["semantic", "depth", "rgb"],
+        "start_scenario_index":
+            0,
+        "num_scenarios":
+            10,
+        # "force_reuse_object_name": True,
+        "horizon":
+            1000,
+        "vehicle_config":
+            dict(
                 # light=True,
                 # random_color=True,
                 show_navi_mark=False,
                 # no_wheel_friction=True,
                 lidar=dict(num_lasers=120, distance=50),
                 lane_line_detector=dict(num_lasers=0, distance=50),
-                side_detector=dict(num_lasers=12, distance=50)
-            ),
-            "data_directory": AssetLoader.file_path("nuscenes", unix_style=False),
-            # "drivable_area_extension": 0,
-        }
-    )
+                side_detector=dict(num_lasers=12, distance=50)),
+        "data_directory":
+            AssetLoader.file_path("nuscenes", unix_style=False),
+        # "drivable_area_extension": 0,
+    })
 
     # 0,1,3,4,5,6
 

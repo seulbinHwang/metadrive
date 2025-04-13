@@ -24,4 +24,5 @@ THE SOFTWARE.
 
 """
 import HSWKScattering
+
 HSWKScattering.generate_table()

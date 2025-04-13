@@ -34,15 +34,14 @@ from metadrive.render_pipeline.rpcore.loader import RPLoader
 
 class TextNode(RPObject):
     """ Interface for the Panda3D TextNode. """
-    def __init__(
-        self,
-        font="/$$rp/data/font/Roboto-Bold.ttf",
-        pixel_size=16,
-        align="left",
-        pos=Vec2(0),
-        color=Vec3(1),
-        parent=None
-    ):
+
+    def __init__(self,
+                 font="/$$rp/data/font/Roboto-Bold.ttf",
+                 pixel_size=16,
+                 align="left",
+                 pos=Vec2(0),
+                 color=Vec3(1),
+                 parent=None):
         """ Constructs a new text node, forwaring the parameters to the internal
         panda3d implementation """
         RPObject.__init__(self)
@@ -88,4 +87,5 @@ class TextNode(RPObject):
 
     def set_pixel_size(self, size):
         """ Sets the text size in pixels """
-        self._nodepath.set_scale(size * 2.0 / float(Globals.native_resolution.y))
+        self._nodepath.set_scale(size * 2.0 /
+                                 float(Globals.native_resolution.y))

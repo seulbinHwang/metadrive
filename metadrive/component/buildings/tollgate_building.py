@@ -11,14 +11,14 @@ class TollGateBuilding(BaseBuilding):
     MASS = 0
 
     def __init__(self, lane, position, heading_theta, random_seed):
-        super(TollGateBuilding, self).__init__(position, heading_theta, lane, random_seed)
+        super(TollGateBuilding, self).__init__(position, heading_theta, lane,
+                                               random_seed)
         air_wall = generate_static_box_physics_body(
             self.BUILDING_LENGTH,
             lane.width,
             self.BUILDING_HEIGHT / 2,
             object_id=self.id,
-            type_name=MetaDriveType.BUILDING
-        )
+            type_name=MetaDriveType.BUILDING)
         self.lane_width = lane.width
         self.add_body(air_wall)
 
@@ -26,8 +26,10 @@ class TollGateBuilding(BaseBuilding):
         self.set_heading_theta(heading_theta)
 
         if self.render:
-            building_model = self.loader.loadModel(AssetLoader.file_path("models", "tollgate", "booth.gltf"))
-            gate_model = self.loader.loadModel(AssetLoader.file_path("models", "tollgate", "gate.gltf"))
+            building_model = self.loader.loadModel(
+                AssetLoader.file_path("models", "tollgate", "booth.gltf"))
+            gate_model = self.loader.loadModel(
+                AssetLoader.file_path("models", "tollgate", "gate.gltf"))
             building_model.setH(90)
             building_model.reparentTo(self.origin)
             gate_model.reparentTo(self.origin)

@@ -14,8 +14,13 @@ from metadrive.envs.metadrive_env import MetaDriveEnv
 
 
 class TestMemoryLeakEnv(MetaDriveEnv):
+
     def __init__(self):
-        super(TestMemoryLeakEnv, self).__init__({"manual_control": True, "traffic_density": 0.0, "use_render": False})
+        super(TestMemoryLeakEnv, self).__init__({
+            "manual_control": True,
+            "traffic_density": 0.0,
+            "use_render": False
+        })
 
     @profile(precision=4, stream=open('memory_leak_test.log', 'w+'))
     def step(self, action):

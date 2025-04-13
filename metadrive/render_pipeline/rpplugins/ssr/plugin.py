@@ -35,8 +35,7 @@ class Plugin(BasePlugin):
     author = "tobspr <tobias.springer1@gmail.com>"
     description = (
         "This plugin adds support for stochastik screen space reflections "
-        "and is still very experimental!"
-    )
+        "and is still very experimental!")
     version = "beta (!)"
 
     def on_stage_setup(self):

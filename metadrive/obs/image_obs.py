@@ -24,20 +24,23 @@ class ImageStateObservation(BaseObservation):
 
     def __init__(self, config):
         super(ImageStateObservation, self).__init__(config)
-        self.img_obs = ImageObservation(config, config["vehicle_config"]["image_source"], config["norm_pixel"])
+        self.img_obs = ImageObservation(
+            config, config["vehicle_config"]["image_source"],
+            config["norm_pixel"])
         self.state_obs = StateObservation(config)
 
     @property
     def observation_space(self):
-        return gym.spaces.Dict(
-            {
-                self.IMAGE: self.img_obs.observation_space,
-                self.STATE: self.state_obs.observation_space
-            }
-        )
+        return gym.spaces.Dict({
+            self.IMAGE: self.img_obs.observation_space,
+            self.STATE: self.state_obs.observation_space
+        })
 
     def observe(self, vehicle: BaseVehicle):
-        return {self.IMAGE: self.img_obs.observe(), self.STATE: self.state_obs.observe(vehicle)}
+        return {
+            self.IMAGE: self.img_obs.observe(),
+            self.STATE: self.state_obs.observe(vehicle)
+        }
 
     def destroy(self):
         super(ImageStateObservation, self).destroy()
@@ -59,19 +62,25 @@ class ImageObservation(BaseObservation):
         self.image_source = image_source
         super(ImageObservation, self).__init__(config)
         self.norm_pixel = clip_rgb
-        self.state = np.zeros(self.observation_space.shape, dtype=np.float32 if self.norm_pixel else np.uint8)
+        self.state = np.zeros(self.observation_space.shape,
+                              dtype=np.float32 if self.norm_pixel else np.uint8)
         if self.enable_cuda:
             self.state = cp.asarray(self.state)
 
     @property
     def observation_space(self):
         sensor_cls = self.config["sensors"][self.image_source][0]
-        assert sensor_cls == "MainCamera" or issubclass(sensor_cls, BaseCamera), "Sensor should be BaseCamera"
+        assert sensor_cls == "MainCamera" or issubclass(
+            sensor_cls, BaseCamera), "Sensor should be BaseCamera"
         channel = sensor_cls.num_channels if sensor_cls != "MainCamera" else 3
         shape = (self.config["sensors"][self.image_source][2],
-                 self.config["sensors"][self.image_source][1]) + (channel, self.STACK_SIZE)
+                 self.config["sensors"][self.image_source][1]) + (
+                     channel, self.STACK_SIZE)
         if sensor_cls is PointCloudLidar:
-            return gym.spaces.Box(-np.inf, np.inf, shape=shape, dtype=np.float32)
+            return gym.spaces.Box(-np.inf,
+                                  np.inf,
+                                  shape=shape,
+                                  dtype=np.float32)
         if self.norm_pixel:
             return gym.spaces.Box(-0.0, 1.0, shape=shape, dtype=np.float32)
         else:
@@ -82,8 +91,11 @@ class ImageObservation(BaseObservation):
         Get the image Observation. By setting new_parent_node and the reset parameters, it can capture a new image from
         a different position and pose
         """
-        new_obs = self.engine.get_sensor(self.image_source).perceive(self.norm_pixel, new_parent_node, position, hpr)
-        self.state = cp.roll(self.state, -1, axis=-1) if self.enable_cuda else np.roll(self.state, -1, axis=-1)
+        new_obs = self.engine.get_sensor(self.image_source).perceive(
+            self.norm_pixel, new_parent_node, position, hpr)
+        self.state = cp.roll(self.state, -1,
+                             axis=-1) if self.enable_cuda else np.roll(
+                                 self.state, -1, axis=-1)
         self.state[..., -1] = new_obs
         return self.state
 

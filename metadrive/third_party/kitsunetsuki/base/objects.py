@@ -69,14 +69,13 @@ def apply_modifiers(obj, triangulate=False, apply_scale=False):
             bpy.ops.object.modifier_apply(modifier=mod.name)
         except Exception as e:
             print(
-                'FAILED TO APPLY MODIFIER {mod_name} [{mod_type}] ON OBJECT {obj_name}'.format(
+                'FAILED TO APPLY MODIFIER {mod_name} [{mod_type}] ON OBJECT {obj_name}'
+                .format(
                     **{
                         'mod_name': mod.name,
                         'mod_type': mod.type,
                         'obj_name': obj.name,
-                    }
-                )
-            )
+                    }))
             raise e
 
     if apply_scale:
@@ -86,7 +85,9 @@ def apply_modifiers(obj, triangulate=False, apply_scale=False):
             set_active_object(obj)
             is_activated = True
 
-        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        bpy.ops.object.transform_apply(location=False,
+                                       rotation=False,
+                                       scale=True)
 
 
 def get_parent(obj, level=1):

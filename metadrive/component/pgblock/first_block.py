@@ -39,7 +39,8 @@ class FirstPGBlock(PGBlock):
         side_lane_line_type=None,
         center_line_type=None,
     ):
-        place_holder = PGBlockSocket(Road(Decoration.start, Decoration.end), Road(Decoration.start, Decoration.end))
+        place_holder = PGBlockSocket(Road(Decoration.start, Decoration.end),
+                                     Road(Decoration.start, Decoration.end))
         super(FirstPGBlock, self).__init__(
             0,
             place_holder,
@@ -51,17 +52,17 @@ class FirstPGBlock(PGBlock):
             center_line_type=center_line_type,
         )
         if length < self.ENTRANCE_LENGTH:
-            print("Warning: first block length is two small", length, "<", self.ENTRANCE_LENGTH)
+            print("Warning: first block length is two small", length, "<",
+                  self.ENTRANCE_LENGTH)
         if not isinstance(start_point, np.ndarray):
             start_point = np.array(start_point)
 
         self._block_objects = []
-        basic_lane = StraightLane(
-            start_point,
-            start_point + [self.ENTRANCE_LENGTH, 0],
-            line_types=(PGLineType.BROKEN, PGLineType.SIDE),
-            width=lane_width
-        )
+        basic_lane = StraightLane(start_point,
+                                  start_point + [self.ENTRANCE_LENGTH, 0],
+                                  line_types=(PGLineType.BROKEN,
+                                              PGLineType.SIDE),
+                                  width=lane_width)
         ego_v_spawn_road = Road(self.NODE_1, self.NODE_2)
         CreateRoadFrom(
             basic_lane,
@@ -83,7 +84,9 @@ class FirstPGBlock(PGBlock):
                 center_line_type=self.center_line_type,
             )
 
-        next_lane = ExtendStraightLane(basic_lane, length - self.ENTRANCE_LENGTH, [PGLineType.BROKEN, PGLineType.SIDE])
+        next_lane = ExtendStraightLane(basic_lane,
+                                       length - self.ENTRANCE_LENGTH,
+                                       [PGLineType.BROKEN, PGLineType.SIDE])
         other_v_spawn_road = Road(self.NODE_2, self.NODE_3)
         CreateRoadFrom(
             next_lane,
@@ -118,7 +121,9 @@ class FirstPGBlock(PGBlock):
         self._respawn_roads = [other_v_spawn_road]
 
     def _try_plug_into_previous_block(self) -> bool:
-        raise ValueError("BIG Recursive calculation error! Can not find a right sequence for building map! Check BIG")
+        raise ValueError(
+            "BIG Recursive calculation error! Can not find a right sequence for building map! Check BIG"
+        )
 
     def destruct_block(self, physics_world: PhysicsWorld):
         """This block can not be destructed"""

@@ -19,12 +19,14 @@ class SkyBox(BaseObject):
         self.f = 1
         if not self.render or pure_background:
             return
-        skybox = self.loader.loadModel(AssetLoader.file_path("models", "skybox.bam"))
+        skybox = self.loader.loadModel(
+            AssetLoader.file_path("models", "skybox.bam"))
 
         skybox.hide(CamMask.MiniMap | CamMask.Shadow)
         skybox.set_scale(20000)
 
-        skybox_texture = self.loader.loadTexture(AssetLoader.file_path("textures", "skybox.jpg"))
+        skybox_texture = self.loader.loadTexture(
+            AssetLoader.file_path("textures", "skybox.jpg"))
         skybox_texture.set_format(Texture.F_srgb)
         skybox_texture.set_minfilter(SamplerState.FT_linear)
         skybox_texture.set_magfilter(SamplerState.FT_linear)
@@ -36,16 +38,15 @@ class SkyBox(BaseObject):
         gles = ConfigVariableString("load-display").getValue()
         if gles == "pandagles2":
             skybox_shader = Shader.load(
-                Shader.SL_GLSL, AssetLoader.file_path("../shaders", "skybox_gles.vert.glsl"),
-                AssetLoader.file_path("../shaders", "skybox_gles.frag.glsl")
-            )
+                Shader.SL_GLSL,
+                AssetLoader.file_path("../shaders", "skybox_gles.vert.glsl"),
+                AssetLoader.file_path("../shaders", "skybox_gles.frag.glsl"))
         else:
             vert_file = "skybox.vert.glsl"
             frag_file = "skybox.frag.glsl"
             skybox_shader = Shader.load(
                 Shader.SL_GLSL, AssetLoader.file_path("../shaders", vert_file),
-                AssetLoader.file_path("../shaders", frag_file)
-            )
+                AssetLoader.file_path("../shaders", frag_file))
         skybox.set_shader(skybox_shader)
         skybox.reparentTo(self.origin)
         skybox.setZ(-4400)
@@ -58,5 +59,7 @@ class SkyBox(BaseObject):
             self.f *= -1
             self._accumulate = 0
         self._accumulate += 1
-        factor = self.f * (1 - abs(self._accumulate - self.ROTATION_MAX / 2) * 2 / self.ROTATION_MAX)
-        self.set_heading_theta(self.origin.getH() + factor * 0.0035, in_rad=False)
+        factor = self.f * (1 - abs(self._accumulate - self.ROTATION_MAX / 2) *
+                           2 / self.ROTATION_MAX)
+        self.set_heading_theta(self.origin.getH() + factor * 0.0035,
+                               in_rad=False)

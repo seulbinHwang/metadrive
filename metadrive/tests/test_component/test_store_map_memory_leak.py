@@ -25,11 +25,12 @@ def test_pgdrive_env_memory_leak():
     total_num = 400
     num = 20
     out_loop_num = int(total_num / num)
-    env = MetaDriveEnv(dict(
-        store_map=False,
-        num_scenarios=num,
-        # traffic_density=0.
-    ))
+    env = MetaDriveEnv(
+        dict(
+            store_map=False,
+            num_scenarios=num,
+            # traffic_density=0.
+        ))
     try:
         for j in tqdm.tqdm(range(out_loop_num)):
             for i in range(num):
@@ -72,7 +73,8 @@ def test_pg_map_destroy():
                     start_memory = process_memory()
         engine.current_map.destroy()
         end_memory = process_memory()
-        print("Start: {}, End: {}, No Map: {}".format(start_memory, end_memory, no_map_memory))
+        print("Start: {}, End: {}, No Map: {}".format(start_memory, end_memory,
+                                                      no_map_memory))
         assert abs(start_memory - end_memory) < 10
     finally:
         close_engine()
@@ -84,7 +86,8 @@ def test_scenario_map_destroy():
     out_loop_num = int(total_num / num)
 
     default_config = ScenarioEnv.default_config()
-    default_config["data_directory"] = AssetLoader.file_path("waymo", unix_style=False)
+    default_config["data_directory"] = AssetLoader.file_path("waymo",
+                                                             unix_style=False)
     default_config["num_scenarios"] = num
     default_config["store_map"] = False
 
@@ -102,7 +105,8 @@ def test_scenario_map_destroy():
                     start_memory = process_memory()
         engine.current_map.destroy()
         end_memory = process_memory()
-        print("Start: {}, End: {}, No Map: {}".format(start_memory, end_memory, no_map_memory))
+        print("Start: {}, End: {}, No Map: {}".format(start_memory, end_memory,
+                                                      no_map_memory))
         assert abs(start_memory - end_memory) < 20
     finally:
         close_engine()

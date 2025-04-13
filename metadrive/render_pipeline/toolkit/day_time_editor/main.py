@@ -53,6 +53,7 @@ from ui.point_insert_dialog_generated import Ui_Dialog as Ui_PointDialog  # noqa
 
 
 class PointDialog(QDialog, Ui_PointDialog):
+
     def __init__(self, parent):
         QDialog.__init__(self, parent)
         self.setupUi(self)
@@ -66,6 +67,7 @@ class PointDialog(QDialog, Ui_PointDialog):
 
 class DayTimeEditor(QMainWindow, Ui_MainWindow):
     """ This is the main editor class which handles the user interface """
+
     def __init__(self):
 
         # Init mounts
@@ -110,12 +112,14 @@ class DayTimeEditor(QMainWindow, Ui_MainWindow):
                 cmd = self._cmd_queue.pop()
                 if cmd == "settime":
                     NetworkCommunication.send_async(
-                        NetworkCommunication.DAYTIME_PORT, "settime " + str(self._current_time)
-                    )
+                        NetworkCommunication.DAYTIME_PORT,
+                        "settime " + str(self._current_time))
                     continue
                 elif cmd == "write_settings":
-                    self._plugin_mgr.save_daytime_overrides("/$$rpconfig/daytime.yaml")
-                    NetworkCommunication.send_async(NetworkCommunication.DAYTIME_PORT, "loadconf")
+                    self._plugin_mgr.save_daytime_overrides(
+                        "/$$rpconfig/daytime.yaml")
+                    NetworkCommunication.send_async(
+                        NetworkCommunication.DAYTIME_PORT, "loadconf")
                 else:
                     print("Unkown cmd:", cmd)
 
@@ -132,7 +136,8 @@ class DayTimeEditor(QMainWindow, Ui_MainWindow):
         self.prefab_edit_widget.addWidget(self.edit_widget)
 
         qt_connect(self.time_slider, "valueChanged(int)", self._on_time_changed)
-        qt_connect(self.settings_tree, "itemSelectionChanged()", self._on_setting_selected)
+        qt_connect(self.settings_tree, "itemSelectionChanged()",
+                   self._on_setting_selected)
         qt_connect(self.btn_insert_point, "clicked()", self._insert_point)
         qt_connect(self.btn_reset, "clicked()", self._reset_settings)
 
@@ -147,10 +152,12 @@ class DayTimeEditor(QMainWindow, Ui_MainWindow):
         msg = "Are you sure you want to reset the control points of '" +\
               self._selected_setting_handle.label + "'?\n"
         msg += "!! This cannot be undone !! They will be lost forever (a long time!)."
-        reply = QMessageBox.question(self, "Warning", msg, QMessageBox.Yes, QMessageBox.No)
+        reply = QMessageBox.question(self, "Warning", msg, QMessageBox.Yes,
+                                     QMessageBox.No)
         if reply == QMessageBox.Yes:
 
-            QMessageBox.information(self, "Success", "Control points have been reset!")
+            QMessageBox.information(self, "Success",
+                                    "Control points have been reset!")
             default = self._selected_setting_handle.default
             self._selected_setting_handle.curves[0].set_single_value(default)
             self._update_settings_list()
@@ -163,12 +170,16 @@ class DayTimeEditor(QMainWindow, Ui_MainWindow):
             time, val = dialog.get_value()
             minutes = (time.hour() * 60 + time.minute()) / (24 * 60)
 
-            if (val < self._selected_setting_handle.minvalue or val > self._selected_setting_handle.maxvalue):
-                QMessageBox.information(self, "Invalid Value", "Value is out of setting range!", QMessageBox.Ok)
+            if (val < self._selected_setting_handle.minvalue or
+                    val > self._selected_setting_handle.maxvalue):
+                QMessageBox.information(self, "Invalid Value",
+                                        "Value is out of setting range!",
+                                        QMessageBox.Ok)
                 return
 
             val_linear = self._selected_setting_handle.get_linear_value(val)
-            self._selected_setting_handle.curves[0].append_cv(minutes, val_linear)
+            self._selected_setting_handle.curves[0].append_cv(
+                minutes, val_linear)
             self._cmd_queue.add("write_settings")
 
     def _update_tree_widgets(self):
@@ -202,8 +213,10 @@ class DayTimeEditor(QMainWindow, Ui_MainWindow):
             self._selected_setting = selected._setting_id
             self._selected_setting_handle = selected._setting_handle
 
-            self.lbl_current_setting.setText(self._selected_setting_handle.label)
-            self.lbl_setting_desc.setText(self._selected_setting_handle.description)
+            self.lbl_current_setting.setText(
+                self._selected_setting_handle.label)
+            self.lbl_setting_desc.setText(
+                self._selected_setting_handle.description)
 
             self.edit_widget.set_curves(self._selected_setting_handle.curves)
 
@@ -212,8 +225,8 @@ class DayTimeEditor(QMainWindow, Ui_MainWindow):
                 self.btn_insert_point.hide()
             else:
                 self.edit_widget.set_unit_processor(
-                    lambda x: self._selected_setting_handle.format(self._selected_setting_handle.get_scaled_value(x))
-                )
+                    lambda x: self._selected_setting_handle.format(
+                        self._selected_setting_handle.get_scaled_value(x)))
                 self.btn_insert_point.show()
 
             self.set_settings_visible(True)

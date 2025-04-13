@@ -42,6 +42,7 @@ class MovementController(object):
     """ This is a helper class, used to controll the camera and enable various
     debugging features. It is not really part of the pipeline, but included to
     view the demo scenes. """
+
     def __init__(self, showbase):
         self.showbase = showbase
         self.movement = [0, 0, 0]
@@ -81,9 +82,9 @@ class MovementController(object):
         if self.use_hpr:
             self.showbase.camera.set_hpr(self.initial_hpr)
         else:
-            self.showbase.camera.look_at(
-                self.initial_destination.x, self.initial_destination.y, self.initial_destination.z
-            )
+            self.showbase.camera.look_at(self.initial_destination.x,
+                                         self.initial_destination.y,
+                                         self.initial_destination.z)
 
     def set_movement(self, direction, amount):
         self.movement[direction] = amount
@@ -131,7 +132,8 @@ class MovementController(object):
 
         # wireframe + debug + buffer viewer
         self.showbase.accept("f3", self.showbase.toggle_wireframe)
-        self.showbase.accept("f11", lambda: self.showbase.win.save_screenshot("screenshot.png"))
+        self.showbase.accept(
+            "f11", lambda: self.showbase.win.save_screenshot("screenshot.png"))
         self.showbase.accept("j", self.print_position)
 
         # mouse
@@ -155,14 +157,17 @@ class MovementController(object):
         # disable modifier buttons to be able to move while pressing shift for
         # example
         self.showbase.mouseWatcherNode.set_modifier_buttons(ModifierButtons())
-        self.showbase.buttonThrowers[0].node().set_modifier_buttons(ModifierButtons())
+        self.showbase.buttonThrowers[0].node().set_modifier_buttons(
+            ModifierButtons())
 
         # disable pandas builtin mouse control
         self.showbase.disableMouse()
 
         # add ourself as an update task which gets executed very early before
         # the rendering
-        self.update_task = self.showbase.addTask(self.update, "RP_UpdateMovementController", sort=-40)
+        self.update_task = self.showbase.addTask(self.update,
+                                                 "RP_UpdateMovementController",
+                                                 sort=-40)
 
         # Hotkeys to connect to pstats and reset the initial position
         self.showbase.accept("1", PStatClient.connect)
@@ -172,7 +177,8 @@ class MovementController(object):
         """ Prints the camera position and hpr """
         pos = self.showbase.cam.get_pos(self.showbase.render)
         hpr = self.showbase.cam.get_hpr(self.showbase.render)
-        print("(Vec3({}, {}, {}), Vec3({}, {}, {})),".format(pos.x, pos.y, pos.z, hpr.x, hpr.y, hpr.z))
+        print("(Vec3({}, {}, {}), Vec3({}, {}, {})),".format(
+            pos.x, pos.y, pos.z, hpr.x, hpr.y, hpr.z))
 
     def update(self, task):
         """ Internal update method """
@@ -183,10 +189,10 @@ class MovementController(object):
         if self.showbase.mouseWatcherNode.has_mouse():
             x = self.showbase.mouseWatcherNode.get_mouse_x()
             y = self.showbase.mouseWatcherNode.get_mouse_y()
-            self.current_mouse_pos = (
-                x * self.showbase.camLens.get_fov().x * self.mouse_sensivity,
-                y * self.showbase.camLens.get_fov().y * self.mouse_sensivity
-            )
+            self.current_mouse_pos = (x * self.showbase.camLens.get_fov().x *
+                                      self.mouse_sensivity,
+                                      y * self.showbase.camLens.get_fov().y *
+                                      self.mouse_sensivity)
 
             if self.mouse_enabled:
                 diffx = self.last_mouse_pos[0] - self.current_mouse_pos[0]
@@ -203,29 +209,34 @@ class MovementController(object):
             self.last_mouse_pos = self.current_mouse_pos[:]
 
         # Compute movement in render space
-        movement_direction = (Vec3(self.movement[1], self.movement[0], 0) * self.speed * delta * 100.0)
+        movement_direction = (Vec3(self.movement[1], self.movement[0], 0) *
+                              self.speed * delta * 100.0)
 
         # transform by the camera direction
         camera_quaternion = self.showbase.camera.get_quat(self.showbase.render)
         translated_direction = camera_quaternion.xform(movement_direction)
 
         # z-force is inddpendent of camera direction
-        translated_direction.add_z(self.movement[2] * delta * 120.0 * self.speed)
+        translated_direction.add_z(self.movement[2] * delta * 120.0 *
+                                   self.speed)
 
         self.velocity += translated_direction * 0.15
 
         # apply the new position
-        self.showbase.camera.set_pos(self.showbase.camera.get_pos() + self.velocity)
+        self.showbase.camera.set_pos(self.showbase.camera.get_pos() +
+                                     self.velocity)
 
         # transform rotation (keyboard keys)
         rotation_speed = self.keyboard_hpr_speed * 100.0
         rotation_speed *= delta
         self.showbase.camera.set_hpr(
-            self.showbase.camera.get_hpr() + Vec3(self.hpr_movement[0], self.hpr_movement[1], 0) * rotation_speed
-        )
+            self.showbase.camera.get_hpr() +
+            Vec3(self.hpr_movement[0], self.hpr_movement[1], 0) *
+            rotation_speed)
 
         # fade out velocity
-        self.velocity = self.velocity * max(0.0, 1.0 - delta * 60.0 / max(0.01, self.smoothness))
+        self.velocity = self.velocity * max(
+            0.0, 1.0 - delta * 60.0 / max(0.01, self.smoothness))
 
         # bobbing
         ftime = self.clock_obj.get_frame_time()
@@ -254,10 +265,13 @@ class MovementController(object):
 
         self.curve = curve
         self.curve_time_start = self.clock_obj.get_frame_time()
-        self.curve_time_end = self.clock_obj.get_frame_time() + len(points) * point_duration
+        self.curve_time_end = self.clock_obj.get_frame_time(
+        ) + len(points) * point_duration
         self.delta_time_sum = 0.0
         self.delta_time_count = 0
-        self.showbase.addTask(self.camera_motion_update, "RP_CameraMotionPath", sort=-50)
+        self.showbase.addTask(self.camera_motion_update,
+                              "RP_CameraMotionPath",
+                              sort=-50)
         self.showbase.taskMgr.remove(self.update_task)
 
     def camera_motion_update(self, task):
@@ -269,7 +283,8 @@ class MovementController(object):
             print("Average frame time (ms): {:4.1f}".format(avg_ms * 1000.0))
             print("Average frame rate: {:4.1f}".format(1.0 / avg_ms))
 
-            self.update_task = self.showbase.addTask(self.update, "RP_UpdateMovementController", sort=-50)
+            self.update_task = self.showbase.addTask(
+                self.update, "RP_UpdateMovementController", sort=-50)
             self.showbase.render2d.show()
             self.showbase.aspect2d.show()
             return task.done

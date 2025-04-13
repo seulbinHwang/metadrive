@@ -33,7 +33,9 @@ from metadrive.render_pipeline.rplibs.six import itervalues
 class TagStateManager(object):
     """ Please refer to the native C++ implementation for docstrings and comments.
     This is just the python implementation, which does not contain documentation! """
+
     class StateContainer(object):  # pylint: disable=too-few-public-methods
+
         def __init__(self, tag_name, mask, write_color):
             self.cameras = []
             self.tag_states = {}
@@ -62,7 +64,8 @@ class TagStateManager(object):
         container = self.containers[container_name]
 
         if not container.write_color:
-            state = state.set_attrib(ColorWriteAttrib.make(ColorWriteAttrib.C_off), 10000)
+            state = state.set_attrib(
+                ColorWriteAttrib.make(ColorWriteAttrib.C_off), 10000)
 
         state = state.set_attrib(ShaderAttrib.make(shader, sort), sort)
         container.tag_states[name] = state
@@ -84,7 +87,8 @@ class TagStateManager(object):
         source.set_camera_mask(container.mask)
         state = RenderState.make_empty()
         if not container.write_color:
-            state = state.set_attrib(ColorWriteAttrib.make(ColorWriteAttrib.C_off), 10000)
+            state = state.set_attrib(
+                ColorWriteAttrib.make(ColorWriteAttrib.C_off), 10000)
         source.set_initial_state(state)
         container.cameras.append(source)
 

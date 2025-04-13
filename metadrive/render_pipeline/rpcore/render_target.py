@@ -44,6 +44,7 @@ __version__ = "2.0"
 
 class setter(object):  # noqa # pylint: disable=invalid-name,too-few-public-methods
     """ Setter only property """
+
     def __init__(self, func):
         self.__func = func
         self.__doc__ = func.__doc__
@@ -91,7 +92,8 @@ class RenderTarget(RPObject):
         single int, alpha determines whether alpha bits are requested """
         self._targets["color"] = Texture(self.debug_name + "_color")
         if isinstance(bits, (list, tuple)):
-            self._color_bits = (bits[0], bits[1], bits[2], bits[3] if len(bits) == 4 else 0)
+            self._color_bits = (bits[0], bits[1], bits[2],
+                                bits[3] if len(bits) == 4 else 0)
         else:
             self._color_bits = ((bits, bits, bits, (bits if alpha else 0)))
 
@@ -150,7 +152,11 @@ class RenderTarget(RPObject):
     def aux_tex(self):
         """ Returns a list of aux textures, can be used like target.aux_tex[2],
         notice the indices start at zero, so the first target has the index 0. """
-        return [self._targets[i] for i in sorted(iterkeys(self._targets)) if i.startswith("aux_")]
+        return [
+            self._targets[i]
+            for i in sorted(iterkeys(self._targets))
+            if i.startswith("aux_")
+        ]
 
     def set_shader_input(self, *args, **kwargs):
         """ Sets a shader input available to the target """
@@ -197,11 +203,14 @@ class RenderTarget(RPObject):
             initial_state.set_state(camera_np.node().get_initial_state())
 
             if self._aux_count:
-                initial_state.set_attrib(AuxBitplaneAttrib.make(self._aux_bits), 20)
-            initial_state.set_attrib(TransparencyAttrib.make(TransparencyAttrib.M_none), 20)
+                initial_state.set_attrib(AuxBitplaneAttrib.make(self._aux_bits),
+                                         20)
+            initial_state.set_attrib(
+                TransparencyAttrib.make(TransparencyAttrib.M_none), 20)
 
             if max(self._color_bits) == 0:
-                initial_state.set_attrib(ColorWriteAttrib.make(ColorWriteAttrib.C_off), 20)
+                initial_state.set_attrib(
+                    ColorWriteAttrib.make(ColorWriteAttrib.C_off), 20)
 
             # Disable existing regions of the camera
             for region in camera_np.node().get_display_regions():
@@ -266,21 +275,25 @@ class RenderTarget(RPObject):
             self._source_region = PostProcessRegion.make(self._internal_buffer)
 
             if max(self._color_bits) == 0:
-                self._source_region.set_attrib(ColorWriteAttrib.make(ColorWriteAttrib.M_none), 1000)
+                self._source_region.set_attrib(
+                    ColorWriteAttrib.make(ColorWriteAttrib.M_none), 1000)
 
     def _compute_size_from_constraint(self):
         """ Computes the actual size in pixels from the targets size constraint """
         w, h = Globals.resolution.x, Globals.resolution.y
         self._size = LVecBase2i(self._size_constraint)
         if self._size_constraint.x < 0:
-            self._size.x = (w - self._size_constraint.x - 1) // (-self._size_constraint.x)
+            self._size.x = (w - self._size_constraint.x -
+                            1) // (-self._size_constraint.x)
         if self._size_constraint.y < 0:
-            self._size.y = (h - self._size_constraint.y - 1) // (-self._size_constraint.y)
+            self._size.y = (h - self._size_constraint.y -
+                            1) // (-self._size_constraint.y)
 
     def _setup_textures(self):
         """ Prepares all bound textures """
         for i in range(self._aux_count):
-            self._targets["aux_{}".format(i)] = Texture(self.debug_name + "_aux{}".format(i))
+            self._targets["aux_{}".format(i)] = Texture(self.debug_name +
+                                                        "_aux{}".format(i))
         for tex in itervalues(self._targets):
             tex.set_wrap_u(SamplerState.WM_clamp)
             tex.set_wrap_v(SamplerState.WM_clamp)
@@ -306,7 +319,8 @@ class RenderTarget(RPObject):
         elif 8 in self._color_bits:
             # When specifying 8 bits, specify 1 bit, this is a workarround
             # to a legacy logic in panda
-            buffer_props.set_rgba_bits(*[i if i != 8 else 1 for i in self._color_bits])
+            buffer_props.set_rgba_bits(
+                *[i if i != 8 else 1 for i in self._color_bits])
         else:
             buffer_props.set_rgba_bits(*self._color_bits)
 
@@ -344,9 +358,10 @@ class RenderTarget(RPObject):
         window_props, buffer_props = self._make_properties()
 
         self._internal_buffer = self.engine.make_output(
-            self._source_window.get_pipe(), self.debug_name, 1, buffer_props, window_props,
-            GraphicsPipe.BF_refuse_window | GraphicsPipe.BF_resizeable, self._source_window.gsg, self._source_window
-        )
+            self._source_window.get_pipe(), self.debug_name, 1, buffer_props,
+            window_props,
+            GraphicsPipe.BF_refuse_window | GraphicsPipe.BF_resizeable,
+            self._source_window.gsg, self._source_window)
 
         if not self._internal_buffer:
             self.error("Failed to create buffer")
@@ -354,13 +369,13 @@ class RenderTarget(RPObject):
 
         if self._depth_bits:
             self._internal_buffer.add_render_texture(
-                self.depth_tex, GraphicsOutput.RTM_bind_or_copy, GraphicsOutput.RTP_depth
-            )
+                self.depth_tex, GraphicsOutput.RTM_bind_or_copy,
+                GraphicsOutput.RTP_depth)
 
         if max(self._color_bits) > 0:
             self._internal_buffer.add_render_texture(
-                self.color_tex, GraphicsOutput.RTM_bind_or_copy, GraphicsOutput.RTP_color
-            )
+                self.color_tex, GraphicsOutput.RTM_bind_or_copy,
+                GraphicsOutput.RTP_color)
 
         aux_prefix = {
             8: "RTP_aux_rgba_{}",
@@ -370,7 +385,8 @@ class RenderTarget(RPObject):
 
         for i in range(self._aux_count):
             target_mode = getattr(GraphicsOutput, aux_prefix.format(i))
-            self._internal_buffer.add_render_texture(self.aux_tex[i], GraphicsOutput.RTM_bind_or_copy, target_mode)
+            self._internal_buffer.add_render_texture(
+                self.aux_tex[i], GraphicsOutput.RTM_bind_or_copy, target_mode)
 
         if not self.sort:
             RenderTarget.CURRENT_SORT += 20

@@ -7,10 +7,8 @@ except ImportError:
 
 
 def format_cudart_err(err):
-    return (
-        f"{cudart.cudaGetErrorName(err)[1].decode('utf-8')}({int(err)}): "
-        f"{cudart.cudaGetErrorString(err)[1].decode('utf-8')}"
-    )
+    return (f"{cudart.cudaGetErrorName(err)[1].decode('utf-8')}({int(err)}): "
+            f"{cudart.cudaGetErrorString(err)[1].decode('utf-8')}")
 
 
 def check_cudart_err(args):

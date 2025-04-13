@@ -48,7 +48,9 @@ class SkinShadingStage(RenderStage):
             target_h.prepare_buffer()
             target_h.set_shader_input("direction", LVecBase2i(1, 0))
             if current_tex is not None:
-                target_h.set_shader_input("ShadedScene", current_tex, override=True)
+                target_h.set_shader_input("ShadedScene",
+                                          current_tex,
+                                          override=True)
             current_tex = target_h.color_tex
             target_v = self.create_target("BlurV-" + str(i))
             target_v.add_color_attachment(bits=16)

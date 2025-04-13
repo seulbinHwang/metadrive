@@ -29,7 +29,12 @@ class TopDownObservation(BaseObservation):
 
     # MAX_RANGE = (50, 50)  # maximum detection distance = 50 M
 
-    def __init__(self, vehicle_config, clip_rgb: bool, onscreen, resolution=None, max_distance=50):
+    def __init__(self,
+                 vehicle_config,
+                 clip_rgb: bool,
+                 onscreen,
+                 resolution=None,
+                 max_distance=50):
         self.resolution = resolution or self.RESOLUTION
         super(TopDownObservation, self).__init__(vehicle_config)
         self.norm_pixel = clip_rgb
@@ -60,19 +65,22 @@ class TopDownObservation(BaseObservation):
             .format(main_window_position[0] - self.resolution[0], main_window_position[1])
         # Used for display only!
         self.screen = pygame.display.set_mode(
-            (self.resolution[0] * 2, self.resolution[1] * 2)
-        ) if self.onscreen else None
+            (self.resolution[0] * 2,
+             self.resolution[1] * 2)) if self.onscreen else None
 
         # canvas
         self.init_canvas()
         self.init_obs_window()
 
     def init_obs_window(self):
-        self.obs_window = ObservationWindow((self.max_distance, self.max_distance), self.resolution)
+        self.obs_window = ObservationWindow(
+            (self.max_distance, self.max_distance), self.resolution)
 
     def init_canvas(self):
-        self.canvas_runtime = WorldSurface(self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
-        self.canvas_background = WorldSurface(self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
+        self.canvas_runtime = WorldSurface(self.MAP_RESOLUTION, 0,
+                                           pygame.Surface(self.MAP_RESOLUTION))
+        self.canvas_background = WorldSurface(
+            self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
 
     def reset(self, env, vehicle=None):
         # self.engine = env.engine
@@ -97,7 +105,9 @@ class TopDownObservation(BaseObservation):
             if screen.get_size() == self.screen.get_size():
                 self.screen.blit(screen, (0, 0))
             else:
-                pygame.transform.smoothscale(self.obs_window.get_screen_window(), self.screen.get_size(), self.screen)
+                pygame.transform.smoothscale(
+                    self.obs_window.get_screen_window(), self.screen.get_size(),
+                    self.screen)
             pygame.display.flip()
 
     def get_screenshot(self, name="screenshot.png"):
@@ -137,7 +147,8 @@ class TopDownObservation(BaseObservation):
             decoration = True if _from == Decoration.start else False
             for _to in self.road_network.graph[_from].keys():
                 for l in self.road_network.graph[_from][_to]:
-                    two_side = True if l is self.road_network.graph[_from][_to][-1] or decoration else False
+                    two_side = True if l is self.road_network.graph[_from][_to][
+                        -1] or decoration else False
                     LaneGraphics.LANE_LINE_WIDTH = 0.5
                     LaneGraphics.display(l, self.canvas_background, two_side)
 
@@ -147,11 +158,15 @@ class TopDownObservation(BaseObservation):
 
     def draw_scene(self):
         # Set the active area that can be modify to accelerate
-        assert len(self.engine.agents) == 1, "Don't support multi-agent top-down observation yet!"
+        assert len(self.engine.agents
+                  ) == 1, "Don't support multi-agent top-down observation yet!"
         vehicle = self.engine.agents[DEFAULT_AGENT]
         pos = self.canvas_runtime.pos2pix(*vehicle.position)
-        clip_size = (int(self.obs_window.get_size()[0] * 1.1), int(self.obs_window.get_size()[0] * 1.1))
-        self.canvas_runtime.set_clip((pos[0] - clip_size[0] / 2, pos[1] - clip_size[1] / 2, clip_size[0], clip_size[1]))
+        clip_size = (int(self.obs_window.get_size()[0] * 1.1),
+                     int(self.obs_window.get_size()[0] * 1.1))
+        self.canvas_runtime.set_clip(
+            (pos[0] - clip_size[0] / 2, pos[1] - clip_size[1] / 2, clip_size[0],
+             clip_size[1]))
         self.canvas_runtime.fill(COLOR_BLACK)
         self.canvas_runtime.blit(self.canvas_background, (0, 0))
 
@@ -160,18 +175,24 @@ class TopDownObservation(BaseObservation):
         ego_heading = vehicle.heading_theta
         ego_heading = ego_heading if abs(ego_heading) > 2 * np.pi / 180 else 0
 
-        ObjectGraphics.display(
-            object=vehicle, surface=self.canvas_runtime, heading=ego_heading, color=ObjectGraphics.GREEN
-        )
+        ObjectGraphics.display(object=vehicle,
+                               surface=self.canvas_runtime,
+                               heading=ego_heading,
+                               color=ObjectGraphics.GREEN)
         for v in self.engine.traffic_manager.vehicles:
             if v is vehicle:
                 continue
             h = v.heading_theta
             h = h if abs(h) > 2 * np.pi / 180 else 0
-            ObjectGraphics.display(object=v, surface=self.canvas_runtime, heading=h, color=ObjectGraphics.BLUE)
+            ObjectGraphics.display(object=v,
+                                   surface=self.canvas_runtime,
+                                   heading=h,
+                                   color=ObjectGraphics.BLUE)
 
         # Prepare a runtime canvas for rotation
-        return self.obs_window.render(canvas=self.canvas_runtime, position=pos, heading=vehicle.heading_theta)
+        return self.obs_window.render(canvas=self.canvas_runtime,
+                                      position=pos,
+                                      heading=vehicle.heading_theta)
 
     @staticmethod
     def blit_rotate(
@@ -183,10 +204,14 @@ class TopDownObservation(BaseObservation):
         """Many thanks to https://stackoverflow.com/a/54714144."""
         # calculate the axis aligned bounding box of the rotated image
         w, h = image.get_size()
-        box = [pygame.math.Vector2(p) for p in [(0, 0), (w, 0), (w, -h), (0, -h)]]
+        box = [
+            pygame.math.Vector2(p) for p in [(0, 0), (w, 0), (w, -h), (0, -h)]
+        ]
         box_rotate = [p.rotate(angle) for p in box]
-        min_box = (min(box_rotate, key=lambda p: p[0])[0], min(box_rotate, key=lambda p: p[1])[1])
-        max_box = (max(box_rotate, key=lambda p: p[0])[0], max(box_rotate, key=lambda p: p[1])[1])
+        min_box = (min(box_rotate, key=lambda p: p[0])[0],
+                   min(box_rotate, key=lambda p: p[1])[1])
+        max_box = (max(box_rotate, key=lambda p: p[0])[0],
+                   max(box_rotate, key=lambda p: p[1])[1])
 
         # calculate the translation of the pivot
         origin_pos = w / 2, h / 2
@@ -195,9 +220,8 @@ class TopDownObservation(BaseObservation):
         pivot_move = pivot_rotate - pivot
 
         # calculate the upper left origin of the rotated image
-        origin = (
-            pos[0] - origin_pos[0] + min_box[0] - pivot_move[0], pos[1] - origin_pos[1] - max_box[1] + pivot_move[1]
-        )
+        origin = (pos[0] - origin_pos[0] + min_box[0] - pivot_move[0],
+                  pos[1] - origin_pos[1] - max_box[1] + pivot_move[1])
         # get a rotated image
         # rotated_image = pygame.transform.rotate(image, angle)
         rotated_image = pygame.transform.rotozoom(image, angle, 1.0)
@@ -213,7 +237,7 @@ class TopDownObservation(BaseObservation):
 
     @property
     def observation_space(self):
-        shape = self.obs_shape + (self.num_stacks, )
+        shape = self.obs_shape + (self.num_stacks,)
         if self.norm_pixel:
             return gym.spaces.Box(-0.0, 1.0, shape=shape, dtype=np.float32)
         else:

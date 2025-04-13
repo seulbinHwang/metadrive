@@ -24,6 +24,7 @@ def get_pygame():
 
 
 class Controller:
+
     def process_input(self, vehicle):
         raise NotImplementedError
 
@@ -126,7 +127,8 @@ class KeyboardController(Controller):
 
     def process_others(self, takeover_callback=None):
         """This function allows the outer loop to call callback if some signal is received by the controller."""
-        if (takeover_callback is None) or (not self.pygame_control) or (not pygame.get_init()):
+        if (takeover_callback is None) or (not self.pygame_control) or (
+                not pygame.get_init()):
             return
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_t:
@@ -146,13 +148,13 @@ class SteeringWheelController(Controller):
         except ImportError:
             print(
                 "Fail to load evdev, which is required for steering wheel control. "
-                "Install evdev via pip install evdev"
-            )
+                "Install evdev via pip install evdev")
         get_pygame()
         pygame.display.init()
         pygame.joystick.init()
         assert not is_win(), "Steering Wheel is supported in linux and mac only"
-        assert pygame.joystick.get_count() > 0, "Please connect Steering Wheel or use keyboard input"
+        assert pygame.joystick.get_count(
+        ) > 0, "Please connect Steering Wheel or use keyboard input"
         print("Successfully Connect your Steering Wheel!")
 
         ffb_device = evdev.list_devices()[0]
@@ -179,13 +181,18 @@ class SteeringWheelController(Controller):
         steering = -self.joystick.get_axis(0)
         throttle_brake = -self.joystick.get_axis(2) + self.joystick.get_axis(3)
         offset = 30
-        val = int(65535 * (vehicle.speed_km_h + offset) / (120 + offset)) if vehicle is not None else 0
+        val = int(65535 * (vehicle.speed_km_h + offset) /
+                  (120 + offset)) if vehicle is not None else 0
         self.ffb_dev.write(ecodes.EV_FF, ecodes.FF_AUTOCENTER, val)
-        self.right_shift_paddle = True if self.joystick.get_button(self.RIGHT_SHIFT_PADDLE) else False
-        self.left_shift_paddle = True if self.joystick.get_button(self.LEFT_SHIFT_PADDLE) else False
+        self.right_shift_paddle = True if self.joystick.get_button(
+            self.RIGHT_SHIFT_PADDLE) else False
+        self.left_shift_paddle = True if self.joystick.get_button(
+            self.LEFT_SHIFT_PADDLE) else False
 
-        self.left_shift_paddle = True if self.joystick.get_button(self.LEFT_SHIFT_PADDLE) else False
-        self.left_shift_paddle = True if self.joystick.get_button(self.LEFT_SHIFT_PADDLE) else False
+        self.left_shift_paddle = True if self.joystick.get_button(
+            self.LEFT_SHIFT_PADDLE) else False
+        self.left_shift_paddle = True if self.joystick.get_button(
+            self.LEFT_SHIFT_PADDLE) else False
 
         self.button_circle = True if self.joystick.get_button(2) else False
         self.button_rectangle = True if self.joystick.get_button(1) else False
@@ -229,13 +236,13 @@ class XboxController(Controller):
         except ImportError:
             print(
                 "Fail to load evdev, which is required for steering wheel control. "
-                "Install evdev via pip install evdev"
-            )
+                "Install evdev via pip install evdev")
         get_pygame()
         pygame.display.init()
         pygame.joystick.init()
         assert not is_win(), "Joystick is supported in linux and mac only"
-        assert pygame.joystick.get_count() > 0, "Please connect joystick or use keyboard input"
+        assert pygame.joystick.get_count(
+        ) > 0, "Please connect joystick or use keyboard input"
         print("Successfully Connect your Joystick!")
 
         self.joystick = pygame.joystick.Joystick(0)
@@ -257,7 +264,8 @@ class XboxController(Controller):
         if abs(steering) < 0.05:
             steering = 0
         elif steering < 0:
-            steering = -(math.pow(2, abs(steering) * self.STEERING_DISCOUNT) - 1)
+            steering = -(math.pow(2,
+                                  abs(steering) * self.STEERING_DISCOUNT) - 1)
         else:
             steering = math.pow(2, abs(steering) * self.STEERING_DISCOUNT) - 1
 
@@ -265,18 +273,25 @@ class XboxController(Controller):
         if abs(raw_throttle_brake) < 0.05:
             throttle_brake = 0
         elif raw_throttle_brake < 0:
-            throttle_brake = -(math.pow(2, abs(raw_throttle_brake) * self.BREAK_DISCOUNT) - 1)
+            throttle_brake = -(
+                math.pow(2,
+                         abs(raw_throttle_brake) * self.BREAK_DISCOUNT) - 1)
         else:
-            throttle_brake = math.pow(2, abs(raw_throttle_brake) * self.THROTTLE_DISCOUNT) - 1
+            throttle_brake = math.pow(
+                2,
+                abs(raw_throttle_brake) * self.THROTTLE_DISCOUNT) - 1
 
-        self.takeover = (
-            self.joystick.get_axis(self.TAKEOVER_AXIS_2) > -0.9 or self.joystick.get_axis(self.TAKEOVER_AXIS_1) > -0.9
-        )
+        self.takeover = (self.joystick.get_axis(self.TAKEOVER_AXIS_2) > -0.9 or
+                         self.joystick.get_axis(self.TAKEOVER_AXIS_1) > -0.9)
 
-        self.button_x = True if self.joystick.get_button(self.BUTTON_X_MAP) else False
-        self.button_y = True if self.joystick.get_button(self.BUTTON_Y_MAP) else False
-        self.button_a = True if self.joystick.get_button(self.BUTTON_A_MAP) else False
-        self.button_b = True if self.joystick.get_button(self.BUTTON_B_MAP) else False
+        self.button_x = True if self.joystick.get_button(
+            self.BUTTON_X_MAP) else False
+        self.button_y = True if self.joystick.get_button(
+            self.BUTTON_Y_MAP) else False
+        self.button_a = True if self.joystick.get_button(
+            self.BUTTON_A_MAP) else False
+        self.button_b = True if self.joystick.get_button(
+            self.BUTTON_B_MAP) else False
 
         hat = self.joystick.get_hat(0)
         self.button_up = True if hat[-1] == 1 else False

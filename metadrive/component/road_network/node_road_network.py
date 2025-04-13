@@ -17,6 +17,7 @@ Route = List[LaneIndex]
 
 
 class GraphLookupTable:
+
     def __init__(self, graph, debug):
         self.graph = graph
         self.debug = debug
@@ -33,7 +34,8 @@ class GraphLookupTable:
                 count += 1
 
         distance_index_mapping = []
-        for rank, candidate_count in enumerate(sorted(log, key=lambda key: log[key][0])):
+        for rank, candidate_count in enumerate(
+                sorted(log, key=lambda key: log[key][0])):
             first_lane_distance, (section_id, lanes_id) = log[candidate_count]
             lanes = self.graph[section_id][lanes_id]
             for lane_id, lane in enumerate(lanes):
@@ -43,7 +45,8 @@ class GraphLookupTable:
                     dist = first_lane_distance
                 else:
                     dist = lane.distance(position)
-                distance_index_mapping.append((dist, (section_id, lanes_id, lane_id)))
+                distance_index_mapping.append(
+                    (dist, (section_id, lanes_id, lane_id)))
             # if rank > 10:
             #     # Take first rank 5 lanes into consideration. The number may related to the number of
             #     # lanes in intersection. We have 3 lanes in intersection, so computing the first 4 ranks can make
@@ -51,11 +54,14 @@ class GraphLookupTable:
             #     # In futurem we shall refactor the whole system, so this vulnerable code would be removed.
             #     break
         if self.graph.get(Decoration.start, False):
-            for id, lane in enumerate(self.graph[Decoration.start][Decoration.end]):
+            for id, lane in enumerate(
+                    self.graph[Decoration.start][Decoration.end]):
                 dist = lane.distance(position)
-                distance_index_mapping.append((dist, (Decoration.start, Decoration.end, id)))
+                distance_index_mapping.append(
+                    (dist, (Decoration.start, Decoration.end, id)))
 
-        distance_index_mapping = sorted(distance_index_mapping, key=lambda d: d[0])
+        distance_index_mapping = sorted(distance_index_mapping,
+                                        key=lambda d: d[0])
         if return_all:
             return distance_index_mapping
         else:
@@ -92,9 +98,11 @@ class NodeRoadNetwork(BaseRoadNetwork):
         set_2 = set(other.graph) - {Decoration.start, Decoration.end}
         intersect = set_1.intersection(set_2)
         if len(intersect) != 0 and no_intersect:
-            raise ValueError("Same start node {} in two road network".format(intersect))
+            raise ValueError(
+                "Same start node {} in two road network".format(intersect))
         # handle decoration_lanes
-        dec_lanes = self.get_all_decoration_lanes() + other.get_all_decoration_lanes()
+        dec_lanes = self.get_all_decoration_lanes(
+        ) + other.get_all_decoration_lanes()
 
         # PZH: Note, do not use deepcopy here! We wish to maintain the reference to Lane!
         # self.graph.update(copy.deepcopy(other.graph))
@@ -104,7 +112,8 @@ class NodeRoadNetwork(BaseRoadNetwork):
         return self
 
     def __isub__(self, other):
-        intersection = self.graph.keys() & other.graph.keys() - {Decoration.start, Decoration.end}
+        intersection = self.graph.keys(
+        ) & other.graph.keys() - {Decoration.start, Decoration.end}
         if len(intersection) != 0:
             for k in intersection:
                 self.graph.pop(k, None)
@@ -166,7 +175,8 @@ class NodeRoadNetwork(BaseRoadNetwork):
                 if len(lanes) == 0:
                     continue
                 boxes.append(get_lanes_bounding_box(lanes))
-        res_x_max, res_x_min, res_y_max, res_y_min = get_boxes_bounding_box(boxes)
+        res_x_max, res_x_min, res_y_max, res_y_min = get_boxes_bounding_box(
+            boxes)
         return res_x_min, res_x_max, res_y_min, res_y_max
 
     def remove_all_roads(self, start_node: str, end_node: str):
@@ -192,7 +202,8 @@ class NodeRoadNetwork(BaseRoadNetwork):
         return ret
 
     def add_road(self, road, lanes: List):
-        assert isinstance(road, Road), "Only Road Type can be added to road network"
+        assert isinstance(road,
+                          Road), "Only Road Type can be added to road network"
         if road.start_node not in self.graph:
             self.graph[road.start_node] = {}
         if road.end_node not in self.graph[road.start_node]:
@@ -278,6 +289,7 @@ class NodeRoadNetwork(BaseRoadNetwork):
         return next(self.bfs_paths(start_road_node, goal), [])
 
     def get_map_features(self, interval=2):
+
         def find_entry_exit():
             entries = dict()
             exits = dict()

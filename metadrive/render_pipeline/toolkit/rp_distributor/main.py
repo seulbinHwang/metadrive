@@ -112,7 +112,8 @@ def distribute():
         shutil.rmtree(tmp_dir)
     os.makedirs(tmp_dir)
 
-    for dname in ("config", "data", "rplibs", "effects", "rpcore", "rpplugins", "toolkit"):
+    for dname in ("config", "data", "rplibs", "effects", "rpcore", "rpplugins",
+                  "toolkit"):
         copy_tree(rp_dir, tmp_dir, rp_ignores, dname)
 
     shutil.copyfile(join(rp_dir, "LICENSE.txt"), join(tmp_dir, "LICENSE.txt"))
@@ -135,10 +136,12 @@ def distribute():
     shutil.copyfile(join(panda_pth, "LICENSE"), join(tmp_dir, "LICENSE.txt"))
 
     # Copy launcher script
-    shutil.copyfile(join(base_dir, "launch.templ.bat"), join(base_dir, dist_folder_name, "launch.bat"))
+    shutil.copyfile(join(base_dir, "launch.templ.bat"),
+                    join(base_dir, dist_folder_name, "launch.bat"))
 
     # Copy application
-    app_pth = join(base_dir, "../../../RenderPipeline-Samples/01-Material-Demo/")
+    app_pth = join(base_dir,
+                   "../../../RenderPipeline-Samples/01-Material-Demo/")
     tmp_dir = join(base_dir, dist_folder_name, "application")
 
     copy_tree(app_pth, tmp_dir, app_ignores, ".")

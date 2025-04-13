@@ -56,7 +56,10 @@ class SMAAStage(RenderStage):
     @property
     def produced_pipes(self):
         if self.use_reprojection:
-            return {"ShadedScene": self.resolve_target.color_tex, "SMAAPostResolve": self.resolve_target.color_tex}
+            return {
+                "ShadedScene": self.resolve_target.color_tex,
+                "SMAAPostResolve": self.resolve_target.color_tex
+            }
         else:
             return {"ShadedScene": self.neighbor_target.color_tex}
 
@@ -72,18 +75,17 @@ class SMAAStage(RenderStage):
         self.blend_target.add_color_attachment(alpha=True)
         self.blend_target.prepare_buffer()
 
-        self.blend_target.set_shader_inputs(
-            EdgeTex=self.edge_target.color_tex,
-            AreaTex=self.area_tex,
-            SearchTex=self.search_tex,
-            jitterIndex=self._jitter_index
-        )
+        self.blend_target.set_shader_inputs(EdgeTex=self.edge_target.color_tex,
+                                            AreaTex=self.area_tex,
+                                            SearchTex=self.search_tex,
+                                            jitterIndex=self._jitter_index)
 
         # Neighbor blending
         self.neighbor_target = self.create_target("NeighborBlending")
         self.neighbor_target.add_color_attachment(bits=16)
         self.neighbor_target.prepare_buffer()
-        self.neighbor_target.set_shader_input("BlendTex", self.blend_target.color_tex)
+        self.neighbor_target.set_shader_input("BlendTex",
+                                              self.blend_target.color_tex)
 
         # Resolving
         if self.use_reprojection:
@@ -93,12 +95,15 @@ class SMAAStage(RenderStage):
             self.resolve_target.set_shader_inputs(
                 jitterIndex=self._jitter_index,
                 # Set initial textures
-                CurrentTex=self.neighbor_target.color_tex
-            )
+                CurrentTex=self.neighbor_target.color_tex)
 
     def reload_shaders(self):
-        self.edge_target.shader = self.load_plugin_shader("edge_detection.frag.glsl")
-        self.blend_target.shader = self.load_plugin_shader("blending_weights.frag.glsl")
-        self.neighbor_target.shader = self.load_plugin_shader("neighborhood_blending.frag.glsl")
+        self.edge_target.shader = self.load_plugin_shader(
+            "edge_detection.frag.glsl")
+        self.blend_target.shader = self.load_plugin_shader(
+            "blending_weights.frag.glsl")
+        self.neighbor_target.shader = self.load_plugin_shader(
+            "neighborhood_blending.frag.glsl")
         if self.use_reprojection:
-            self.resolve_target.shader = self.load_plugin_shader("resolve_smaa.frag.glsl")
+            self.resolve_target.shader = self.load_plugin_shader(
+                "resolve_smaa.frag.glsl")

@@ -5,9 +5,11 @@ from panda3d.core import CS_linear, PNMImage, PNMFileTypeRegistry
 
 
 class Palette2LUT(object):
+
     def __init__(self):
         self.tile_width = 64  # cube width -> red-green tile width
-        self.atlas_width = int(math.sqrt(self.tile_width))  # altas width in number of tiles
+        self.atlas_width = int(math.sqrt(
+            self.tile_width))  # altas width in number of tiles
         lut_size = self.tile_width * self.atlas_width
 
         reg = PNMFileTypeRegistry.get_global_ptr()
@@ -49,8 +51,10 @@ class Palette2LUT(object):
 
             for s in range(quality + 1):
                 for v in range(quality + 1):
-                    color_in = colorsys.hsv_to_rgb(h / quality, s / quality, v / quality)
-                    color_out = colorsys.hsv_to_rgb(h0, s / quality, v / quality)
+                    color_in = colorsys.hsv_to_rgb(h / quality, s / quality,
+                                                   v / quality)
+                    color_out = colorsys.hsv_to_rgb(h0, s / quality,
+                                                    v / quality)
                     self.set_color(color_in, color_out)
 
     def save(self, opath):

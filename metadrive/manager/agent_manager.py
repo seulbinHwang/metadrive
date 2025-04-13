@@ -30,7 +30,8 @@ class VehicleAgentManager(BaseAgentManager):
         self._delay_done = None
         self._infinite_agents = None
 
-        self._dying_objects = {}  # BaseVehicles which will be recycled after the delay_done time
+        self._dying_objects = {
+        }  # BaseVehicles which will be recycled after the delay_done time
         self._agents_finished_this_frame = dict()  # for observation space
         self.next_agent_count = 0
 
@@ -41,12 +42,16 @@ class VehicleAgentManager(BaseAgentManager):
             v_type = random_vehicle_type(self.np_random) if self.engine.global_config["random_agent_model"] else \
                 vehicle_type[v_config["vehicle_model"] if v_config.get("vehicle_model", False) else "default"]
 
-            obj_name = agent_id if self.engine.global_config["force_reuse_object_name"] else None
-            obj = self.spawn_object(v_type, vehicle_config=v_config, name=obj_name)
+            obj_name = agent_id if self.engine.global_config[
+                "force_reuse_object_name"] else None
+            obj = self.spawn_object(v_type,
+                                    vehicle_config=v_config,
+                                    name=obj_name)
             ret[agent_id] = obj
             policy_cls = self.agent_policy
             args = [obj, self.generate_seed()]
-            if policy_cls == TrajectoryIDMPolicy or issubclass(policy_cls, TrajectoryIDMPolicy):
+            if policy_cls == TrajectoryIDMPolicy or issubclass(
+                    policy_cls, TrajectoryIDMPolicy):
                 args.append(self.engine.map_manager.current_sdc_route)
             self.add_policy(obj.id, policy_cls, *args)
         return ret
@@ -63,7 +68,9 @@ class VehicleAgentManager(BaseAgentManager):
         from metadrive.engine.engine_utils import get_global_config
         # Takeover policy shares the control between RL agent (whose action is input via env.step)
         # and external control device (whose action is input via controller).
-        if get_global_config()["agent_policy"] in [TakeoverPolicy, TakeoverPolicyWithoutBrake]:
+        if get_global_config()["agent_policy"] in [
+                TakeoverPolicy, TakeoverPolicyWithoutBrake
+        ]:
             return get_global_config()["agent_policy"]
         if get_global_config()["manual_control"]:
             if get_global_config().get("use_AI_protector", False):
@@ -85,7 +92,9 @@ class VehicleAgentManager(BaseAgentManager):
             for v in self.dying_agents.values():
                 self._remove_vehicle(v)
 
-        for v in list(self._active_objects.values()) + [v for (v, _) in self._dying_objects.values()]:
+        for v in list(self._active_objects.values()) + [
+                v for (v, _) in self._dying_objects.values()
+        ]:
             if hasattr(v, "before_reset"):
                 v.before_reset()
 
@@ -111,12 +120,14 @@ class VehicleAgentManager(BaseAgentManager):
     def random_spawn_lane_in_single_agent(self):
         if not self.engine.global_config["is_multi_agent"] and \
                 self.engine.global_config.get("random_spawn_lane_index", False) and self.engine.current_map is not None:
-            spawn_road_start = self.engine.global_config["agent_configs"][DEFAULT_AGENT]["spawn_lane_index"][0]
-            spawn_road_end = self.engine.global_config["agent_configs"][DEFAULT_AGENT]["spawn_lane_index"][1]
-            index = self.np_random.randint(self.engine.current_map.config["lane_num"])
-            self.engine.global_config["agent_configs"][DEFAULT_AGENT]["spawn_lane_index"] = (
-                spawn_road_start, spawn_road_end, index
-            )
+            spawn_road_start = self.engine.global_config["agent_configs"][
+                DEFAULT_AGENT]["spawn_lane_index"][0]
+            spawn_road_end = self.engine.global_config["agent_configs"][
+                DEFAULT_AGENT]["spawn_lane_index"][1]
+            index = self.np_random.randint(
+                self.engine.current_map.config["lane_num"])
+            self.engine.global_config["agent_configs"][DEFAULT_AGENT][
+                "spawn_lane_index"] = (spawn_road_start, spawn_road_end, index)
 
     def _finish(self, agent_name, ignore_delay_done=False):
         """
@@ -135,7 +146,9 @@ class VehicleAgentManager(BaseAgentManager):
 
     def _check(self):
         if self._debug:
-            current_keys = sorted(list(self._active_objects.keys()) + list(self._dying_objects.keys()))
+            current_keys = sorted(
+                list(self._active_objects.keys()) +
+                list(self._dying_objects.keys()))
             exist_keys = sorted(list(self._object_to_agent.keys()))
             assert current_keys == exist_keys, "You should confirm_respawn() after request for propose_new_vehicle()!"
 
@@ -151,7 +164,8 @@ class VehicleAgentManager(BaseAgentManager):
         # logger.warning("Test MARL new agent observation to avoid bug!")
         self.observations[new_v_name] = self._init_observations["agent0"]
         self.observations[new_v_name].reset(vehicle)
-        self.observation_spaces[new_v_name] = self._init_observation_spaces["agent0"]
+        self.observation_spaces[new_v_name] = self._init_observation_spaces[
+            "agent0"]
         self.action_spaces[new_v_name] = self._init_action_spaces["agent0"]
         self._active_objects[vehicle.name] = vehicle
         self._check()
@@ -177,18 +191,21 @@ class VehicleAgentManager(BaseAgentManager):
         for agent_id in self.active_agents.keys():
             policy = self.get_policy(self._agent_to_object[agent_id])
             is_replay = isinstance(policy, ReplayTrafficParticipantPolicy)
-            assert policy is not None, "No policy is set for agent {}".format(agent_id)
+            assert policy is not None, "No policy is set for agent {}".format(
+                agent_id)
             if is_replay:
                 if stage == "after_step":
                     policy.act(agent_id)
                     step_infos[agent_id] = policy.get_action_info()
                 else:
-                    step_infos[agent_id] = self.get_agent(agent_id).before_step([0, 0])
+                    step_infos[agent_id] = self.get_agent(agent_id).before_step(
+                        [0, 0])
             else:
                 if stage == "before_step":
                     action = policy.act(agent_id)
                     step_infos[agent_id] = policy.get_action_info()
-                    step_infos[agent_id].update(self.get_agent(agent_id).before_step(action))
+                    step_infos[agent_id].update(
+                        self.get_agent(agent_id).before_step(action))
 
         return step_infos
 
@@ -199,7 +216,8 @@ class VehicleAgentManager(BaseAgentManager):
         finished = set()
         for v_name in self._dying_objects.keys():
             self._dying_objects[v_name][1] -= 1
-            if self._dying_objects[v_name][1] <= 0:  # Countdown goes to 0, it's time to remove the vehicles!
+            if self._dying_objects[v_name][
+                    1] <= 0:  # Countdown goes to 0, it's time to remove the vehicles!
                 v = self._dying_objects[v_name][0]
                 self._remove_vehicle(v)
                 finished.add(v_name)
@@ -212,8 +230,8 @@ class VehicleAgentManager(BaseAgentManager):
             return self.engine.replay_manager.get_replay_agent_observations()
         else:
             ret = {
-                old_agent_id: self.observations[v_name]
-                for old_agent_id, v_name in self._agents_finished_this_frame.items()
+                old_agent_id: self.observations[v_name] for old_agent_id, v_name
+                in self._agents_finished_this_frame.items()
             }
             for obj_id, observation in self.observations.items():
                 if self.is_active_object(obj_id):
@@ -222,8 +240,8 @@ class VehicleAgentManager(BaseAgentManager):
 
     def get_observation_spaces(self):
         ret = {
-            old_agent_id: self.observation_spaces[v_name]
-            for old_agent_id, v_name in self._agents_finished_this_frame.items()
+            old_agent_id: self.observation_spaces[v_name] for old_agent_id,
+            v_name in self._agents_finished_this_frame.items()
         }
         for obj_id, space in self.observation_spaces.items():
             if self.is_active_object(obj_id):
@@ -233,7 +251,10 @@ class VehicleAgentManager(BaseAgentManager):
     @property
     def dying_agents(self):
         assert not self.engine.replay_episode
-        return {self._object_to_agent[k]: v for k, (v, _) in self._dying_objects.items()}
+        return {
+            self._object_to_agent[k]: v
+            for k, (v, _) in self._dying_objects.items()
+        }
 
     @property
     def just_terminated_agents(self):
@@ -272,7 +293,9 @@ class VehicleAgentManager(BaseAgentManager):
     def _put_to_dying_queue(self, v, ignore_delay_done=False):
         vehicle_name = v.name
         v.set_static(True)
-        self._dying_objects[vehicle_name] = [v, 0 if ignore_delay_done else self._delay_done]
+        self._dying_objects[vehicle_name] = [
+            v, 0 if ignore_delay_done else self._delay_done
+        ]
 
     def _remove_vehicle(self, vehicle):
         vehicle_name = vehicle.name

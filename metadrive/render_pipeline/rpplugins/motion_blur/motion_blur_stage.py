@@ -33,7 +33,9 @@ class MotionBlurStage(RenderStage):
     """ This stage applies the motion blur, using the screen space velocity vectors """
 
     required_inputs = []
-    required_pipes = ["ShadedScene", "GBuffer", "DownscaledDepth", "CombinedVelocity"]
+    required_pipes = [
+        "ShadedScene", "GBuffer", "DownscaledDepth", "CombinedVelocity"
+    ]
 
     @property
     def produced_pipes(self):
@@ -47,17 +49,20 @@ class MotionBlurStage(RenderStage):
             self.tile_target.add_color_attachment(bits=(16, 16, 0))
             self.tile_target.prepare_buffer()
 
-            self.tile_target_horiz = self.create_target("FetchHorizDominantVelocity")
+            self.tile_target_horiz = self.create_target(
+                "FetchHorizDominantVelocity")
             self.tile_target_horiz.size = -self.tile_size
             self.tile_target_horiz.add_color_attachment(bits=(16, 16, 0))
             self.tile_target_horiz.prepare_buffer()
-            self.tile_target_horiz.set_shader_input("SourceTex", self.tile_target.color_tex)
+            self.tile_target_horiz.set_shader_input("SourceTex",
+                                                    self.tile_target.color_tex)
 
             self.minmax_target = self.create_target("NeighborMinMax")
             self.minmax_target.size = -self.tile_size
             self.minmax_target.add_color_attachment(bits=(16, 16, 0))
             self.minmax_target.prepare_buffer()
-            self.minmax_target.set_shader_input("TileMinMax", self.tile_target_horiz.color_tex)
+            self.minmax_target.set_shader_input(
+                "TileMinMax", self.tile_target_horiz.color_tex)
 
             self.pack_target = self.create_target("PackBlurData")
             self.pack_target.add_color_attachment(bits=(16, 16, 0))
@@ -67,8 +72,8 @@ class MotionBlurStage(RenderStage):
             self.target.add_color_attachment(bits=16)
             self.target.prepare_buffer()
             self.target.set_shader_inputs(
-                NeighborMinMax=self.minmax_target.color_tex, PackedSceneData=self.pack_target.color_tex
-            )
+                NeighborMinMax=self.minmax_target.color_tex,
+                PackedSceneData=self.pack_target.color_tex)
 
             self.target.color_tex.set_wrap_u(SamplerState.WM_clamp)
             self.target.color_tex.set_wrap_v(SamplerState.WM_clamp)
@@ -78,13 +83,20 @@ class MotionBlurStage(RenderStage):
         self.target_cam_blur.prepare_buffer()
 
         if self.per_object_blur:
-            self.target_cam_blur.set_shader_input("SourceTex", self.target.color_tex)
+            self.target_cam_blur.set_shader_input("SourceTex",
+                                                  self.target.color_tex)
 
     def reload_shaders(self):
         if self.per_object_blur:
-            self.tile_target.shader = self.load_plugin_shader("fetch_dominant_velocity.frag.glsl")
-            self.tile_target_horiz.shader = self.load_plugin_shader("fetch_dominant_velocity_horiz.frag.glsl")
-            self.minmax_target.shader = self.load_plugin_shader("neighbor_minmax.frag.glsl")
-            self.pack_target.shader = self.load_plugin_shader("pack_blur_data.frag.glsl")
-            self.target.shader = self.load_plugin_shader("apply_motion_blur.frag.glsl")
-        self.target_cam_blur.shader = self.load_plugin_shader("camera_motion_blur.frag.glsl")
+            self.tile_target.shader = self.load_plugin_shader(
+                "fetch_dominant_velocity.frag.glsl")
+            self.tile_target_horiz.shader = self.load_plugin_shader(
+                "fetch_dominant_velocity_horiz.frag.glsl")
+            self.minmax_target.shader = self.load_plugin_shader(
+                "neighbor_minmax.frag.glsl")
+            self.pack_target.shader = self.load_plugin_shader(
+                "pack_blur_data.frag.glsl")
+            self.target.shader = self.load_plugin_shader(
+                "apply_motion_blur.frag.glsl")
+        self.target_cam_blur.shader = self.load_plugin_shader(
+            "camera_motion_blur.frag.glsl")

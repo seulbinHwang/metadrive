@@ -60,17 +60,19 @@ def test_map_random_seeding():
             env.reset()
             env.reset(seed=5)
             map_configs.append(env.current_map.get_meta_data())
-            lane_num.append(len(env.current_map.road_network.graph[FirstPGBlock.NODE_1][FirstPGBlock.NODE_2]))
-            lane_width.append(
-                env.current_map.road_network.graph[FirstPGBlock.NODE_1][FirstPGBlock.NODE_2][0].width_at(0)
-            )
+            lane_num.append(
+                len(env.current_map.road_network.graph[FirstPGBlock.NODE_1][
+                    FirstPGBlock.NODE_2]))
+            lane_width.append(env.current_map.road_network.graph[
+                FirstPGBlock.NODE_1][FirstPGBlock.NODE_2][0].width_at(0))
         finally:
             env.close()
     for idx, map_cfg in enumerate(map_configs[:-1]):
         nxt_map_cfg = map_configs[idx + 1]
         ret = recursive_equal(map_cfg, nxt_map_cfg)
         assert ret, "Error"
-    assert np.std(lane_width) < 0.01 and np.std(lane_num) < 0.01, "random engine error"
+    assert np.std(lane_width) < 0.01 and np.std(
+        lane_num) < 0.01, "random engine error"
 
 
 def test_fixed_traffic():
@@ -86,38 +88,40 @@ def test_fixed_traffic():
             assert env.engine.traffic_manager.random_seed == env.current_seed
             new_pos = [v.position for v in env.engine.traffic_manager.vehicles]
             if last_pos is not None and len(new_pos) == len(last_pos):
-                assert sum(
-                    [norm(lastp[0] - newp[0], lastp[1] - newp[1]) <= 1e-3 for lastp, newp in zip(last_pos, new_pos)]
-                ), [(lastp, newp) for lastp, newp in zip(last_pos, new_pos)]
+                assert sum([
+                    norm(lastp[0] - newp[0], lastp[1] - newp[1]) <= 1e-3
+                    for lastp, newp in zip(last_pos, new_pos)
+                ]), [(lastp, newp) for lastp, newp in zip(last_pos, new_pos)]
             last_pos = new_pos
     finally:
         env.close()
 
 
 def test_random_traffic():
-    env = MetaDriveEnv(
-        {
-            "random_traffic": True,
-            "traffic_mode": "respawn",
-            "traffic_density": 0.3,
-            "start_seed": 5,
+    env = MetaDriveEnv({
+        "random_traffic": True,
+        "traffic_mode": "respawn",
+        "traffic_density": 0.3,
+        "start_seed": 5,
 
-            #  "use_render": True
-        }
-    )
+        #  "use_render": True
+    })
     has_traffic = False
     try:
         last_pos = None
         for i in range(10):
             obs, _ = env.reset(seed=5)
             assert env.engine.traffic_manager.random_traffic
-            new_pos = [v.position for v in env.engine.traffic_manager.traffic_vehicles]
+            new_pos = [
+                v.position for v in env.engine.traffic_manager.traffic_vehicles
+            ]
             if len(new_pos) > 0:
                 has_traffic = True
             if last_pos is not None and len(new_pos) == len(last_pos):
-                assert sum(
-                    [norm(lastp[0] - newp[0], lastp[1] - newp[1]) >= 0.5 for lastp, newp in zip(last_pos, new_pos)]
-                ), [(lastp, newp) for lastp, newp in zip(last_pos, new_pos)]
+                assert sum([
+                    norm(lastp[0] - newp[0], lastp[1] - newp[1]) >= 0.5
+                    for lastp, newp in zip(last_pos, new_pos)
+                ]), [(lastp, newp) for lastp, newp in zip(last_pos, new_pos)]
             last_pos = new_pos
         assert has_traffic
     finally:
@@ -125,15 +129,13 @@ def test_random_traffic():
 
 
 def test_random_lane_width():
-    env = MetaDriveEnv(
-        {
-            "num_scenarios": 5,
-            "traffic_density": .2,
-            "traffic_mode": "trigger",
-            "start_seed": 12,
-            "random_lane_width": True,
-        }
-    )
+    env = MetaDriveEnv({
+        "num_scenarios": 5,
+        "traffic_density": .2,
+        "traffic_mode": "trigger",
+        "start_seed": 12,
+        "random_lane_width": True,
+    })
     try:
         o, _ = env.reset(seed=12)
         old_config_1 = env.agent.lane.width
@@ -152,15 +154,13 @@ def test_random_lane_width():
 
 
 def test_random_lane_num():
-    env = MetaDriveEnv(
-        {
-            "num_scenarios": 5,
-            "traffic_density": .2,
-            "traffic_mode": "trigger",
-            "start_seed": 12,
-            "random_lane_num": True,
-        }
-    )
+    env = MetaDriveEnv({
+        "num_scenarios": 5,
+        "traffic_density": .2,
+        "traffic_mode": "trigger",
+        "start_seed": 12,
+        "random_lane_num": True,
+    })
     try:
         o, _ = env.reset(seed=12)
         old_config_1 = env.agent.navigation.get_current_lane_num()
@@ -183,15 +183,13 @@ def test_random_lane_num():
 
 
 def test_random_vehicle_parameter():
-    env = MetaDriveEnv(
-        {
-            "num_scenarios": 5,
-            "traffic_density": .2,
-            "traffic_mode": "trigger",
-            "start_seed": 12,
-            "random_agent_model": True
-        }
-    )
+    env = MetaDriveEnv({
+        "num_scenarios": 5,
+        "traffic_density": .2,
+        "traffic_mode": "trigger",
+        "start_seed": 12,
+        "random_agent_model": True
+    })
     try:
         o, _ = env.reset(seed=12)
         old_config_1 = env.agent.get_config(True)

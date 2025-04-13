@@ -24,8 +24,7 @@ payload = pickle.dumps(
         "view_size_y": 512,
         "pingback_port": pingback_port
     },
-    protocol=0
-)
+    protocol=0)
 
 # Start rendering
 print("Sending payload ...")
@@ -45,7 +44,9 @@ sock.settimeout(3.0)
 try:
     sock.bind(("localhost", pingback_port))
 except Exception as msg:
-    print("Could not connect to pingback_port - maybe a render result is still waiting?")
+    print(
+        "Could not connect to pingback_port - maybe a render result is still waiting?"
+    )
     print("Error message:", msg)
     sys.exit(1)
 
@@ -54,7 +55,9 @@ sock.listen(1)
 try:
     conn, addr = sock.accept()
 except socket.timeout:
-    print("No render pipeline response within timeout! Make sure the service is running.")
+    print(
+        "No render pipeline response within timeout! Make sure the service is running."
+    )
     sock.close()
     sys.exit(1)
 

@@ -23,7 +23,8 @@ class Lidar(DistanceDetector):
 
     def __init__(self, engine):
         super(Lidar, self).__init__(engine)
-        self.origin.hide(CamMask.RgbCam | CamMask.Shadow | CamMask.Shadow | CamMask.DepthCam | CamMask.SemanticCam)
+        self.origin.hide(CamMask.RgbCam | CamMask.Shadow | CamMask.Shadow |
+                         CamMask.DepthCam | CamMask.SemanticCam)
         self.mask = CollisionGroup.can_be_lidar_detected()
         self.enable_mask = True if not Lidar._disable_detector_mask else False
 
@@ -37,39 +38,38 @@ class Lidar(DistanceDetector):
         else:
             broad_phase_distance = int(radius)
             broad_detector = NodePath(BulletGhostNode("detector_mask"))
-            broad_detector.node().addShape(BulletCylinderShape(self.BROAD_PHASE_EXTRA_DIST + broad_phase_distance, 5))
-            broad_detector.node().setIntoCollideMask(CollisionGroup.LidarBroadDetector)
+            broad_detector.node().addShape(
+                BulletCylinderShape(
+                    self.BROAD_PHASE_EXTRA_DIST + broad_phase_distance, 5))
+            broad_detector.node().setIntoCollideMask(
+                CollisionGroup.LidarBroadDetector)
             broad_detector.node().setStatic(True)
             self._node_path_list.append(broad_detector)
             self.engine.physics_world.static_world.attach(broad_detector.node())
             self.broad_detectors[broad_phase_distance] = broad_detector
         return broad_detector
 
-    def perceive(
-        self,
-        base_vehicle,
-        physics_world,
-        num_lasers,
-        distance,
-        height=None,
-        detector_mask: np.ndarray = None,
-        show=False
-    ):
+    def perceive(self,
+                 base_vehicle,
+                 physics_world,
+                 num_lasers,
+                 distance,
+                 height=None,
+                 detector_mask: np.ndarray = None,
+                 show=False):
         res = self._get_lidar_mask(base_vehicle, num_lasers, distance)
         if self.enable_mask:
             lidar_mask = detector_mask or res[0]
         else:
             lidar_mask = None
         detected_objects = res[1]
-        return super(Lidar, self).perceive(
-            base_vehicle,
-            physics_world,
-            distance=distance,
-            height=height,
-            num_lasers=num_lasers,
-            detector_mask=lidar_mask,
-            show=show
-        )[0], detected_objects
+        return super(Lidar, self).perceive(base_vehicle,
+                                           physics_world,
+                                           distance=distance,
+                                           height=height,
+                                           num_lasers=num_lasers,
+                                           detector_mask=lidar_mask,
+                                           show=show)[0], detected_objects
 
     @staticmethod
     def get_surrounding_vehicles(detected_objects) -> Set:
@@ -89,13 +89,14 @@ class Lidar(DistanceDetector):
         relative = vehicle.convert_to_local_coordinates(diff, 0.0)
         return relative
 
-    def get_surrounding_vehicles_info(
-        self, ego_vehicle, detected_objects, perceive_distance, num_others, add_others_navi
-    ):
-        surrounding_vehicles = list(self.get_surrounding_vehicles(detected_objects))
+    def get_surrounding_vehicles_info(self, ego_vehicle, detected_objects,
+                                      perceive_distance, num_others,
+                                      add_others_navi):
+        surrounding_vehicles = list(
+            self.get_surrounding_vehicles(detected_objects))
         surrounding_vehicles.sort(
-            key=lambda v: norm(ego_vehicle.position[0] - v.position[0], ego_vehicle.position[1] - v.position[1])
-        )
+            key=lambda v: norm(ego_vehicle.position[0] - v.position[0],
+                               ego_vehicle.position[1] - v.position[1]))
         surrounding_vehicles += [None] * num_others
         res = []
 
@@ -104,28 +105,46 @@ class Lidar(DistanceDetector):
                 ego_position = ego_vehicle.position
 
                 # assert isinstance(vehicle, IDMVehicle or Base), "Now MetaDrive Doesn't support other vehicle type"
-                relative_position = ego_vehicle.convert_to_local_coordinates(vehicle.position, ego_position)
+                relative_position = ego_vehicle.convert_to_local_coordinates(
+                    vehicle.position, ego_position)
                 # It is possible that the centroid of other vehicle is too far away from ego but lidar shed on it.
                 # So the distance may greater than perceive distance.
-                res.append(clip((relative_position[0] / perceive_distance + 1) / 2, 0.0, 1.0))
-                res.append(clip((relative_position[1] / perceive_distance + 1) / 2, 0.0, 1.0))
+                res.append(
+                    clip((relative_position[0] / perceive_distance + 1) / 2,
+                         0.0, 1.0))
+                res.append(
+                    clip((relative_position[1] / perceive_distance + 1) / 2,
+                         0.0, 1.0))
 
                 relative_velocity = ego_vehicle.convert_to_local_coordinates(
-                    vehicle.velocity_km_h, ego_vehicle.velocity_km_h
-                )
-                res.append(clip((relative_velocity[0] / ego_vehicle.max_speed_km_h + 1) / 2, 0.0, 1.0))
-                res.append(clip((relative_velocity[1] / ego_vehicle.max_speed_km_h + 1) / 2, 0.0, 1.0))
+                    vehicle.velocity_km_h, ego_vehicle.velocity_km_h)
+                res.append(
+                    clip((relative_velocity[0] / ego_vehicle.max_speed_km_h + 1)
+                         / 2, 0.0, 1.0))
+                res.append(
+                    clip((relative_velocity[1] / ego_vehicle.max_speed_km_h + 1)
+                         / 2, 0.0, 1.0))
 
                 if add_others_navi:
                     ckpt1, ckpt2 = vehicle.navigation.get_checkpoints()
 
-                    relative_ckpt1 = self._project_to_vehicle_system(ckpt1, ego_vehicle, perceive_distance)
-                    res.append(clip((relative_ckpt1[0] / perceive_distance + 1) / 2, 0.0, 1.0))
-                    res.append(clip((relative_ckpt1[1] / perceive_distance + 1) / 2, 0.0, 1.0))
+                    relative_ckpt1 = self._project_to_vehicle_system(
+                        ckpt1, ego_vehicle, perceive_distance)
+                    res.append(
+                        clip((relative_ckpt1[0] / perceive_distance + 1) / 2,
+                             0.0, 1.0))
+                    res.append(
+                        clip((relative_ckpt1[1] / perceive_distance + 1) / 2,
+                             0.0, 1.0))
 
-                    relative_ckpt2 = self._project_to_vehicle_system(ckpt2, ego_vehicle, perceive_distance)
-                    res.append(clip((relative_ckpt2[0] / perceive_distance + 1) / 2, 0.0, 1.0))
-                    res.append(clip((relative_ckpt2[1] / perceive_distance + 1) / 2, 0.0, 1.0))
+                    relative_ckpt2 = self._project_to_vehicle_system(
+                        ckpt2, ego_vehicle, perceive_distance)
+                    res.append(
+                        clip((relative_ckpt2[0] / perceive_distance + 1) / 2,
+                             0.0, 1.0))
+                    res.append(
+                        clip((relative_ckpt2[1] / perceive_distance + 1) / 2,
+                             0.0, 1.0))
 
             else:
 
@@ -140,7 +159,7 @@ class Lidar(DistanceDetector):
         pos1 = vehicle.position
         head1 = vehicle.heading_theta
 
-        mask = np.zeros((num_lasers, ), dtype=bool)
+        mask = np.zeros((num_lasers,), dtype=bool)
         mask.fill(False)
         objs = self.get_surrounding_objects(vehicle, int(radius))
         for obj in objs:
@@ -162,7 +181,8 @@ class Lidar(DistanceDetector):
             head_in_1_min = head_in_1 - span
             head_1_max = np.rad2deg(head_in_1_max)
             head_1_min = np.rad2deg(head_in_1_min)
-            mask = self._mark_this_range(head_1_min, head_1_max, mask, num_lasers)
+            mask = self._mark_this_range(head_1_min, head_1_max, mask,
+                                         num_lasers)
 
         return mask, objs
 
@@ -170,7 +190,8 @@ class Lidar(DistanceDetector):
         broad_detector = self.get_broad_phase_detector(int(radius))
         broad_detector.setPos(panda_vector(vehicle.position))
         physics_world = vehicle.engine.physics_world.dynamic_world
-        contact_results = physics_world.contactTest(broad_detector.node(), True).getContacts()
+        contact_results = physics_world.contactTest(broad_detector.node(),
+                                                    True).getContacts()
         objs = set()
         for contact in contact_results:
             node0 = contact.getNode0()

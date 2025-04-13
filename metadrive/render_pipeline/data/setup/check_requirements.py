@@ -40,6 +40,7 @@ def _error(msg):
 
 
 class Application(ShowBase):
+
     def __init__(self):
         load_prc_file_data(
             "", """
@@ -49,12 +50,13 @@ class Application(ShowBase):
             depth-bits 0
             back-buffers 0
             print-pipe-types #f
-        """
-        )
+        """)
         ShowBase.__init__(self)
 
         if not self.win.gsg.supports_compute_shaders:
-            _error("Compute shaders not supported! Please update your driver, or get a newer gpu.")
+            _error(
+                "Compute shaders not supported! Please update your driver, or get a newer gpu."
+            )
 
         print("All checks passed successfully")
 

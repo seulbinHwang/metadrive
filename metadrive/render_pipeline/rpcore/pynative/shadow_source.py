@@ -31,6 +31,7 @@ from panda3d.core import BoundingSphere
 class ShadowSource(object):
     """ Please refer to the native C++ implementation for docstrings and comments.
     This is just the python implementation, which does not contain documentation! """
+
     def __init__(self):
         self._slot = -1
         self._needs_update = True
@@ -70,14 +71,16 @@ class ShadowSource(object):
 
         hexahedron = temp_lens.make_bounds()
         center = (hexahedron.get_min() + hexahedron.get_max()) * 0.5
-        self._bounds = BoundingSphere(pos + center, (hexahedron.get_max() - center).length())
+        self._bounds = BoundingSphere(pos + center,
+                                      (hexahedron.get_max() - center).length())
 
     def set_matrix_lens(self, mvp):
         self._mvp = mvp
         self.set_needs_update(True)
 
     def has_region(self):
-        return (self._region.x >= 0 and self._region.y >= 0 and self._region.z >= 0 and self._region.w >= 0)
+        return (self._region.x >= 0 and self._region.y >= 0 and
+                self._region.z >= 0 and self._region.w >= 0)
 
     def has_slot(self):
         return self._slot >= 0

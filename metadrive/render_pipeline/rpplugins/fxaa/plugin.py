@@ -36,8 +36,7 @@ class Plugin(BasePlugin):
     description = (
         "This plugin adds support for the FXAA Antialiasing technique. "
         "However, Please use SMAA! This plugin is just here for completeness, "
-        "but FXAA is really inferior to SMAA."
-    )
+        "but FXAA is really inferior to SMAA.")
     version = "1.0"
 
     def on_stage_setup(self):

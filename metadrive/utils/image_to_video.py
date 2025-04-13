@@ -14,7 +14,8 @@ def image_files_to_video(video_name, image_folder, code="mp4v"):
     assert len(images) > 0
     frame = cv2.imread(os.path.join(image_folder, images[0]))
     height, width, layers = frame.shape
-    video = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*code), 40, (width, height))
+    video = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*code), 40,
+                            (width, height))
     for image in tqdm(images, desc="Writing Video"):
         video.write(cv2.imread(os.path.join(image_folder, image)))
     video.release()
@@ -33,7 +34,8 @@ def image_list_to_video(video_name, image_list, code="mp4v"):
     # frame = cv2.imread(os.path.join(image_folder, images[0]))
     frame = image_list[0]
     height, width, layers = frame.shape
-    video = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*code), 40, (width, height))
+    video = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*code), 40,
+                            (width, height))
     for image in tqdm(image_list, desc="Writing Video"):
 
         # Change color

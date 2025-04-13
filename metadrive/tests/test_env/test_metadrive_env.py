@@ -22,24 +22,54 @@ blackbox_test_configs = dict(
     envs_1000=dict(num_scenarios=1000),
     envs_10000=dict(num_scenarios=10000),
     envs_100000=dict(num_scenarios=100000),
-    no_lidar0={"vehicle_config": dict(lidar=dict(num_lasers=0, distance=0, num_others=0))},
-    no_lidar1={"vehicle_config": dict(lidar=dict(num_lasers=0, distance=10, num_others=0))},
-    no_lidar2={"vehicle_config": dict(lidar=dict(num_lasers=10, distance=0, num_others=0))},
-    no_lidar3={"vehicle_config": dict(lidar=dict(num_lasers=0, distance=0, num_others=10))},
-    no_lidar4={"vehicle_config": dict(lidar=dict(num_lasers=10, distance=10, num_others=0))},
-    no_lidar5={"vehicle_config": dict(lidar=dict(num_lasers=10, distance=0, num_others=10))},
-    no_lidar6={"vehicle_config": dict(lidar=dict(num_lasers=0, distance=10, num_others=10))},
-    no_lidar7={"vehicle_config": dict(lidar=dict(num_lasers=10, distance=10, num_others=10))},
+    no_lidar0={
+        "vehicle_config":
+            dict(lidar=dict(num_lasers=0, distance=0, num_others=0))
+    },
+    no_lidar1={
+        "vehicle_config":
+            dict(lidar=dict(num_lasers=0, distance=10, num_others=0))
+    },
+    no_lidar2={
+        "vehicle_config":
+            dict(lidar=dict(num_lasers=10, distance=0, num_others=0))
+    },
+    no_lidar3={
+        "vehicle_config":
+            dict(lidar=dict(num_lasers=0, distance=0, num_others=10))
+    },
+    no_lidar4={
+        "vehicle_config":
+            dict(lidar=dict(num_lasers=10, distance=10, num_others=0))
+    },
+    no_lidar5={
+        "vehicle_config":
+            dict(lidar=dict(num_lasers=10, distance=0, num_others=10))
+    },
+    no_lidar6={
+        "vehicle_config":
+            dict(lidar=dict(num_lasers=0, distance=10, num_others=10))
+    },
+    no_lidar7={
+        "vehicle_config":
+            dict(lidar=dict(num_lasers=10, distance=10, num_others=10))
+    },
 )
 
-pid_control_config = dict(num_scenarios=1, start_seed=5, map="CrXROSTR", traffic_density=0.0, use_render=False)
+pid_control_config = dict(num_scenarios=1,
+                          start_seed=5,
+                          map="CrXROSTR",
+                          traffic_density=0.0,
+                          use_render=False)
 
 info_keys = [
-    "cost", "velocity", "steering", "acceleration", "step_reward", TerminationState.CRASH_VEHICLE,
-    TerminationState.OUT_OF_ROAD, TerminationState.SUCCESS
+    "cost", "velocity", "steering", "acceleration", "step_reward",
+    TerminationState.CRASH_VEHICLE, TerminationState.OUT_OF_ROAD,
+    TerminationState.SUCCESS
 ]
 
-assert "__init__.py" not in os.listdir(os.path.dirname(__file__)), "Please remove __init__.py in tests directory."
+assert "__init__.py" not in os.listdir(
+    os.path.dirname(__file__)), "Please remove __init__.py in tests directory."
 
 
 def _act(env, action):
@@ -52,7 +82,9 @@ def _act(env, action):
         assert k in info
 
 
-@pytest.mark.parametrize("config", list(blackbox_test_configs.values()), ids=list(blackbox_test_configs.keys()))
+@pytest.mark.parametrize("config",
+                         list(blackbox_test_configs.values()),
+                         ids=list(blackbox_test_configs.keys()))
 def test_pgdrive_env_blackbox(config):
     cfg = copy.deepcopy(config)
     cfg["log_level"] = 50

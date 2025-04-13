@@ -34,7 +34,8 @@ if __name__ == "__main__":
     from os.path import dirname, realpath, isfile
 
     # Files which are skipped from the downloaded zip
-    files_to_ignore = "__init__.py LICENSE README.md config.ini config_module".split()
+    files_to_ignore = "__init__.py LICENSE README.md config.ini config_module".split(
+    )
 
     current_dir = dirname(realpath(__file__))
     os.chdir(current_dir)
@@ -45,7 +46,8 @@ if __name__ == "__main__":
 
     # Download the module
     from submodule_downloader import download_submodule
-    download_submodule("tobspr", "P3DModuleBuilder", current_dir, files_to_ignore)
+    download_submodule("tobspr", "P3DModuleBuilder", current_dir,
+                       files_to_ignore)
 
     # Make an init script so we can import the code
     with open("scripts/__init__.py", "w") as handle:

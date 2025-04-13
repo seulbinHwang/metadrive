@@ -132,7 +132,9 @@ class ScenarioDescription(dict):
     MAP_FEATURES = "map_features"
     LENGTH = "length"
     METADATA = "metadata"
-    FIRST_LEVEL_KEYS = {TRACKS, VERSION, ID, DYNAMIC_MAP_STATES, MAP_FEATURES, LENGTH, METADATA}
+    FIRST_LEVEL_KEYS = {
+        TRACKS, VERSION, ID, DYNAMIC_MAP_STATES, MAP_FEATURES, LENGTH, METADATA
+    }
 
     # lane keys
     POLYLINE = "polyline"
@@ -165,7 +167,8 @@ class ScenarioDescription(dict):
     METADATA_KEYS = {METADRIVE_PROCESSED, COORDINATE, TIMESTEP}
     OLD_ORIGIN_IN_CURRENT_COORDINATE = "old_origin_in_current_coordinate"
 
-    ALLOW_TYPES = (int, float, str, np.ndarray, dict, list, tuple, type(None), set)
+    ALLOW_TYPES = (int, float, str, np.ndarray, dict, list, tuple, type(None),
+                   set)
 
     class SUMMARY:
         OBJECT_SUMMARY = "object_summary"
@@ -198,7 +201,10 @@ class ScenarioDescription(dict):
         MAPPING_FILE = "dataset_mapping.pkl"  # store the relative path of summary file and each scenario
 
     @classmethod
-    def sanity_check(cls, scenario_dict, check_self_type=False, valid_check=False):
+    def sanity_check(cls,
+                     scenario_dict,
+                     check_self_type=False,
+                     valid_check=False):
         """Check if the input scenario dict is self-consistent and has filled required fields.
 
         The required high-level fields include tracks, dynamic_map_states, metadata, map_features.
@@ -231,19 +237,22 @@ class ScenarioDescription(dict):
         # Check tracks data
         assert isinstance(scenario_dict[cls.TRACKS], dict)
         for obj_id, obj_state in scenario_dict[cls.TRACKS].items():
-            cls._check_object_state_dict(
-                obj_state, scenario_length=scenario_length, object_id=obj_id, valid_check=valid_check
-            )
+            cls._check_object_state_dict(obj_state,
+                                         scenario_length=scenario_length,
+                                         object_id=obj_id,
+                                         valid_check=valid_check)
             # position heading check
-            assert ScenarioDescription.HEADING in obj_state[ScenarioDescription.STATE
-                                                            ], "heading is required for an object"
-            assert ScenarioDescription.POSITION in obj_state[ScenarioDescription.STATE
-                                                             ], "position is required for an object"
+            assert ScenarioDescription.HEADING in obj_state[
+                ScenarioDescription.STATE], "heading is required for an object"
+            assert ScenarioDescription.POSITION in obj_state[
+                ScenarioDescription.STATE], "position is required for an object"
 
         # Check dynamic_map_state
         assert isinstance(scenario_dict[cls.DYNAMIC_MAP_STATES], dict)
         for obj_id, obj_state in scenario_dict[cls.DYNAMIC_MAP_STATES].items():
-            cls._check_object_state_dict(obj_state, scenario_length=scenario_length, object_id=obj_id)
+            cls._check_object_state_dict(obj_state,
+                                         scenario_length=scenario_length,
+                                         object_id=obj_id)
 
         # Check map features
         assert isinstance(scenario_dict[cls.MAP_FEATURES], dict)
@@ -255,7 +264,8 @@ class ScenarioDescription(dict):
             "You lack these keys in metadata: {}".format(
                 cls.METADATA_KEYS.difference(set(scenario_dict[cls.METADATA].keys()))
             )
-        assert scenario_dict[cls.METADATA][cls.TIMESTEP].shape == (scenario_length, )
+        assert scenario_dict[cls.METADATA][cls.TIMESTEP].shape == (
+            scenario_length,)
 
     @classmethod
     def _check_map_features(cls, map_feature):
@@ -264,8 +274,9 @@ class ScenarioDescription(dict):
             if MetaDriveType.is_lane(feature[ScenarioDescription.TYPE]):
                 assert ScenarioDescription.POLYLINE in feature, "No lane center line in map feature"
                 assert isinstance(
-                    feature[ScenarioDescription.POLYLINE], (np.ndarray, list, tuple)
-                ), "lane center line is in invalid type"
+                    feature[ScenarioDescription.POLYLINE],
+                    (np.ndarray, list,
+                     tuple)), "lane center line is in invalid type"
             if ScenarioDescription.POLYGON in feature and ScenarioDescription.POLYLINE in feature:
                 line_centroid = np.mean(feature["polyline"], axis=0)[:2]
                 polygon_centroid = np.mean(feature["polygon"], axis=0)[:2]
@@ -275,7 +286,11 @@ class ScenarioDescription(dict):
                                "The map converter should be wrong!"
 
     @classmethod
-    def _check_object_state_dict(cls, obj_state, scenario_length, object_id, valid_check=True):
+    def _check_object_state_dict(cls,
+                                 obj_state,
+                                 scenario_length,
+                                 object_id,
+                                 valid_check=True):
         """Check the state dict of an object (the dynamic objects such as road users, vehicles or traffic lights).
 
         Args:
@@ -289,11 +304,14 @@ class ScenarioDescription(dict):
         assert set(obj_state).issuperset(cls.STATE_DICT_KEYS)
 
         # Check type
-        assert MetaDriveType.has_type(obj_state[cls.TYPE]
-                                      ), "MetaDrive doesn't have this type: {}".format(obj_state[cls.TYPE])
+        assert MetaDriveType.has_type(
+            obj_state[cls.TYPE]), "MetaDrive doesn't have this type: {}".format(
+                obj_state[cls.TYPE])
 
         # Check set type
-        assert obj_state[cls.TYPE] != MetaDriveType.UNSET, "Types should be set for objects and traffic lights"
+        assert obj_state[
+            cls.
+            TYPE] != MetaDriveType.UNSET, "Types should be set for objects and traffic lights"
 
         # Check state arrays temporal consistency
         assert isinstance(obj_state[cls.STATE], dict)
@@ -304,17 +322,23 @@ class ScenarioDescription(dict):
             if not isinstance(state_array, np.ndarray):
                 continue
 
-            assert state_array.ndim in [1, 2], "Haven't implemented test array with dim {} yet".format(state_array.ndim)
+            assert state_array.ndim in [
+                1, 2
+            ], "Haven't implemented test array with dim {} yet".format(
+                state_array.ndim)
             if state_array.ndim == 2:
                 assert state_array.shape[
                     1] != 0, "Please convert all state with dim 1 to a 1D array instead of 2D array."
 
             if state_key == "valid" and valid_check:
-                assert np.sum(state_array) >= 1, "No frame valid for this object. Consider removing it"
+                assert np.sum(
+                    state_array
+                ) >= 1, "No frame valid for this object. Consider removing it"
 
             # check valid
             if "valid" in obj_state[cls.STATE] and valid_check:
-                _array = state_array[..., :2] if state_key == "position" else state_array
+                _array = state_array[
+                    ..., :2] if state_key == "position" else state_array
                 assert abs(np.sum(_array[np.where(obj_state[cls.STATE]["valid"], False, True)])) < 1e-2, \
                     "Valid array mismatches with {} array, some frames in {} have non-zero values, " \
                     "so it might be valid".format(state_key, state_key)
@@ -362,8 +386,9 @@ class ScenarioDescription(dict):
         track = state_dict["position"]
         valid_track = track[np.where(state_dict["valid"].astype(int))][..., :2]
         distance = float(
-            sum(np.linalg.norm(valid_track[i] - valid_track[i + 1]) for i in range(valid_track.shape[0] - 1))
-        )
+            sum(
+                np.linalg.norm(valid_track[i] - valid_track[i + 1])
+                for i in range(valid_track.shape[0] - 1)))
         valid_length = int(sum(state_dict["valid"]))
 
         continuous_valid_length = 0
@@ -374,16 +399,23 @@ class ScenarioDescription(dict):
                 break
 
         return {
-            ScenarioDescription.SUMMARY.TYPE: object_type,
-            ScenarioDescription.SUMMARY.OBJECT_ID: str(object_id),
-            ScenarioDescription.SUMMARY.TRACK_LENGTH: int(len(track)),
-            ScenarioDescription.SUMMARY.MOVING_DIST: float(distance),
-            ScenarioDescription.SUMMARY.VALID_LENGTH: int(valid_length),
-            ScenarioDescription.SUMMARY.CONTINUOUS_VALID_LENGTH: int(continuous_valid_length)
+            ScenarioDescription.SUMMARY.TYPE:
+                object_type,
+            ScenarioDescription.SUMMARY.OBJECT_ID:
+                str(object_id),
+            ScenarioDescription.SUMMARY.TRACK_LENGTH:
+                int(len(track)),
+            ScenarioDescription.SUMMARY.MOVING_DIST:
+                float(distance),
+            ScenarioDescription.SUMMARY.VALID_LENGTH:
+                int(valid_length),
+            ScenarioDescription.SUMMARY.CONTINUOUS_VALID_LENGTH:
+                int(continuous_valid_length)
         }
 
     @staticmethod
-    def get_export_file_name(dataset: str, dataset_version: str, scenario_name: str):
+    def get_export_file_name(dataset: str, dataset_version: str,
+                             scenario_name: str):
         """Return the file name of .pkl file of this scenario, if exported."""
         return "sd_{}_{}_{}.pkl".format(dataset, dataset_version, scenario_name)
 
@@ -401,25 +433,32 @@ class ScenarioDescription(dict):
         if not file_name.endswith(".pkl"):
             return False
         file_name = file_name.replace(".pkl", "")
-        return os.path.basename(file_name)[:3] == "sd_" or all(char.isdigit() for char in file_name)
+        return os.path.basename(file_name)[:3] == "sd_" or all(
+            char.isdigit() for char in file_name)
 
     @staticmethod
     def _calculate_num_moving_objects(scenario):
         """Calculate the number of moving objects, whose moving distance > 1m in this scenario."""
         # moving object
         number_summary_dict = {
-            ScenarioDescription.SUMMARY.NUM_MOVING_OBJECTS: 0,
-            ScenarioDescription.SUMMARY.NUM_MOVING_OBJECTS_EACH_TYPE: defaultdict(int)
+            ScenarioDescription.SUMMARY.NUM_MOVING_OBJECTS:
+                0,
+            ScenarioDescription.SUMMARY.NUM_MOVING_OBJECTS_EACH_TYPE:
+                defaultdict(int)
         }
-        for v in scenario[ScenarioDescription.METADATA][ScenarioDescription.SUMMARY.OBJECT_SUMMARY].values():
+        for v in scenario[ScenarioDescription.METADATA][
+                ScenarioDescription.SUMMARY.OBJECT_SUMMARY].values():
 
             # Fix a tiny compatibility issue
             if ScenarioDescription.SUMMARY.MOVING_DIST not in v:
                 v[ScenarioDescription.SUMMARY.MOVING_DIST] = v['distance']
 
             if v[ScenarioDescription.SUMMARY.MOVING_DIST] > 1:
-                number_summary_dict[ScenarioDescription.SUMMARY.NUM_MOVING_OBJECTS] += 1
-                number_summary_dict[ScenarioDescription.SUMMARY.NUM_MOVING_OBJECTS_EACH_TYPE][v["type"]] += 1
+                number_summary_dict[
+                    ScenarioDescription.SUMMARY.NUM_MOVING_OBJECTS] += 1
+                number_summary_dict[
+                    ScenarioDescription.SUMMARY.NUM_MOVING_OBJECTS_EACH_TYPE][
+                        v["type"]] += 1
         return number_summary_dict
 
     @staticmethod
@@ -437,11 +476,13 @@ class ScenarioDescription(dict):
         # add agents summary
         summary_dict = {}
         for track_id, track in scenario[SD.TRACKS].items():
-            summary_dict[track_id] = SD.get_object_summary(object_dict=track, object_id=track_id)
+            summary_dict[track_id] = SD.get_object_summary(object_dict=track,
+                                                           object_id=track_id)
         scenario[SD.METADATA][SD.SUMMARY.OBJECT_SUMMARY] = summary_dict
 
         # count some objects occurrence
-        scenario[SD.METADATA][SD.SUMMARY.NUMBER_SUMMARY] = SD.get_number_summary(scenario)
+        scenario[SD.METADATA][
+            SD.SUMMARY.NUMBER_SUMMARY] = SD.get_number_summary(scenario)
         return scenario
 
     @staticmethod
@@ -469,22 +510,27 @@ class ScenarioDescription(dict):
         number_summary_dict = {}
 
         # object
-        number_summary_dict[ScenarioDescription.SUMMARY.NUM_OBJECTS] = len(scenario[ScenarioDescription.TRACKS])
+        number_summary_dict[ScenarioDescription.SUMMARY.NUM_OBJECTS] = len(
+            scenario[ScenarioDescription.TRACKS])
         number_summary_dict[ScenarioDescription.SUMMARY.OBJECT_TYPES] = \
             set(v["type"] for v in scenario[ScenarioDescription.TRACKS].values())
         object_types_counter = defaultdict(int)
         for v in scenario[ScenarioDescription.TRACKS].values():
             object_types_counter[v["type"]] += 1
-        number_summary_dict[ScenarioDescription.SUMMARY.NUM_OBJECTS_EACH_TYPE] = dict(object_types_counter)
+        number_summary_dict[ScenarioDescription.SUMMARY.
+                            NUM_OBJECTS_EACH_TYPE] = dict(object_types_counter)
 
         # If object summary does not exist, fill them here
         object_summaries = {}
         for track_id, track in scenario[scenario.TRACKS].items():
-            object_summaries[track_id] = scenario.get_object_summary(object_dict=track, object_id=track_id)
-        scenario[scenario.METADATA][scenario.SUMMARY.OBJECT_SUMMARY] = object_summaries
+            object_summaries[track_id] = scenario.get_object_summary(
+                object_dict=track, object_id=track_id)
+        scenario[scenario.METADATA][
+            scenario.SUMMARY.OBJECT_SUMMARY] = object_summaries
 
         # moving object
-        number_summary_dict.update(ScenarioDescription._calculate_num_moving_objects(scenario))
+        number_summary_dict.update(
+            ScenarioDescription._calculate_num_moving_objects(scenario))
 
         # Number of different dynamic object states
         dynamic_object_states_types = set()
@@ -495,17 +541,23 @@ class ScenarioDescription(dict):
                     continue
                 dynamic_object_states_types.add(step_state)
                 dynamic_object_states_counter[step_state] += 1
-        number_summary_dict[ScenarioDescription.SUMMARY.NUM_TRAFFIC_LIGHTS
-                            ] = len(scenario[ScenarioDescription.DYNAMIC_MAP_STATES])
-        number_summary_dict[ScenarioDescription.SUMMARY.NUM_TRAFFIC_LIGHT_TYPES] = dynamic_object_states_types
-        number_summary_dict[ScenarioDescription.SUMMARY.NUM_TRAFFIC_LIGHTS_EACH_STEP
-                            ] = dict(dynamic_object_states_counter)
+        number_summary_dict[
+            ScenarioDescription.SUMMARY.NUM_TRAFFIC_LIGHTS] = len(
+                scenario[ScenarioDescription.DYNAMIC_MAP_STATES])
+        number_summary_dict[
+            ScenarioDescription.SUMMARY.
+            NUM_TRAFFIC_LIGHT_TYPES] = dynamic_object_states_types
+        number_summary_dict[
+            ScenarioDescription.SUMMARY.NUM_TRAFFIC_LIGHTS_EACH_STEP] = dict(
+                dynamic_object_states_counter)
 
         # map
-        number_summary_dict[ScenarioDescription.SUMMARY.NUM_MAP_FEATURES
-                            ] = len(scenario[ScenarioDescription.MAP_FEATURES])
-        number_summary_dict[ScenarioDescription.SUMMARY.MAP_HEIGHT_DIFF
-                            ] = ScenarioDescription.map_height_diff(scenario[ScenarioDescription.MAP_FEATURES])
+        number_summary_dict[ScenarioDescription.SUMMARY.NUM_MAP_FEATURES] = len(
+            scenario[ScenarioDescription.MAP_FEATURES])
+        number_summary_dict[
+            ScenarioDescription.SUMMARY.
+            MAP_HEIGHT_DIFF] = ScenarioDescription.map_height_diff(
+                scenario[ScenarioDescription.MAP_FEATURES])
         return number_summary_dict
 
     @staticmethod
@@ -527,7 +579,8 @@ class ScenarioDescription(dict):
         sdc_info = metadata[SD.SUMMARY.OBJECT_SUMMARY][sdc_id]
 
         if SD.SUMMARY.MOVING_DIST not in sdc_info:
-            sdc_info = SD.get_object_summary(object_dict=scenario.get_sdc_track(), object_id=sdc_id)
+            sdc_info = SD.get_object_summary(
+                object_dict=scenario.get_sdc_track(), object_id=sdc_id)
 
         moving_dist = sdc_info[SD.SUMMARY.MOVING_DIST]
         return moving_dist
@@ -546,11 +599,13 @@ class ScenarioDescription(dict):
         SD = ScenarioDescription
         metadata = scenario[SD.METADATA]
         if SD.SUMMARY.NUMBER_SUMMARY not in metadata:
-            scenario[SD.METADATA][SD.SUMMARY.NUMBER_SUMMARY] = SD.get_number_summary(scenario)
+            scenario[SD.METADATA][
+                SD.SUMMARY.NUMBER_SUMMARY] = SD.get_number_summary(scenario)
         if object_type is None:
             return metadata[SD.SUMMARY.NUMBER_SUMMARY][SD.SUMMARY.NUM_OBJECTS]
         else:
-            return metadata[SD.SUMMARY.NUMBER_SUMMARY][SD.SUMMARY.NUM_OBJECTS_EACH_TYPE].get(object_type, 0)
+            return metadata[SD.SUMMARY.NUMBER_SUMMARY][
+                SD.SUMMARY.NUM_OBJECTS_EACH_TYPE].get(object_type, 0)
 
     @staticmethod
     def num_object(scenario, object_type: Optional[str] = None):
@@ -578,7 +633,8 @@ class ScenarioDescription(dict):
         """
         SD = ScenarioDescription
         metadata = scenario[SD.METADATA]
-        if SD.SUMMARY.NUM_MOVING_OBJECTS not in metadata[SD.SUMMARY.NUMBER_SUMMARY]:
+        if SD.SUMMARY.NUM_MOVING_OBJECTS not in metadata[
+                SD.SUMMARY.NUMBER_SUMMARY]:
             num_summary = SD._calculate_num_moving_objects(scenario)
         else:
             num_summary = metadata[SD.SUMMARY.NUMBER_SUMMARY]
@@ -586,7 +642,8 @@ class ScenarioDescription(dict):
         if object_type is None:
             return num_summary[SD.SUMMARY.NUM_MOVING_OBJECTS]
         else:
-            return num_summary[SD.SUMMARY.NUM_MOVING_OBJECTS_EACH_TYPE].get(object_type, 0)
+            return num_summary[SD.SUMMARY.NUM_MOVING_OBJECTS_EACH_TYPE].get(
+                object_type, 0)
 
     @staticmethod
     def num_moving_object(scenario, object_type=None):
@@ -599,7 +656,8 @@ class ScenarioDescription(dict):
         Returns:
             (int) The number of moving objects.
         """
-        return ScenarioDescription.get_num_moving_objects(scenario, object_type=object_type)
+        return ScenarioDescription.get_num_moving_objects(
+            scenario, object_type=object_type)
 
     @staticmethod
     def map_height_diff(map_features, target=10):
@@ -616,7 +674,8 @@ class ScenarioDescription(dict):
         max = -math.inf
         min = math.inf
         for feature in map_features.values():
-            if not MetaDriveType.is_road_line(feature[ScenarioDescription.TYPE]):
+            if not MetaDriveType.is_road_line(
+                    feature[ScenarioDescription.TYPE]):
                 continue
             polyline = feature[ScenarioDescription.POLYLINE]
             if len(polyline[0]) == 3:
@@ -637,11 +696,15 @@ class ScenarioDescription(dict):
         All positions of polylines/polygons/objects are offset to ego car's first frame position.
         Returns: a modified scenario file
         """
-        sdc_id = scenario[ScenarioDescription.METADATA][ScenarioDescription.SDC_ID]
-        initial_pos = np.array(scenario[ScenarioDescription.TRACKS][sdc_id]["state"]["position"][0], copy=True)[:2]
+        sdc_id = scenario[ScenarioDescription.METADATA][
+            ScenarioDescription.SDC_ID]
+        initial_pos = np.array(scenario[ScenarioDescription.TRACKS][sdc_id]
+                               ["state"]["position"][0],
+                               copy=True)[:2]
         if abs(np.sum(initial_pos)) < 1e-3:
             return scenario
-        return ScenarioDescription.offset_scenario_with_new_origin(scenario, initial_pos)
+        return ScenarioDescription.offset_scenario_with_new_origin(
+            scenario, initial_pos)
 
     @staticmethod
     def offset_scenario_with_new_origin(scenario, new_origin):
@@ -671,7 +734,8 @@ class ScenarioDescription(dict):
         for light in scenario[ScenarioDescription.DYNAMIC_MAP_STATES].values():
             if ScenarioDescription.TRAFFIC_LIGHT_POSITION in light:
                 light["stop_point"] = np.asarray(light["stop_point"])
-                light[ScenarioDescription.TRAFFIC_LIGHT_POSITION][..., :2] -= new_origin
+                light[ScenarioDescription.TRAFFIC_LIGHT_POSITION][
+                    ..., :2] -= new_origin
 
         scenario["metadata"]["old_origin_in_current_coordinate"] = -new_origin
         return scenario
@@ -687,7 +751,9 @@ def _recursive_check_type(obj, allow_types, depth=0):
         for v in obj:
             _recursive_check_type(v, allow_types, depth=depth + 1)
 
-    assert isinstance(obj, allow_types), "Object type {} not allowed! ({})".format(type(obj), allow_types)
+    assert isinstance(obj,
+                      allow_types), "Object type {} not allowed! ({})".format(
+                          type(obj), allow_types)
 
     if depth > 1000:
         raise ValueError()

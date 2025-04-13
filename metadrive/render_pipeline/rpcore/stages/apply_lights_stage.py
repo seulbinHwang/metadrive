@@ -32,8 +32,8 @@ class ApplyLightsStage(RenderStage):
 
     required_inputs = ["AllLightsData", "IESDatasetTex", "ShadowSourceData"]
     required_pipes = [
-        "GBuffer", "CellIndices", "PerCellLights", "ShadowAtlas", "ShadowAtlasPCF", "CombinedVelocity",
-        "PerCellLightsCounts"
+        "GBuffer", "CellIndices", "PerCellLights", "ShadowAtlas",
+        "ShadowAtlasPCF", "CombinedVelocity", "PerCellLightsCounts"
     ]
 
     @property

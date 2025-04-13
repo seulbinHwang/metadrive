@@ -15,7 +15,9 @@ from typing import List, Dict, Optional
 try:
     import sumolib
 except ImportError:
-    raise ImportError("Please install sumolib before running this script via: pip install sumolib")
+    raise ImportError(
+        "Please install sumolib before running this script via: pip install sumolib"
+    )
 from shapely.geometry import LineString, MultiPolygon, Polygon
 from shapely.geometry.base import CAP_STYLE, JOIN_STYLE
 
@@ -38,6 +40,7 @@ def buffered_shape(shape, width: float = 1.0) -> Polygon:
 
 
 class LaneShape:
+
     def __init__(
         self,
         shape,
@@ -63,6 +66,7 @@ class RoadShape:
 
 
 class JunctionNode:
+
     def __init__(self, sumolib_obj):
         """Node for junction node."""
         self.sumolib_obj: sumolib.net.node = sumolib_obj
@@ -79,6 +83,7 @@ class JunctionNode:
 
 
 class LaneNode:
+
     def __init__(self, sumolib_obj):
         """
         Node for a lane
@@ -89,7 +94,8 @@ class LaneNode:
         self.index: int = sumolib_obj.getIndex()
         if len(self.edge_type.strip()) and len(self.edge_type.split('|')) > 1:
             self.type = self.edge_type.split('|')[self.index]
-        elif (sumolib_obj.allows('pedestrian') and not sumolib_obj.allows('passenger')):
+        elif (sumolib_obj.allows('pedestrian') and
+              not sumolib_obj.allows('passenger')):
             self.type = 'sidewalk'
         elif sumolib_obj.getEdge().getFunction() == 'walkingarea':
             self.type = 'sidewalk'
@@ -114,6 +120,7 @@ class LaneNode:
 
 
 class RoadNode:
+
     def __init__(
         self,
         sumolib_obj,
@@ -156,15 +163,17 @@ class RoadNode:
 
 
 class RoadLaneJunctionGraph:
+
     def __init__(
         self,
         sumo_net_path,
     ):
         """Init the graph"""
 
-        self.sumo_net = sumolib.net.readNet(
-            sumo_net_path, withInternal=True, withPedestrianConnections=True, withPrograms=True
-        )
+        self.sumo_net = sumolib.net.readNet(sumo_net_path,
+                                            withInternal=True,
+                                            withPedestrianConnections=True,
+                                            withPrograms=True)
 
         xmin, ymin, xmax, ymax = self.sumo_net.getBoundary()
         center_x = (xmax + xmin) / 2
@@ -177,7 +186,8 @@ class RoadLaneJunctionGraph:
         self.lanes: Dict[str, LaneNode] = {}
         self.junctions: Dict[str, JunctionNode] = {}
 
-        for edge in self.sumo_net.getEdges(withInternal=True):  # Normal edges first
+        for edge in self.sumo_net.getEdges(
+                withInternal=True):  # Normal edges first
             lanes = []
             lane_index_to_lane = {}
             for lane in edge.getLanes():  # Create initial LaneNode objects
@@ -192,7 +202,8 @@ class RoadLaneJunctionGraph:
                 if lane.index + 1 in lane_index_to_lane:
                     lane.left_neigh = lane_index_to_lane[lane.index + 1]
 
-            junctions = []  # Create initial JunctionNode objects connected to current road
+            junctions = [
+            ]  # Create initial JunctionNode objects connected to current road
             for i, node in enumerate([edge.getFromNode(), edge.getToNode()]):
                 name = node.getID()
 
@@ -215,9 +226,10 @@ class RoadLaneJunctionGraph:
             self.roads[name] = road_node
 
         for junction_id, junction in self.junctions.items():
-            junction.sumolib_obj.setShape(
-                [(x - center_x, y - center_y, z) for x, y, z in junction.sumolib_obj.getShape3D()]
-            )
+            junction.sumolib_obj.setShape([
+                (x - center_x, y - center_y, z)
+                for x, y, z in junction.sumolib_obj.getShape3D()
+            ])
             junction.shape = junction.sumolib_obj.getShape()
 
         for junction_id, junction in self.junctions.items():
@@ -236,24 +248,39 @@ class RoadLaneJunctionGraph:
                 from_road_id = conn.getFrom().getID()  # Link roads
                 to_road_id = conn.getTo().getID()
                 if via_lane_id == '':  # Maybe we could skip this, but not sure
-                    self.lanes[from_lane_id].outgoing.append(self.lanes[to_lane_id])
-                    self.lanes[to_lane_id].incoming.append(self.lanes[from_lane_id])
-                    self.roads[from_road_id].outgoing.append(self.roads[to_road_id])
-                    self.roads[to_road_id].incoming.append(self.roads[from_road_id])
+                    self.lanes[from_lane_id].outgoing.append(
+                        self.lanes[to_lane_id])
+                    self.lanes[to_lane_id].incoming.append(
+                        self.lanes[from_lane_id])
+                    self.roads[from_road_id].outgoing.append(
+                        self.roads[to_road_id])
+                    self.roads[to_road_id].incoming.append(
+                        self.roads[from_road_id])
                 else:
-                    via_road_id = self.sumo_net.getLane(conn.getViaLaneID()).getEdge().getID()
-                    self.lanes[from_lane_id].outgoing.append(self.lanes[via_lane_id])
-                    self.lanes[to_lane_id].incoming.append(self.lanes[via_lane_id])
-                    self.lanes[via_lane_id].incoming.append(self.lanes[from_lane_id])
-                    self.lanes[via_lane_id].outgoing.append(self.lanes[to_lane_id])
-                    self.roads[from_road_id].outgoing.append(self.roads[via_road_id])
-                    self.roads[to_road_id].incoming.append(self.roads[via_road_id])
-                    self.roads[via_road_id].incoming.append(self.roads[from_road_id])
-                    self.roads[via_road_id].outgoing.append(self.roads[to_road_id])
+                    via_road_id = self.sumo_net.getLane(
+                        conn.getViaLaneID()).getEdge().getID()
+                    self.lanes[from_lane_id].outgoing.append(
+                        self.lanes[via_lane_id])
+                    self.lanes[to_lane_id].incoming.append(
+                        self.lanes[via_lane_id])
+                    self.lanes[via_lane_id].incoming.append(
+                        self.lanes[from_lane_id])
+                    self.lanes[via_lane_id].outgoing.append(
+                        self.lanes[to_lane_id])
+                    self.roads[from_road_id].outgoing.append(
+                        self.roads[via_road_id])
+                    self.roads[to_road_id].incoming.append(
+                        self.roads[via_road_id])
+                    self.roads[via_road_id].incoming.append(
+                        self.roads[from_road_id])
+                    self.roads[via_road_id].outgoing.append(
+                        self.roads[to_road_id])
 
-                    junction.roads.append(self.roads[via_road_id])  # Add roads/lanes to junction
+                    junction.roads.append(
+                        self.roads[via_road_id])  # Add roads/lanes to junction
                     junction.lanes.append(self.lanes[via_lane_id])
-                    self.roads[via_road_id].junction = junction  # Add junction reference
+                    self.roads[
+                        via_road_id].junction = junction  # Add junction reference
 
         lane_dividers, edge_dividers = self._compute_traffic_dividers()
 
@@ -263,7 +290,8 @@ class RoadLaneJunctionGraph:
     def _compute_traffic_dividers(self, threshold=1):
         """Find the road dividers"""
         lane_dividers = []  # divider between lanes with same traffic direction
-        edge_dividers = []  # divider between lanes with opposite traffic direction
+        edge_dividers = [
+        ]  # divider between lanes with opposite traffic direction
         edge_borders = []
         for edge in self.sumo_net.getEdges():
             if edge.getFunction() in ["internal", "walkingarea", 'crossing']:
@@ -272,8 +300,10 @@ class RoadLaneJunctionGraph:
             lanes = edge.getLanes()
             for i in range(len(lanes)):
                 shape = lanes[i].getShape()
-                left_side = sumolib.geomhelper.move2side(shape, -lanes[i].getWidth() / 2)
-                right_side = sumolib.geomhelper.move2side(shape, lanes[i].getWidth() / 2)
+                left_side = sumolib.geomhelper.move2side(
+                    shape, -lanes[i].getWidth() / 2)
+                right_side = sumolib.geomhelper.move2side(
+                    shape, lanes[i].getWidth() / 2)
 
                 if i == 0:
                     edge_borders.append(right_side)
@@ -286,10 +316,12 @@ class RoadLaneJunctionGraph:
         # The edge borders that overlapped in positions form an edge divider
         for i in range(len(edge_borders) - 1):
             for j in range(i + 1, len(edge_borders)):
-                edge_border_i = np.array([edge_borders[i][0], edge_borders[i][-1]])  # start and end position
-                edge_border_j = np.array(
-                    [edge_borders[j][-1], edge_borders[j][0]]
-                )  # start and end position with reverse traffic direction
+                edge_border_i = np.array(
+                    [edge_borders[i][0],
+                     edge_borders[i][-1]])  # start and end position
+                edge_border_j = np.array([
+                    edge_borders[j][-1], edge_borders[j][0]
+                ])  # start and end position with reverse traffic direction
 
                 # The edge borders of two lanes do not always overlap perfectly, thus relax the tolerance threshold to 1
                 if np.linalg.norm(edge_border_i - edge_border_j) < threshold:
@@ -324,7 +356,9 @@ def extract_map_features(graph):
 
             id = "lane_{}".format(lane.name)
 
-            boundary_polygon = [(x, y) for x, y in lane.shape.shape.exterior.coords]
+            boundary_polygon = [
+                (x, y) for x, y in lane.shape.shape.exterior.coords
+            ]
             if lane.type == 'driving':
                 ret[id] = {
                     SD.TYPE: MetaDriveType.LANE_SURFACE_STREET,
@@ -350,10 +384,16 @@ def extract_map_features(graph):
 
     for lane_divider_id, lane_divider in enumerate(graph.lane_dividers):
         id = "lane_divider_{}".format(lane_divider_id)
-        ret[id] = {SD.TYPE: MetaDriveType.LINE_BROKEN_SINGLE_WHITE, SD.POLYLINE: lane_divider}
+        ret[id] = {
+            SD.TYPE: MetaDriveType.LINE_BROKEN_SINGLE_WHITE,
+            SD.POLYLINE: lane_divider
+        }
 
     for edge_divider_id, edge_divider in enumerate(graph.edge_dividers):
         id = "edge_divider_{}".format(edge_divider_id)
-        ret[id] = {SD.TYPE: MetaDriveType.LINE_SOLID_SINGLE_YELLOW, SD.POLYLINE: edge_divider}
+        ret[id] = {
+            SD.TYPE: MetaDriveType.LINE_SOLID_SINGLE_YELLOW,
+            SD.POLYLINE: edge_divider
+        }
 
     return ret

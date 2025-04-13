@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 """
 
-__all__ = ("Globals", )
+__all__ = ("Globals",)
 
 
 class Globals(object):  # pylint: disable=too-few-public-methods

@@ -9,28 +9,33 @@ from metadrive.policy.idm_policy import TrajectoryIDMPolicy
 
 
 def test_trajectory_idm(render=False):
-    env = ScenarioEnv(
-        {
-            "use_render": render,
-            "agent_policy": TrajectoryIDMPolicy,
-            "data_directory": AssetLoader.file_path("waymo", unix_style=False),
-            "start_scenario_index": 0,
-            # "show_coordinates": True,
-            # "start_scenario_index": 1000,
-            # "show_coordinates": True,
-            "num_scenarios": 3,
-            # "show_policy_mark": True,
-            # "no_static_vehicles": True,
-            "no_traffic": True,
-            "horizon": 1000,
-            "vehicle_config": dict(
+    env = ScenarioEnv({
+        "use_render":
+            render,
+        "agent_policy":
+            TrajectoryIDMPolicy,
+        "data_directory":
+            AssetLoader.file_path("waymo", unix_style=False),
+        "start_scenario_index":
+            0,
+        # "show_coordinates": True,
+        # "start_scenario_index": 1000,
+        # "show_coordinates": True,
+        "num_scenarios":
+            3,
+        # "show_policy_mark": True,
+        # "no_static_vehicles": True,
+        "no_traffic":
+            True,
+        "horizon":
+            1000,
+        "vehicle_config":
+            dict(
                 # no_wheel_friction=True,
                 lidar=dict(num_lasers=120, distance=50, num_others=4),
                 lane_line_detector=dict(num_lasers=12, distance=50),
-                side_detector=dict(num_lasers=160, distance=50)
-            ),
-        }
-    )
+                side_detector=dict(num_lasers=160, distance=50)),
+    })
     try:
         for seed in [0, 1, 2]:
             o, _ = env.reset(seed=seed)
@@ -41,14 +46,12 @@ def test_trajectory_idm(render=False):
                 show_navi_mark=True if seed == 1 else False,
                 show_dest_mark=False,
                 enable_reverse=True if seed == 0 else False,
-                lidar=dict(
-                    num_lasers=240 if seed == 2 else 120,
-                    distance=50,
-                    num_others=0,
-                    gaussian_noise=0.0,
-                    dropout_prob=0.0,
-                    add_others_navi=False
-                ),
+                lidar=dict(num_lasers=240 if seed == 2 else 120,
+                           distance=50,
+                           num_others=0,
+                           gaussian_noise=0.0,
+                           dropout_prob=0.0,
+                           add_others_navi=False),
                 show_lidar=False,
                 show_lane_line_detector=False,
                 show_side_detector=False,
@@ -60,12 +63,15 @@ def test_trajectory_idm(render=False):
             list += [(45, -3, np.pi / 2), (70, 3, -np.pi / 4)]
             for long, lat, heading in list:
                 position = sdc_route.position(long, lat)
-                v_1 = env.engine.spawn_object(
-                    SVehicle, vehicle_config=overwrite_config, position=position, heading=heading
-                )
-                v = env.engine.spawn_object(
-                    SVehicle, vehicle_config=v_config, position=position, heading=heading, random_seed=v_1.random_seed
-                )
+                v_1 = env.engine.spawn_object(SVehicle,
+                                              vehicle_config=overwrite_config,
+                                              position=position,
+                                              heading=heading)
+                v = env.engine.spawn_object(SVehicle,
+                                            vehicle_config=v_config,
+                                            position=position,
+                                            heading=heading,
+                                            random_seed=v_1.random_seed)
                 assert recursive_equal(v.config, v_1.config, need_assert=True)
                 env.engine.clear_objects([v_1.id])
                 v_list.append(v)

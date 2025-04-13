@@ -17,8 +17,7 @@ def _test_main_camera_as_obs(render):
                 show_interface=False,
                 show_logo=False,
                 show_fps=False,
-            )
-        )
+            ))
         obs, _ = env.reset()
         action = [0.0, 1.]
         for _ in range(3):
@@ -57,8 +56,7 @@ def _test_rgb_camera_as_obs():
                 show_interface=False,
                 show_logo=False,
                 show_fps=False,
-            )
-        )
+            ))
         obs, _ = env.reset()
         action = [0.0, 1.]
         for _ in range(3):

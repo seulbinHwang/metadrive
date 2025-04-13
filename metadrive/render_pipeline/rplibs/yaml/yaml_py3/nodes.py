@@ -1,4 +1,5 @@
 class Node(object):
+
     def __init__(self, tag, value, start_mark, end_mark):
         self.tag = tag
         self.value = value
@@ -20,7 +21,8 @@ class Node(object):
         #    else:
         #        value = repr(value)
         value = repr(value)
-        return '%s(tag=%r, value=%s)' % (self.__class__.__name__, self.tag, value)
+        return '%s(tag=%r, value=%s)' % (self.__class__.__name__, self.tag,
+                                         value)
 
 
 class ScalarNode(Node):
@@ -35,7 +37,13 @@ class ScalarNode(Node):
 
 
 class CollectionNode(Node):
-    def __init__(self, tag, value, start_mark=None, end_mark=None, flow_style=None):
+
+    def __init__(self,
+                 tag,
+                 value,
+                 start_mark=None,
+                 end_mark=None,
+                 flow_style=None):
         self.tag = tag
         self.value = value
         self.start_mark = start_mark

@@ -33,6 +33,7 @@ from panda3d.core import TransparencyAttrib, OrthographicLens, Vec4
 
 class PostProcessRegion(RPObject):
     """ Simple wrapper class to create fullscreen triangles and quads """
+
     @classmethod
     def make(cls, internal_buffer, *args):
         return cls(internal_buffer, *args)
@@ -80,7 +81,8 @@ class PostProcessRegion(RPObject):
         tri = NodePath(geom_node)
         tri.set_depth_test(False)
         tri.set_depth_write(False)
-        tri.set_attrib(TransparencyAttrib.make(TransparencyAttrib.M_none), 10000)
+        tri.set_attrib(TransparencyAttrib.make(TransparencyAttrib.M_none),
+                       10000)
         tri.set_color(Vec4(1))
         tri.set_bin("unsorted", 10)
         tri.reparent_to(self._node)

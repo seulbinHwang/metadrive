@@ -65,6 +65,7 @@ def make_setting_from_data(data):
 
 class BaseType(RPObject):
     """ This is the base setting type, all setting types derive from this """
+
     def __init__(self, data):
         """ Fills in all settings from the given setting data """
         self.value = None
@@ -97,6 +98,7 @@ class BaseType(RPObject):
 class TemplatedType(BaseType):
     """ This setting stores a single type including a minimum and maximum value.
     It is shared between integer and floating point types. """
+
     def __init__(self, template_type, data):
         BaseType.__init__(self, data)
         self.template_type = template_type
@@ -117,12 +119,14 @@ class TemplatedType(BaseType):
 
 class IntType(TemplatedType):
     """ Template instantiation of TemplatedType using int """
+
     def __init__(self, data):
         TemplatedType.__init__(self, int, data)
 
 
 class PowerOfTwoType(IntType):
     """ Type for any power of two resolution """
+
     def __init__(self, data):
         IntType.__init__(self, data)
 
@@ -139,12 +143,14 @@ class PowerOfTwoType(IntType):
 
 class FloatType(TemplatedType):
     """ Template instantiation of TemplatedType using float """
+
     def __init__(self, data):
         TemplatedType.__init__(self, float, data)
 
 
 class BoolType(BaseType):
     """ Boolean setting type """
+
     def __init__(self, data):
         BaseType.__init__(self, data)
         self.default = bool(data.pop("default"))
@@ -159,12 +165,14 @@ class BoolType(BaseType):
 
 class EnumType(BaseType):
     """ Enumeration setting type """
+
     def __init__(self, data):
         BaseType.__init__(self, data)
         self.values = tuple(data.pop("values"))
         self.default = data.pop("default")
         if self.default not in self.values:
-            raise Exception("Enum default not in enum values: {}".format(self.default))
+            raise Exception("Enum default not in enum values: {}".format(
+                self.default))
         self.value = self.default
 
     def set_value(self, value):
@@ -174,10 +182,12 @@ class EnumType(BaseType):
         self.value = value
 
     def add_defines(self, plugin_id, setting_id, defines):
-        defines["{}_{}".format(plugin_id, setting_id)] = 1000 + self.values.index(self.value)
+        defines["{}_{}".format(
+            plugin_id, setting_id)] = 1000 + self.values.index(self.value)
 
         for i, val in enumerate(self.values):
-            defines["enum_{}_{}_{}".format(plugin_id, setting_id, val)] = 1000 + i
+            defines["enum_{}_{}_{}".format(plugin_id, setting_id,
+                                           val)] = 1000 + i
 
 
 class SampleSequenceType(BaseType):
@@ -219,6 +229,7 @@ class SampleSequenceType(BaseType):
 
 class PathType(BaseType):
     """ Path type to specify paths to files """
+
     def __init__(self, data):
         BaseType.__init__(self, data)
         self.default = str(data.pop("default"))

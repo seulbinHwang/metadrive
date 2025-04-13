@@ -12,7 +12,10 @@ from metadrive.constants import HELP_MESSAGE
 from metadrive.tests.test_functionality.test_object_collision_detection import ComplexEnv
 
 if __name__ == "__main__":
-    env = ComplexEnv(dict(use_render=True, manual_control=True, vehicle_config={"show_navi_mark": False}))
+    env = ComplexEnv(
+        dict(use_render=True,
+             manual_control=True,
+             vehicle_config={"show_navi_mark": False}))
     try:
         env.reset()
         print(HELP_MESSAGE)
@@ -22,13 +25,18 @@ if __name__ == "__main__":
             o, r, tm, tc, info = env.step([0, 0])
             env.render(
                 text={
-                    "Auto-Drive (Switch mode: T)": "on" if env.current_track_agent.expert_takeover else "off",
-                    "Total episode cost": env.episode_cost,
-                    "Keyboard Control": "W,A,S,D",
-                }
-            )
+                    "Auto-Drive (Switch mode: T)":
+                        "on" if env.current_track_agent.
+                        expert_takeover else "off",
+                    "Total episode cost":
+                        env.episode_cost,
+                    "Keyboard Control":
+                        "W,A,S,D",
+                })
             if not previous_takeover and env.current_track_agent.expert_takeover:
-                logging.warning("Auto-Drive mode may fail to solve some scenarios due to distribution mismatch")
+                logging.warning(
+                    "Auto-Drive mode may fail to solve some scenarios due to distribution mismatch"
+                )
             if (tm or tc) and info["arrive_dest"]:
                 env.reset()
                 env.current_track_agent.expert_takeover = True

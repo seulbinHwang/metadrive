@@ -11,29 +11,37 @@ class EnvInputPolicy(BasePolicy):
 
     def __init__(self, obj, seed):
         # Since control object may change
-        super(EnvInputPolicy, self).__init__(control_object=obj, random_seed=seed)
+        super(EnvInputPolicy, self).__init__(control_object=obj,
+                                             random_seed=seed)
         self.discrete_action = self.engine.global_config["discrete_action"]
-        self.use_multi_discrete = self.engine.global_config["use_multi_discrete"]
+        self.use_multi_discrete = self.engine.global_config[
+            "use_multi_discrete"]
         self.steering_unit = 2.0 / (
             self.engine.global_config["discrete_steering_dim"] - 1
         )  # for discrete actions space
         self.throttle_unit = 2.0 / (
             self.engine.global_config["discrete_throttle_dim"] - 1
         )  # for discrete actions space
-        self.discrete_steering_dim = self.engine.global_config["discrete_steering_dim"]
-        self.discrete_throttle_dim = self.engine.global_config["discrete_throttle_dim"]
+        self.discrete_steering_dim = self.engine.global_config[
+            "discrete_steering_dim"]
+        self.discrete_throttle_dim = self.engine.global_config[
+            "discrete_throttle_dim"]
 
     def act(self, agent_id):
         action = self.engine.external_actions[agent_id]
         if self.engine.global_config["action_check"]:
             # Do action check for external input in EnvInputPolicy
-            assert self.get_input_space().contains(action), "Input {} is not compatible with action space {}!".format(
-                action, self.get_input_space()
-            )
-        to_process = self.convert_to_continuous_action(action) if self.discrete_action else action
+            assert self.get_input_space().contains(
+                action
+            ), "Input {} is not compatible with action space {}!".format(
+                action, self.get_input_space())
+        to_process = self.convert_to_continuous_action(
+            action) if self.discrete_action else action
 
         # clip to -1, 1
-        action = [clip(to_process[i], -1.0, 1.0) for i in range(len(to_process))]
+        action = [
+            clip(to_process[i], -1.0, 1.0) for i in range(len(to_process))
+        ]
         self.action_info["action"] = action
         return action
 
@@ -42,8 +50,10 @@ class EnvInputPolicy(BasePolicy):
             steering = action[0] * self.steering_unit - 1.0
             throttle = action[1] * self.throttle_unit - 1.0
         else:
-            steering = float(action % self.discrete_steering_dim) * self.steering_unit - 1.0
-            throttle = float(action // self.discrete_steering_dim) * self.throttle_unit - 1.0
+            steering = float(
+                action % self.discrete_steering_dim) * self.steering_unit - 1.0
+            throttle = float(
+                action // self.discrete_steering_dim) * self.throttle_unit - 1.0
 
         return steering, throttle
 
@@ -59,12 +69,17 @@ class EnvInputPolicy(BasePolicy):
         use_multi_discrete = engine_global_config["use_multi_discrete"]
 
         if not discrete_action:
-            _input_space = gym.spaces.Box(-1.0, 1.0, shape=(2, ), dtype=np.float32)
+            _input_space = gym.spaces.Box(-1.0,
+                                          1.0,
+                                          shape=(2,),
+                                          dtype=np.float32)
         else:
             if use_multi_discrete:
-                _input_space = gym.spaces.MultiDiscrete([discrete_steering_dim, discrete_throttle_dim])
+                _input_space = gym.spaces.MultiDiscrete(
+                    [discrete_steering_dim, discrete_throttle_dim])
             else:
-                _input_space = gym.spaces.Discrete(discrete_steering_dim * discrete_throttle_dim)
+                _input_space = gym.spaces.Discrete(discrete_steering_dim *
+                                                   discrete_throttle_dim)
         return _input_space
 
 
@@ -103,10 +118,13 @@ class ExtraEnvInputPolicy(EnvInputPolicy):
                 "Input {} is not compatible with action space {}!".format(
                 self.engine.external_actions[agent_id], self.get_input_space()
             )
-        to_process = self.convert_to_continuous_action(action) if self.discrete_action else action
+        to_process = self.convert_to_continuous_action(
+            action) if self.discrete_action else action
 
         # clip to -1, 1
-        action = [clip(to_process[i], -1.0, 1.0) for i in range(len(to_process))]
+        action = [
+            clip(to_process[i], -1.0, 1.0) for i in range(len(to_process))
+        ]
         self.action_info["action"] = action
         return action
 
@@ -131,4 +149,7 @@ class ExtraEnvInputPolicy(EnvInputPolicy):
 
         """
         action_space = super(ExtraEnvInputPolicy, cls).get_input_space()
-        return gym.spaces.Dict({"action": action_space, "extra": cls.extra_input_space})
+        return gym.spaces.Dict({
+            "action": action_space,
+            "extra": cls.extra_input_space
+        })

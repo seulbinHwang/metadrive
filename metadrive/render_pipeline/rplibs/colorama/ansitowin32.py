@@ -26,6 +26,7 @@ class StreamWrapper(object):
     attribute access apart from method 'write()', which is delegated to our
     Converter instance.
     '''
+
     def __init__(self, wrapped, converter):
         # double-underscore everything to prevent clashes with names of
         # attributes on the wrapped stream object.
@@ -45,8 +46,10 @@ class AnsiToWin32(object):
     sequences from the text, and if outputting to a tty, will convert them into
     win32 function calls.
     '''
-    ANSI_CSI_RE = re.compile('\001?\033\[((?:\d|;)*)([a-zA-Z])\002?')  # Control Sequence Introducer
-    ANSI_OSC_RE = re.compile('\001?\033\]((?:.|;)*?)(\x07)\002?')  # Operating System Command
+    ANSI_CSI_RE = re.compile(
+        '\001?\033\[((?:\d|;)*)([a-zA-Z])\002?')  # Control Sequence Introducer
+    ANSI_OSC_RE = re.compile(
+        '\001?\033\]((?:.|;)*?)(\x07)\002?')  # Operating System Command
 
     def __init__(self, wrapped, convert=None, strip=None, autoreset=False):
         # The wrapped stream (normally sys.stdout or sys.stderr)
@@ -67,12 +70,14 @@ class AnsiToWin32(object):
 
         # should we strip ANSI sequences from our output?
         if strip is None:
-            strip = conversion_supported or (not is_stream_closed(wrapped) and not is_a_tty(wrapped))
+            strip = conversion_supported or (not is_stream_closed(wrapped) and
+                                             not is_a_tty(wrapped))
         self.strip = strip
 
         # should we should convert ANSI sequences into win32 calls?
         if convert is None:
-            convert = conversion_supported and not is_stream_closed(wrapped) and is_a_tty(wrapped)
+            convert = conversion_supported and not is_stream_closed(
+                wrapped) and is_a_tty(wrapped)
         self.convert = convert
 
         # dict of ansi codes to win32 functions and parameters
@@ -94,7 +99,7 @@ class AnsiToWin32(object):
     def get_win32_calls(self):
         if self.convert and winterm:
             return {
-                AnsiStyle.RESET_ALL: (winterm.reset_all, ),
+                AnsiStyle.RESET_ALL: (winterm.reset_all,),
                 AnsiStyle.BRIGHT: (winterm.style, WinStyle.BRIGHT),
                 AnsiStyle.DIM: (winterm.style, WinStyle.NORMAL),
                 AnsiStyle.NORMAL: (winterm.style, WinStyle.NORMAL),
@@ -106,13 +111,14 @@ class AnsiToWin32(object):
                 AnsiFore.MAGENTA: (winterm.fore, WinColor.MAGENTA),
                 AnsiFore.CYAN: (winterm.fore, WinColor.CYAN),
                 AnsiFore.WHITE: (winterm.fore, WinColor.GREY),
-                AnsiFore.RESET: (winterm.fore, ),
+                AnsiFore.RESET: (winterm.fore,),
                 AnsiFore.LIGHTBLACK_EX: (winterm.fore, WinColor.BLACK, True),
                 AnsiFore.LIGHTRED_EX: (winterm.fore, WinColor.RED, True),
                 AnsiFore.LIGHTGREEN_EX: (winterm.fore, WinColor.GREEN, True),
                 AnsiFore.LIGHTYELLOW_EX: (winterm.fore, WinColor.YELLOW, True),
                 AnsiFore.LIGHTBLUE_EX: (winterm.fore, WinColor.BLUE, True),
-                AnsiFore.LIGHTMAGENTA_EX: (winterm.fore, WinColor.MAGENTA, True),
+                AnsiFore.LIGHTMAGENTA_EX:
+                    (winterm.fore, WinColor.MAGENTA, True),
                 AnsiFore.LIGHTCYAN_EX: (winterm.fore, WinColor.CYAN, True),
                 AnsiFore.LIGHTWHITE_EX: (winterm.fore, WinColor.GREY, True),
                 AnsiBack.BLACK: (winterm.back, WinColor.BLACK),
@@ -123,13 +129,14 @@ class AnsiToWin32(object):
                 AnsiBack.MAGENTA: (winterm.back, WinColor.MAGENTA),
                 AnsiBack.CYAN: (winterm.back, WinColor.CYAN),
                 AnsiBack.WHITE: (winterm.back, WinColor.GREY),
-                AnsiBack.RESET: (winterm.back, ),
+                AnsiBack.RESET: (winterm.back,),
                 AnsiBack.LIGHTBLACK_EX: (winterm.back, WinColor.BLACK, True),
                 AnsiBack.LIGHTRED_EX: (winterm.back, WinColor.RED, True),
                 AnsiBack.LIGHTGREEN_EX: (winterm.back, WinColor.GREEN, True),
                 AnsiBack.LIGHTYELLOW_EX: (winterm.back, WinColor.YELLOW, True),
                 AnsiBack.LIGHTBLUE_EX: (winterm.back, WinColor.BLUE, True),
-                AnsiBack.LIGHTMAGENTA_EX: (winterm.back, WinColor.MAGENTA, True),
+                AnsiBack.LIGHTMAGENTA_EX:
+                    (winterm.back, WinColor.MAGENTA, True),
                 AnsiBack.LIGHTCYAN_EX: (winterm.back, WinColor.CYAN, True),
                 AnsiBack.LIGHTWHITE_EX: (winterm.back, WinColor.GREY, True),
             }
@@ -146,7 +153,7 @@ class AnsiToWin32(object):
 
     def reset_all(self):
         if self.convert:
-            self.call_win32('m', (0, ))
+            self.call_win32('m', (0,))
         elif not self.strip and not is_stream_closed(self.wrapped):
             self.wrapped.write(Style.RESET_ALL)
 
@@ -177,18 +184,20 @@ class AnsiToWin32(object):
 
     def extract_params(self, command, paramstring):
         if command in 'Hf':
-            params = tuple(int(p) if len(p) != 0 else 1 for p in paramstring.split(';'))
+            params = tuple(
+                int(p) if len(p) != 0 else 1 for p in paramstring.split(';'))
             while len(params) < 2:
                 # defaults:
-                params = params + (1, )
+                params = params + (1,)
         else:
-            params = tuple(int(p) for p in paramstring.split(';') if len(p) != 0)
+            params = tuple(
+                int(p) for p in paramstring.split(';') if len(p) != 0)
             if len(params) == 0:
                 # defaults:
                 if command in 'JKm':
-                    params = (0, )
+                    params = (0,)
                 elif command in 'ABCD':
-                    params = (1, )
+                    params = (1,)
 
         return params
 
@@ -210,7 +219,12 @@ class AnsiToWin32(object):
         elif command in 'ABCD':  # cursor position - relative
             n = params[0]
             # A - up, B - down, C - forward, D - back
-            x, y = {'A': (0, -n), 'B': (0, n), 'C': (n, 0), 'D': (-n, 0)}[command]
+            x, y = {
+                'A': (0, -n),
+                'B': (0, n),
+                'C': (n, 0),
+                'D': (-n, 0)
+            }[command]
             winterm.cursor_adjust(x, y, on_stderr=self.on_stderr)
 
     def convert_osc(self, text):

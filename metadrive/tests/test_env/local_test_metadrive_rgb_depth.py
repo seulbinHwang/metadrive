@@ -4,8 +4,9 @@ from metadrive.constants import TerminationState
 from metadrive.envs.metadrive_env import MetaDriveEnv
 
 info_keys = [
-    "cost", "velocity", "steering", "acceleration", "step_reward", TerminationState.CRASH_VEHICLE,
-    TerminationState.OUT_OF_ROAD, TerminationState.SUCCESS
+    "cost", "velocity", "steering", "acceleration", "step_reward",
+    TerminationState.CRASH_VEHICLE, TerminationState.OUT_OF_ROAD,
+    TerminationState.SUCCESS
 ]
 
 

@@ -19,14 +19,17 @@ from . import spec
 
 
 class TextureMixin(object):
+
     def get_images(self, material, shader):
         if self._render_type == 'rp':  # custom texture order for RP
             return (
                 # p3d_Texture0 - baseColorTexture - RP Diffuse
-                (('pbrMetallicRoughness', 'baseColorTexture'), self.get_diffuse(material, shader)),
+                (('pbrMetallicRoughness', 'baseColorTexture'),
+                 self.get_diffuse(material, shader)),
 
                 # p3d_Texture1 - metallicRoughnessTexture - RP Normal Map
-                (('pbrMetallicRoughness', 'metallicRoughnessTexture'), self.get_normal_map(material, shader)),
+                (('pbrMetallicRoughness', 'metallicRoughnessTexture'),
+                 self.get_normal_map(material, shader)),
 
                 # p3d_Texture2 - normalTexture - RP IOR
                 ('normalTexture', self.get_specular_map(material, shader)),
@@ -39,11 +42,14 @@ class TextureMixin(object):
             )
         else:
             return (
-                (('pbrMetallicRoughness', 'baseColorTexture'), self.get_diffuse(material, shader)),
-                (('pbrMetallicRoughness', 'metallicRoughnessTexture'), self.get_roughness_map(material, shader)),
+                (('pbrMetallicRoughness', 'baseColorTexture'),
+                 self.get_diffuse(material, shader)),
+                (('pbrMetallicRoughness', 'metallicRoughnessTexture'),
+                 self.get_roughness_map(material, shader)),
                 ('normalTexture', self.get_normal_map(material, shader)),
                 ('emissiveTexture', self.get_emission_map(material, shader)),
-                (None, ''),  # put a placeholder, because all textures are required
+                (None,
+                 ''),  # put a placeholder, because all textures are required
             )
 
     def make_texture(self, type_, image_texture):
@@ -57,8 +63,10 @@ class TextureMixin(object):
         }
 
         gltf_image = {
-            'name': image_texture.image.name,
-            'mimeType': 'image/{}'.format(image_texture.image.file_format.lower()),
+            'name':
+                image_texture.image.name,
+            'mimeType':
+                'image/{}'.format(image_texture.image.file_format.lower()),
         }
 
         if self._output.endswith('.gltf'):  # external texture
@@ -66,9 +74,11 @@ class TextureMixin(object):
         else:  # embedded texture
             gltf_image['extras'] = {}
             if image_texture.image.packed_file:
-                gltf_image['extras']['data'] = image_texture.image.packed_file.data
+                gltf_image['extras'][
+                    'data'] = image_texture.image.packed_file.data
             else:
-                gltf_image['extras']['uri'] = os.path.join(self.get_cwd(), filepath)
+                gltf_image['extras']['uri'] = os.path.join(
+                    self.get_cwd(), filepath)
 
         if image_texture.extension == 'CLIP':
             gltf_sampler['wrapS'] = spec.CLAMP_TO_EDGE

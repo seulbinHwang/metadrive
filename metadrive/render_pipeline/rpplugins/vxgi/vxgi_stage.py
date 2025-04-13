@@ -35,8 +35,9 @@ class VXGIStage(RenderStage):
 
     required_inputs = ["voxelGridPosition"]
     required_pipes = [
-        "ShadedScene", "SceneVoxels", "GBuffer", "ScatteringIBLSpecular", "ScatteringIBLDiffuse",
-        "PreviousFrame::VXGIPostSample", "CombinedVelocity", "PreviousFrame::SceneDepth"
+        "ShadedScene", "SceneVoxels", "GBuffer", "ScatteringIBLSpecular",
+        "ScatteringIBLDiffuse", "PreviousFrame::VXGIPostSample",
+        "CombinedVelocity", "PreviousFrame::SceneDepth"
     ]
 
     @property
@@ -65,14 +66,16 @@ class VXGIStage(RenderStage):
         self.target_blur_v.add_color_attachment(bits=16)
         self.target_blur_v.has_color_alpha = True
         self.target_blur_v.prepare_buffer()
-        self.target_blur_v.set_shader_input("SourceTex", self.target_diff.color_tex)
+        self.target_blur_v.set_shader_input("SourceTex",
+                                            self.target_diff.color_tex)
 
         self.target_blur_h = self.create_target("BlurH")
         self.target_blur_h.size = -2
         self.target_blur_h.add_color_attachment(bits=16)
         self.target_blur_h.has_color_alpha = True
         self.target_blur_h.prepare_buffer()
-        self.target_blur_h.set_shader_input("SourceTex", self.target_blur_v.color_tex)
+        self.target_blur_h.set_shader_input("SourceTex",
+                                            self.target_blur_v.color_tex)
 
         # Set blur parameters
         self.target_blur_v.set_shader_input("blur_direction", LVecBase2i(0, 1))
@@ -83,22 +86,27 @@ class VXGIStage(RenderStage):
         self.target_upscale_diff.add_color_attachment(bits=16)
         self.target_upscale_diff.prepare_buffer()
         self.target_upscale_diff.set_shader_inputs(
-            SourceTex=self.target_blur_h.color_tex, upscaleWeights=Vec2(0.0001, 0.001)
-        )
+            SourceTex=self.target_blur_h.color_tex,
+            upscaleWeights=Vec2(0.0001, 0.001))
 
         self.target_resolve = self.create_target("ResolveVXGI")
         self.target_resolve.add_color_attachment(bits=16)
         self.target_resolve.prepare_buffer()
-        self.target_resolve.set_shader_input("CurrentTex", self.target_upscale_diff.color_tex)
+        self.target_resolve.set_shader_input("CurrentTex",
+                                             self.target_upscale_diff.color_tex)
 
         # Make the ambient stage use the GI result
         AmbientStage.required_pipes += ["VXGIDiffuse"]
 
     def reload_shaders(self):
         # self.target_spec.shader = self.load_plugin_shader("vxgi_specular.frag.glsl")
-        self.target_diff.shader = self.load_plugin_shader("vxgi_diffuse.frag.glsl")
-        self.target_upscale_diff.shader = self.load_plugin_shader("/$$rp/shader/bilateral_upscale.frag.glsl")
-        blur_shader = self.load_plugin_shader("/$$rp/shader/bilateral_halfres_blur.frag.glsl")
+        self.target_diff.shader = self.load_plugin_shader(
+            "vxgi_diffuse.frag.glsl")
+        self.target_upscale_diff.shader = self.load_plugin_shader(
+            "/$$rp/shader/bilateral_upscale.frag.glsl")
+        blur_shader = self.load_plugin_shader(
+            "/$$rp/shader/bilateral_halfres_blur.frag.glsl")
         self.target_blur_v.shader = blur_shader
         self.target_blur_h.shader = blur_shader
-        self.target_resolve.shader = self.load_plugin_shader("resolve_vxgi.frag.glsl")
+        self.target_resolve.shader = self.load_plugin_shader(
+            "resolve_vxgi.frag.glsl")

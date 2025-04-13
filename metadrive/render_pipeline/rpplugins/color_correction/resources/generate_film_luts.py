@@ -16,7 +16,8 @@ for f in os.listdir("film_luts_raw"):
     input_file = "film_luts_raw/" + f
 
     print("Processing", input_file)
-    output_name = input_file.replace("\\", "/").split("/")[-1].replace(".spi1d", "")
+    output_name = input_file.replace("\\",
+                                     "/").split("/")[-1].replace(".spi1d", "")
 
     with open(input_file, "r") as handle:
         content = [i.strip() for i in handle.readlines()]
@@ -74,6 +75,7 @@ for f in os.listdir("film_luts_raw"):
                     fg = lookup_value(fg, values[1])
                     fb = lookup_value(fb, values[2])
 
-                    img.set_xel(r + slice_offset_x, g + slice_offset_y, fr, fg, fb)
+                    img.set_xel(r + slice_offset_x, g + slice_offset_y, fr, fg,
+                                fb)
 
         img.write("film_luts/" + output_name + ".png")

@@ -9,6 +9,7 @@ from metadrive.utils.utils import is_map_related_instance, is_map_related_class
 
 
 class FrameInfo:
+
     def __init__(self, episode_step):
         self.episode_step = episode_step
         # used to track the objects spawn info
@@ -67,8 +68,7 @@ class RecordManager(BaseManager):
                 global_seed=self.engine.global_seed,
                 manager_metadata={},
                 coordinate="MetaDrive",
-                time=get_time_str()
-            )
+                time=get_time_str())
 
             self.collect_objects_states()
             self.collect_manager_states()
@@ -97,7 +97,8 @@ class RecordManager(BaseManager):
     def before_step(self, *args, **kwargs) -> dict:
         if self.engine.record_episode:
             self.current_frames = [
-                FrameInfo(self.engine.episode_step) for _ in range(self.engine.global_config["decision_repeat"])
+                FrameInfo(self.engine.episode_step)
+                for _ in range(self.engine.global_config["decision_repeat"])
             ]
             self.current_frame_count = 0
         return {}
@@ -108,13 +109,15 @@ class RecordManager(BaseManager):
         if self.engine.record_episode:
             self.collect_objects_states()
             self.collect_manager_states()
-            self.current_frame_count += 1 if self.current_frame_count < len(self.current_frames) - 1 else 0
+            self.current_frame_count += 1 if self.current_frame_count < len(
+                self.current_frames) - 1 else 0
 
     def after_step(self, *args, **kwargs) -> dict:
         # frame count ==0 is the reset frame, so don't append
         if self.engine.record_episode and self.current_frame_count:
             self.step()
-            assert len(self.current_frames) == self.engine.global_config["decision_repeat"], "Number of Frame Mismatch!"
+            assert len(self.current_frames) == self.engine.global_config[
+                "decision_repeat"], "Number of Frame Mismatch!"
             self.episode_info["frame"].append(self.current_frames)
         return {}
 
@@ -124,11 +127,14 @@ class RecordManager(BaseManager):
             if not is_map_related_instance(obj):
                 self.current_frame.step_info[name] = obj.get_state()
                 if name in policy_mapping:
-                    self.current_frame.policy_info[name] = policy_mapping[name].get_state()
+                    self.current_frame.policy_info[name] = policy_mapping[
+                        name].get_state()
 
         self.current_frame.agents = list(self.engine.agents.keys())
-        self.current_frame._agent_to_object = copy.deepcopy(self.engine.agent_manager._agent_to_object)
-        self.current_frame._object_to_agent = copy.deepcopy(self.engine.agent_manager._object_to_agent)
+        self.current_frame._agent_to_object = copy.deepcopy(
+            self.engine.agent_manager._agent_to_object)
+        self.current_frame._object_to_agent = copy.deepcopy(
+            self.engine.agent_manager._object_to_agent)
 
     def get_episode_metadata(self):
         assert self.engine.record_episode, "Turn on recording episode and then dump it"
@@ -141,7 +147,8 @@ class RecordManager(BaseManager):
         """
         Call when spawn new objects, ignore map related things
         """
-        if not is_map_related_class(object_class) and self.engine.record_episode:
+        if not is_map_related_class(
+                object_class) and self.engine.record_episode:
             name = obj.name
             assert name not in self.current_frame.spawn_info, "Duplicated record!"
             assert name not in self._episode_obj_names, "Duplicated name using!"
@@ -164,10 +171,12 @@ class RecordManager(BaseManager):
         """
         filtered_args = []
         for arg in args:
-            filtered_args.append(arg) if not isinstance(arg, BaseObject) else filtered_args.append(BaseObject)
+            filtered_args.append(arg) if not isinstance(
+                arg, BaseObject) else filtered_args.append(BaseObject)
         filtered_kwargs = {}
         for k, v in kwargs.items():
-            filtered_kwargs[k] = v if not isinstance(v, BaseObject) else BaseObject
+            filtered_kwargs[k] = v if not isinstance(v,
+                                                     BaseObject) else BaseObject
         if self.engine.record_episode:
             assert name not in self.current_frame.policy_spawn_info, "Duplicated record!"
             self.current_frame.policy_spawn_info[name] = {
@@ -181,7 +190,8 @@ class RecordManager(BaseManager):
         """
         Call when clear objects, ignore map related things
         """
-        if not is_map_related_instance(obj) and self.engine.record_episode and self.episode_step != 0:
+        if not is_map_related_instance(
+                obj) and self.engine.record_episode and self.episode_step != 0:
             self.current_frame.clear_info.append(obj.name)
 
     def __del__(self):
@@ -189,7 +199,9 @@ class RecordManager(BaseManager):
 
     @property
     def current_frame(self):
-        return self.current_frames[self.current_frame_count] if self.reset_frame is None else self.reset_frame
+        return self.current_frames[
+            self.
+            current_frame_count] if self.reset_frame is None else self.reset_frame
 
     def set_state(self, state: dict, old_name_to_current=None):
         return {}

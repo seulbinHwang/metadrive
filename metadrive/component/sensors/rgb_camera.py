@@ -33,8 +33,9 @@ class RGBCamera(BaseCamera):
         cam.setTagStateKey(CameraTagStateKey.RGB)
         from metadrive.engine.core.terrain import Terrain
         cam.setTagState(
-            Semantics.TERRAIN.label, Terrain.make_render_state(self.engine, "terrain.vert.glsl", "terrain.frag.glsl")
-        )
+            Semantics.TERRAIN.label,
+            Terrain.make_render_state(self.engine, "terrain.vert.glsl",
+                                      "terrain.frag.glsl"))
 
         self.scene_tex = None
         self.manager = FilterManager(self.buffer, self.cam)
@@ -49,7 +50,8 @@ class RGBCamera(BaseCamera):
         self.scene_tex = p3d.Texture()
         self.scene_tex.set_format(p3d.Texture.F_rgba16)
         self.scene_tex.set_component_type(p3d.Texture.T_float)
-        self.tonemap_quad = self.manager.render_scene_into(colortex=self.scene_tex, fbprops=fbprops)
+        self.tonemap_quad = self.manager.render_scene_into(
+            colortex=self.scene_tex, fbprops=fbprops)
         #
         defines = {}
         if is_mac():
@@ -79,7 +81,7 @@ class RGBCamera(BaseCamera):
         """
         if frame_buffer_property is None:
             frame_buffer_property = FrameBufferProperties()
-        frame_buffer_property.set_rgba_bits(8, 8, 8, 0)  # disable alpha for RGB camera
+        frame_buffer_property.set_rgba_bits(8, 8, 8,
+                                            0)  # disable alpha for RGB camera
         self.buffer = self.engine.win.makeTextureBuffer(
-            self.__class__.__name__, width, height, fbp=frame_buffer_property
-        )
+            self.__class__.__name__, width, height, fbp=frame_buffer_property)

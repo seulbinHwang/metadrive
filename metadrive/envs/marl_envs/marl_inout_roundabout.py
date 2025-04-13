@@ -25,28 +25,31 @@ MARoundaboutConfig = dict(
 
 
 class MARoundaboutMap(PGMap):
+
     def _generate(self):
         length = self.config["exit_length"]
 
         parent_node_path, physics_world = self.engine.worldNP, self.engine.physics_world
-        assert len(self.road_network.graph) == 0, "These Map is not empty, please create a new map to read config"
+        assert len(
+            self.road_network.graph
+        ) == 0, "These Map is not empty, please create a new map to read config"
 
         # Build a first-block
-        last_block = FirstPGBlock(
-            self.road_network,
-            self.config[self.LANE_WIDTH],
-            self.config[self.LANE_NUM],
-            parent_node_path,
-            physics_world,
-            length=length
-        )
+        last_block = FirstPGBlock(self.road_network,
+                                  self.config[self.LANE_WIDTH],
+                                  self.config[self.LANE_NUM],
+                                  parent_node_path,
+                                  physics_world,
+                                  length=length)
         self.blocks.append(last_block)
 
         # Build roundabout
         Roundabout.EXIT_PART_LENGTH = length
-        last_block = Roundabout(
-            1, last_block.get_socket(index=0), self.road_network, random_seed=1, ignore_intersection_checking=False
-        )
+        last_block = Roundabout(1,
+                                last_block.get_socket(index=0),
+                                self.road_network,
+                                random_seed=1,
+                                ignore_intersection_checking=False)
         last_block.construct_block(
             parent_node_path,
             physics_world,
@@ -55,18 +58,22 @@ class MARoundaboutMap(PGMap):
                 "inner_radius": 30,
                 "angle": 70,
                 # Note: lane_num is set in config.map_config.lane_num
-            }
-        )
+            })
         self.blocks.append(last_block)
 
 
 class MARoundaboutPGMapManager(PGMapManager):
+
     def reset(self):
         config = self.engine.global_config
         if len(self.spawned_objects) == 0:
-            _map = self.spawn_object(MARoundaboutMap, map_config=config["map_config"], random_seed=None)
+            _map = self.spawn_object(MARoundaboutMap,
+                                     map_config=config["map_config"],
+                                     random_seed=None)
         else:
-            assert len(self.spawned_objects) == 1, "It is supposed to contain one map in this manager"
+            assert len(
+                self.spawned_objects
+            ) == 1, "It is supposed to contain one map in this manager"
             _map = self.spawned_objects.values()[0]
         self.load_map(_map)
         self.current_map.spawn_roads = config["spawn_roads"]
@@ -136,6 +143,7 @@ class MARoundaboutPGMapManager(PGMapManager):
 
 
 class RoundaboutSpawnManager(SpawnManager):
+
     def update_destination_for(self, vehicle_id, vehicle_config):
         end_roads = copy.deepcopy(self.engine.global_config["spawn_roads"])
         end_road = -self.np_random.choice(end_roads)  # Use negative road!
@@ -144,9 +152,11 @@ class RoundaboutSpawnManager(SpawnManager):
 
 
 class MultiAgentRoundaboutEnv(MultiAgentMetaDrive):
+
     @staticmethod
     def default_config() -> Config:
-        return MultiAgentMetaDrive.default_config().update(MARoundaboutConfig, allow_add_new_key=True)
+        return MultiAgentMetaDrive.default_config().update(
+            MARoundaboutConfig, allow_add_new_key=True)
 
     def setup_engine(self):
         super(MultiAgentRoundaboutEnv, self).setup_engine()
@@ -166,25 +176,23 @@ def _draw():
 
 
 def _expert():
-    env = MultiAgentRoundaboutEnv(
-        {
-            "vehicle_config": {
-                "lidar": {
-                    "num_lasers": 240,
-                    "num_others": 4,
-                    "distance": 50
-                },
+    env = MultiAgentRoundaboutEnv({
+        "vehicle_config": {
+            "lidar": {
+                "num_lasers": 240,
+                "num_others": 4,
+                "distance": 50
             },
-            "use_AI_protector": True,
-            "save_level": 1.,
-            "debug_physics_world": True,
+        },
+        "use_AI_protector": True,
+        "save_level": 1.,
+        "debug_physics_world": True,
 
-            # "use_render": True,
-            "debug": True,
-            "manual_control": True,
-            "num_agents": 4,
-        }
-    )
+        # "use_render": True,
+        "debug": True,
+        "manual_control": True,
+        "num_agents": 4,
+    })
     o, _ = env.reset()
     total_r = 0
     ep_s = 0
@@ -197,10 +205,9 @@ def _expert():
         # env.render(text=d)
         if tm["__all__"]:
             print(
-                "Finish! Current step {}. Group Reward: {}. Average reward: {}".format(
-                    i, total_r, total_r / env.agent_manager.next_agent_count
-                )
-            )
+                "Finish! Current step {}. Group Reward: {}. Average reward: {}".
+                format(i, total_r,
+                       total_r / env.agent_manager.next_agent_count))
             break
         if len(env.agents) == 0:
             total_r = 0
@@ -210,24 +217,22 @@ def _expert():
 
 
 def _vis_debug_respawn():
-    env = MultiAgentRoundaboutEnv(
-        {
-            "horizon": 100000,
-            "vehicle_config": {
-                "lidar": {
-                    "num_lasers": 72,
-                    "num_others": 0,
-                    "distance": 40
-                },
-                "show_lidar": False,
+    env = MultiAgentRoundaboutEnv({
+        "horizon": 100000,
+        "vehicle_config": {
+            "lidar": {
+                "num_lasers": 72,
+                "num_others": 0,
+                "distance": 40
             },
-            "debug_physics_world": True,
-            "use_render": True,
-            "debug": False,
-            "manual_control": True,
-            "num_agents": 40,
-        }
-    )
+            "show_lidar": False,
+        },
+        "debug_physics_world": True,
+        "use_render": True,
+        "debug": False,
+        "manual_control": True,
+        "num_agents": 40,
+    })
     o, _ = env.reset()
     total_r = 0
     ep_s = 0
@@ -248,10 +253,9 @@ def _vis_debug_respawn():
         env.render(text=render_text)
         if tm["__all__"]:
             print(
-                "Finish! Current step {}. Group Reward: {}. Average reward: {}".format(
-                    i, total_r, total_r / env.agent_manager.next_agent_count
-                )
-            )
+                "Finish! Current step {}. Group Reward: {}. Average reward: {}".
+                format(i, total_r,
+                       total_r / env.agent_manager.next_agent_count))
             # break
         if len(env.agents) == 0:
             total_r = 0
@@ -261,23 +265,21 @@ def _vis_debug_respawn():
 
 
 def _vis():
-    env = MultiAgentRoundaboutEnv(
-        {
-            "horizon": 100000,
-            "vehicle_config": {
-                "lidar": {
-                    "num_lasers": 72,
-                    "num_others": 0,
-                    "distance": 40
-                },
-                "show_lidar": False,
+    env = MultiAgentRoundaboutEnv({
+        "horizon": 100000,
+        "vehicle_config": {
+            "lidar": {
+                "num_lasers": 72,
+                "num_others": 0,
+                "distance": 40
             },
-            "use_render": True,
-            "debug": False,
-            "manual_control": True,
-            "num_agents": -1,
-        }
-    )
+            "show_lidar": False,
+        },
+        "use_render": True,
+        "debug": False,
+        "manual_control": True,
+        "num_agents": -1,
+    })
     o, _ = env.reset()
     total_r = 0
     ep_s = 0
@@ -297,10 +299,9 @@ def _vis():
         env.render(text=render_text)
         if tm["__all__"]:
             print(
-                "Finish! Current step {}. Group Reward: {}. Average reward: {}".format(
-                    i, total_r, total_r / env.agent_manager.next_agent_count
-                )
-            )
+                "Finish! Current step {}. Group Reward: {}. Average reward: {}".
+                format(i, total_r,
+                       total_r / env.agent_manager.next_agent_count))
             # break
         if len(env.agents) == 0:
             total_r = 0
@@ -324,35 +325,32 @@ def _profile():
             env.reset()
         if (s + 1) % 100 == 0:
             print(
-                "Finish {}/10000 simulation steps. Time elapse: {:.4f}. Average FPS: {:.4f}".format(
-                    s + 1,
-                    time.time() - start, (s + 1) / (time.time() - start)
-                )
-            )
+                "Finish {}/10000 simulation steps. Time elapse: {:.4f}. Average FPS: {:.4f}"
+                .format(s + 1,
+                        time.time() - start, (s + 1) / (time.time() - start)))
     print(f"(MetaDriveEnv) Total Time Elapse: {time.time() - start}")
 
 
 def _long_run():
     # Please refer to test_ma_roundabout_reward_done_alignment()
     _out_of_road_penalty = 3
-    env = MultiAgentRoundaboutEnv(
-        {
-            "num_agents": 40,
-            "vehicle_config": {
-                "lidar": {
-                    "num_others": 8
-                },
+    env = MultiAgentRoundaboutEnv({
+        "num_agents":
+            40,
+        "vehicle_config": {
+            "lidar": {
+                "num_others": 8
             },
-            **dict(
-                out_of_road_penalty=_out_of_road_penalty,
-                crash_vehicle_penalty=1.333,
-                crash_object_penalty=11,
-                crash_vehicle_cost=13,
-                crash_object_cost=17,
-                out_of_road_cost=19,
-            )
-        }
-    )
+        },
+        **dict(
+            out_of_road_penalty=_out_of_road_penalty,
+            crash_vehicle_penalty=1.333,
+            crash_object_penalty=11,
+            crash_vehicle_cost=13,
+            crash_object_cost=17,
+            out_of_road_cost=19,
+        )
+    })
     try:
         obs, _ = env.reset()
         assert env.observation_space.contains(obs)
@@ -374,13 +372,13 @@ def _long_run():
                     assert tm[kkk]
 
             if (step + 1) % 200 == 0:
-                print(
-                    "{}/{} Agents: {} {}\nO: {}\nR: {}\nD: {}\nI: {}\n\n".format(
-                        step + 1, 10000, len(env.agents), list(env.agents.keys()),
-                        {k: (oo.shape, oo.mean(), oo.min(), oo.max())
-                         for k, oo in o.items()}, r, tm, i
-                    )
-                )
+                print("{}/{} Agents: {} {}\nO: {}\nR: {}\nD: {}\nI: {}\n\n".
+                      format(
+                          step + 1, 10000, len(env.agents),
+                          list(env.agents.keys()), {
+                              k: (oo.shape, oo.mean(), oo.min(), oo.max())
+                              for k, oo in o.items()
+                          }, r, tm, i))
             if tm["__all__"]:
                 print('Current step: ', step)
                 break

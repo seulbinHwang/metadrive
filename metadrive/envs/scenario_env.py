@@ -25,7 +25,8 @@ SCENARIO_ENV_CONFIG = dict(
 
     # Set num_scenarios=-1 to load all scenarios in the data directory.
     num_scenarios=3,
-    sequential_seed=False,  # Whether to set seed (the index of map) sequentially across episodes
+    sequential_seed=
+    False,  # Whether to set seed (the index of map) sequentially across episodes
     worker_index=0,  # Allowing multi-worker sampling with Rllib
     num_workers=1,  # Allowing multi-worker sampling with Rllib
 
@@ -43,11 +44,13 @@ SCENARIO_ENV_CONFIG = dict(
     cull_lanes_outside_map=True,
 
     # ===== Scenario =====
-    no_traffic=False,  # nothing will be generated including objects/pedestrian/vehicles
+    no_traffic=
+    False,  # nothing will be generated including objects/pedestrian/vehicles
     no_static_vehicles=False,  # static vehicle will be removed
     no_light=False,  # no traffic light
     reactive_traffic=False,  # turn on to enable idm traffic
-    filter_overlapping_car=True,  # If in one frame a traffic vehicle collides with ego car, it won't be created.
+    filter_overlapping_car=
+    True,  # If in one frame a traffic vehicle collides with ego car, it won't be created.
     default_vehicle_in_traffic=False,
     skip_missing_light=True,
     static_traffic_object=True,
@@ -99,11 +102,13 @@ SCENARIO_ENV_CONFIG = dict(
     # ===== others =====
     allowed_more_steps=None,  # horizon, None=infinite
     top_down_show_real_size=False,
-    use_bounding_box=False,  # Set True to use a cube in visualization to represent every dynamic objects.
+    use_bounding_box=
+    False,  # Set True to use a cube in visualization to represent every dynamic objects.
 )
 
 
 class ScenarioEnv(BaseEnv):
+
     @classmethod
     def default_config(cls):
         config = super(ScenarioEnv, cls).default_config()
@@ -116,7 +121,8 @@ class ScenarioEnv(BaseEnv):
             assert self.config["num_scenarios"] % self.config["curriculum_level"] == 0, \
                 "Each level should have the same number of scenarios"
             if self.config["num_workers"] > 1:
-                num = int(self.config["num_scenarios"] / self.config["curriculum_level"])
+                num = int(self.config["num_scenarios"] /
+                          self.config["curriculum_level"])
                 assert num % self.config["num_workers"] == 0
         if self.config["num_workers"] > 1:
             assert self.config["sequential_seed"], \
@@ -127,9 +133,11 @@ class ScenarioEnv(BaseEnv):
         config = super(ScenarioEnv, self)._post_process_config(config)
         if config["use_bounding_box"]:
             config["vehicle_config"]["random_color"] = True
-            config["vehicle_config"]["vehicle_model"] = "varying_dynamics_bounding_box"
+            config["vehicle_config"][
+                "vehicle_model"] = "varying_dynamics_bounding_box"
             config["agent_configs"]["default_agent"]["use_special_color"] = True
-            config["agent_configs"]["default_agent"]["vehicle_model"] = "varying_dynamics_bounding_box"
+            config["agent_configs"]["default_agent"][
+                "vehicle_model"] = "varying_dynamics_bounding_box"
         return config
 
     def _get_agent_manager(self):
@@ -140,25 +148,39 @@ class ScenarioEnv(BaseEnv):
         self.engine.register_manager("data_manager", ScenarioDataManager())
         self.engine.register_manager("map_manager", ScenarioMapManager())
         if not self.config["no_traffic"]:
-            self.engine.register_manager("traffic_manager", ScenarioTrafficManager())
+            self.engine.register_manager("traffic_manager",
+                                         ScenarioTrafficManager())
         if not self.config["no_light"]:
-            self.engine.register_manager("light_manager", ScenarioLightManager())
-        self.engine.register_manager("curriculum_manager", ScenarioCurriculumManager())
+            self.engine.register_manager("light_manager",
+                                         ScenarioLightManager())
+        self.engine.register_manager("curriculum_manager",
+                                     ScenarioCurriculumManager())
 
     def done_function(self, vehicle_id: str):
         vehicle = self.agents[vehicle_id]
         done = False
-        max_step = self.config["horizon"] is not None and self.episode_lengths[vehicle_id] >= self.config["horizon"]
+        max_step = self.config["horizon"] is not None and self.episode_lengths[
+            vehicle_id] >= self.config["horizon"]
         done_info = {
-            TerminationState.CRASH_VEHICLE: vehicle.crash_vehicle,
-            TerminationState.CRASH_OBJECT: vehicle.crash_object,
-            TerminationState.CRASH_BUILDING: vehicle.crash_building,
-            TerminationState.CRASH_HUMAN: vehicle.crash_human,
-            TerminationState.CRASH_SIDEWALK: vehicle.crash_sidewalk,
-            TerminationState.OUT_OF_ROAD: self._is_out_of_road(vehicle) or vehicle.navigation.route_completion < -0.1,
-            TerminationState.SUCCESS: self._is_arrive_destination(vehicle),
-            TerminationState.MAX_STEP: max_step,
-            TerminationState.ENV_SEED: self.current_seed,
+            TerminationState.CRASH_VEHICLE:
+                vehicle.crash_vehicle,
+            TerminationState.CRASH_OBJECT:
+                vehicle.crash_object,
+            TerminationState.CRASH_BUILDING:
+                vehicle.crash_building,
+            TerminationState.CRASH_HUMAN:
+                vehicle.crash_human,
+            TerminationState.CRASH_SIDEWALK:
+                vehicle.crash_sidewalk,
+            TerminationState.OUT_OF_ROAD:
+                self._is_out_of_road(vehicle)
+                or vehicle.navigation.route_completion < -0.1,
+            TerminationState.SUCCESS:
+                self._is_arrive_destination(vehicle),
+            TerminationState.MAX_STEP:
+                max_step,
+            TerminationState.ENV_SEED:
+                self.current_seed,
             # TerminationState.CURRENT_BLOCK: self.agent.navigation.current_road.block_ID(),
             # crash_vehicle=False, crash_object=False, crash_building=False, out_of_road=False, arrive_dest=False,
         }
@@ -166,15 +188,16 @@ class ScenarioEnv(BaseEnv):
         # for compatibility
         # crash almost equals to crashing with vehicles
         done_info[TerminationState.CRASH] = (
-            done_info[TerminationState.CRASH_VEHICLE] or done_info[TerminationState.CRASH_OBJECT]
-            or done_info[TerminationState.CRASH_BUILDING] or done_info[TerminationState.CRASH_SIDEWALK]
-            or done_info[TerminationState.CRASH_HUMAN]
-        )
+            done_info[TerminationState.CRASH_VEHICLE] or
+            done_info[TerminationState.CRASH_OBJECT] or
+            done_info[TerminationState.CRASH_BUILDING] or
+            done_info[TerminationState.CRASH_SIDEWALK] or
+            done_info[TerminationState.CRASH_HUMAN])
 
         def msg(reason):
             return "Episode ended! Scenario Index: {} Scenario id: {} Reason: {}.".format(
-                self.current_seed, self.engine.data_manager.current_scenario_id, reason
-            )
+                self.current_seed, self.engine.data_manager.current_scenario_id,
+                reason)
 
         if done_info[TerminationState.SUCCESS]:
             done = True
@@ -182,16 +205,20 @@ class ScenarioEnv(BaseEnv):
         elif done_info[TerminationState.OUT_OF_ROAD]:
             done = True
             self.logger.debug(msg("out_of_road"), extra={"log_once": True})
-        elif done_info[TerminationState.CRASH_HUMAN] and self.config["crash_human_done"]:
+        elif done_info[TerminationState.
+                       CRASH_HUMAN] and self.config["crash_human_done"]:
             done = True
             self.logger.debug(msg("crash human"), extra={"log_once": True})
-        elif done_info[TerminationState.CRASH_VEHICLE] and self.config["crash_vehicle_done"]:
+        elif done_info[TerminationState.
+                       CRASH_VEHICLE] and self.config["crash_vehicle_done"]:
             done = True
             self.logger.debug(msg("crash vehicle"), extra={"log_once": True})
-        elif done_info[TerminationState.CRASH_OBJECT] and self.config["crash_object_done"]:
+        elif done_info[TerminationState.
+                       CRASH_OBJECT] and self.config["crash_object_done"]:
             done = True
             self.logger.debug(msg("crash object"), extra={"log_once": True})
-        elif done_info[TerminationState.CRASH_BUILDING] and self.config["crash_object_done"]:
+        elif done_info[TerminationState.
+                       CRASH_BUILDING] and self.config["crash_object_done"]:
             done = True
             self.logger.debug(msg("crash building"), extra={"log_once": True})
         elif done_info[TerminationState.MAX_STEP]:
@@ -203,18 +230,22 @@ class ScenarioEnv(BaseEnv):
             if self.config["truncate_as_terminate"]:
                 done = True
             done_info[TerminationState.MAX_STEP] = True
-            self.logger.debug(msg("more step than original episode"), extra={"log_once": True})
+            self.logger.debug(msg("more step than original episode"),
+                              extra={"log_once": True})
 
         # log data to curriculum manager
         self.engine.curriculum_manager.log_episode(
-            done_info[TerminationState.SUCCESS], vehicle.navigation.route_completion
-        )
+            done_info[TerminationState.SUCCESS],
+            vehicle.navigation.route_completion)
 
         return done, done_info
 
     def cost_function(self, vehicle_id: str):
         vehicle = self.agents[vehicle_id]
-        step_info = dict(num_crash_object=0, num_crash_human=0, num_crash_vehicle=0, num_on_line=0)
+        step_info = dict(num_crash_object=0,
+                         num_crash_human=0,
+                         num_crash_vehicle=0,
+                         num_on_line=0)
         step_info["cost"] = 0
         if vehicle.on_yellow_continuous_line or vehicle.crash_sidewalk or vehicle.on_white_continuous_line:
             # step_info["cost"] += self.config["out_of_road_cost"]
@@ -259,7 +290,8 @@ class ScenarioEnv(BaseEnv):
 
         # heading diff
         ref_line_heading = vehicle.navigation.current_heading_theta_at_long
-        heading_diff = wrap_to_pi(abs(vehicle.heading_theta - ref_line_heading)) / np.pi
+        heading_diff = wrap_to_pi(
+            abs(vehicle.heading_theta - ref_line_heading)) / np.pi
         heading_penalty = -heading_diff * self.config["heading_penalty"]
         reward += heading_penalty
 
@@ -267,7 +299,8 @@ class ScenarioEnv(BaseEnv):
         steering = abs(vehicle.current_action[0])
         allowed_steering = (1 / max(vehicle.speed, 1e-2))
         overflowed_steering = min((allowed_steering - steering), 0)
-        steering_range_penalty = overflowed_steering * self.config["steering_range_penalty"]
+        steering_range_penalty = overflowed_steering * self.config[
+            "steering_range_penalty"]
         reward += steering_range_penalty
 
         if self.config["no_negative_reward"]:
@@ -293,17 +326,21 @@ class ScenarioEnv(BaseEnv):
             reward = -self.config["out_of_road_penalty"]
 
         # TODO LQY: all a callback to process these keys
-        step_info["track_length"] = vehicle.navigation.reference_trajectory.length
+        step_info[
+            "track_length"] = vehicle.navigation.reference_trajectory.length
         step_info["carsize"] = [vehicle.WIDTH, vehicle.LENGTH]
         # add some new and informative keys
         step_info["route_completion"] = vehicle.navigation.route_completion
         step_info["curriculum_level"] = self.engine.current_level
         step_info["scenario_index"] = self.engine.current_seed
         step_info["num_stored_maps"] = self.engine.map_manager.num_stored_maps
-        step_info["scenario_difficulty"] = self.engine.data_manager.current_scenario_difficulty
+        step_info[
+            "scenario_difficulty"] = self.engine.data_manager.current_scenario_difficulty
         step_info["data_coverage"] = self.engine.data_manager.data_coverage
-        step_info["curriculum_success"] = self.engine.curriculum_manager.current_success_rate
-        step_info["curriculum_route_completion"] = self.engine.curriculum_manager.current_route_completion
+        step_info[
+            "curriculum_success"] = self.engine.curriculum_manager.current_success_rate
+        step_info[
+            "curriculum_route_completion"] = self.engine.curriculum_manager.current_route_completion
         step_info["lateral_dist"] = lateral_now
 
         step_info["step_reward_lateral"] = lateral_penalty
@@ -382,16 +419,19 @@ class ScenarioEnv(BaseEnv):
         elif self.config["sequential_seed"]:
             current_seed = self.engine.global_seed
             if current_seed is None:
-                current_seed = int(self.config["start_scenario_index"]) + int(self.config["worker_index"])
+                current_seed = int(self.config["start_scenario_index"]) + int(
+                    self.config["worker_index"])
             else:
                 current_seed += int(self.config["num_workers"])
-            if current_seed >= self.config["start_scenario_index"] + int(self.config["num_scenarios"]):
-                current_seed = int(self.config["start_scenario_index"]) + int(self.config["worker_index"])
+            if current_seed >= self.config["start_scenario_index"] + int(
+                    self.config["num_scenarios"]):
+                current_seed = int(self.config["start_scenario_index"]) + int(
+                    self.config["worker_index"])
         else:
             current_seed = get_np_random(None).randint(
                 self.config["start_scenario_index"],
-                self.config["start_scenario_index"] + int(self.config["num_scenarios"])
-            )
+                self.config["start_scenario_index"] +
+                int(self.config["num_scenarios"]))
 
         assert self.config["start_scenario_index"] <= current_seed < self.config["start_scenario_index"] + \
                self.config["num_scenarios"], "Scenario Index (force seed) {} is out of range [{}, {}).".format(
@@ -404,6 +444,7 @@ class ScenarioOnlineEnv(ScenarioEnv):
     """
     This environment allow the user to pass in scenario data directly.
     """
+
     def __init__(self, config=None):
         super(ScenarioOnlineEnv, self).__init__(config)
         self.lazy_init()
@@ -419,40 +460,48 @@ class ScenarioOnlineEnv(ScenarioEnv):
 
 
 if __name__ == "__main__":
-    env = ScenarioEnv(
-        {
-            "use_render": True,
-            "agent_policy": ReplayEgoCarPolicy,
-            "manual_control": False,
-            "show_interface": True,
-            "show_logo": False,
-            "show_fps": False,
-            # "debug": True,
-            # "debug_static_world": True,
-            # "no_traffic": True,
-            # "no_light": True,
-            # "debug":True,
-            # "no_traffic":True,
-            # "start_scenario_index": 192,
-            # "start_scenario_index": 1000,
-            "num_scenarios": 3,
-            "set_static": True,
-            # "force_reuse_object_name": True,
-            # "data_directory": "/home/shady/Downloads/test_processed",
-            "horizon": 1000,
-            "no_static_vehicles": True,
-            # "show_policy_mark": True,
-            # "show_coordinates": True,
-            "vehicle_config": dict(
-                show_navi_mark=False,
-                no_wheel_friction=True,
-                lidar=dict(num_lasers=120, distance=50, num_others=4),
-                lane_line_detector=dict(num_lasers=12, distance=50),
-                side_detector=dict(num_lasers=160, distance=50)
-            ),
-            "data_directory": AssetLoader.file_path("nuscenes", unix_style=False),
-        }
-    )
+    env = ScenarioEnv({
+        "use_render":
+            True,
+        "agent_policy":
+            ReplayEgoCarPolicy,
+        "manual_control":
+            False,
+        "show_interface":
+            True,
+        "show_logo":
+            False,
+        "show_fps":
+            False,
+        # "debug": True,
+        # "debug_static_world": True,
+        # "no_traffic": True,
+        # "no_light": True,
+        # "debug":True,
+        # "no_traffic":True,
+        # "start_scenario_index": 192,
+        # "start_scenario_index": 1000,
+        "num_scenarios":
+            3,
+        "set_static":
+            True,
+        # "force_reuse_object_name": True,
+        # "data_directory": "/home/shady/Downloads/test_processed",
+        "horizon":
+            1000,
+        "no_static_vehicles":
+            True,
+        # "show_policy_mark": True,
+        # "show_coordinates": True,
+        "vehicle_config":
+            dict(show_navi_mark=False,
+                 no_wheel_friction=True,
+                 lidar=dict(num_lasers=120, distance=50, num_others=4),
+                 lane_line_detector=dict(num_lasers=12, distance=50),
+                 side_detector=dict(num_lasers=160, distance=50)),
+        "data_directory":
+            AssetLoader.file_path("nuscenes", unix_style=False),
+    })
     success = []
     env.reset(seed=0)
     while True:
@@ -466,7 +515,9 @@ if __name__ == "__main__":
             env.render(
                 text={
                     # "obs_shape": len(o),
-                    "seed": env.engine.global_seed + env.config["start_scenario_index"],
+                    "seed":
+                        env.engine.global_seed +
+                        env.config["start_scenario_index"],
                     # "reward": r,
                 }
                 # mode="topdown"

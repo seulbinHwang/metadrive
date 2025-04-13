@@ -22,6 +22,7 @@ from rplibs.progressbar import ETA, ProgressBar, Percentage, Bar, Counter, Rate
 
 
 class Application(ShowBase):
+
     def __init__(self):
 
         # Load settings
@@ -39,8 +40,7 @@ class Application(ShowBase):
             multisamples 0
             gl-cube-map-seamless #t
             gl-force-fbo-color #f
-        """
-        )
+        """)
 
         ShowBase.__init__(self)
         Globals.load(self)
@@ -99,13 +99,18 @@ class Application(ShowBase):
 
         num_rows = (max_probes + divisor - 1) // divisor
         final_data = Texture("FinalProbeResult")
-        final_data.setup_2d_texture(6 * divisor, num_rows, Texture.T_float, Texture.F_rgba16)
+        final_data.setup_2d_texture(6 * divisor, num_rows, Texture.T_float,
+                                    Texture.F_rgba16)
         final_data.set_clear_color(Vec4(1.0, 0.6, 0.2, 1.0))
 
         worker_handles = []
 
-        store_shader = Shader.load(Shader.SL_GLSL, "resources/default.vert.glsl", "resources/copy_cubemap.frag.glsl")
-        convolute_shader = Shader.load(Shader.SL_GLSL, "resources/default.vert.glsl", "resources/convolute.frag.glsl")
+        store_shader = Shader.load(Shader.SL_GLSL,
+                                   "resources/default.vert.glsl",
+                                   "resources/copy_cubemap.frag.glsl")
+        convolute_shader = Shader.load(Shader.SL_GLSL,
+                                       "resources/default.vert.glsl",
+                                       "resources/convolute.frag.glsl")
 
         for worked_id in range(num_bakers):
             probe_position = Vec3(0, 0, 4)
@@ -122,7 +127,8 @@ class Application(ShowBase):
             internal_buffer.get_overlay_display_region().disable_clears()
 
             # Setup the cubemap capture rig
-            directions = (Vec3(1, 0, 0), Vec3(-1, 0, 0), Vec3(0, 1, 0), Vec3(0, -1, 0), Vec3(0, 0, 1), Vec3(0, 0, -1))
+            directions = (Vec3(1, 0, 0), Vec3(-1, 0, 0), Vec3(0, 1, 0),
+                          Vec3(0, -1, 0), Vec3(0, 0, 1), Vec3(0, 0, -1))
             capture_regions = []
             capture_cams = []
             capture_rig = render.attach_new_node("CaptureRig")
@@ -130,7 +136,8 @@ class Application(ShowBase):
 
             # Prepare the display regions
             for i in range(6):
-                region = capture_target.internal_buffer.make_display_region(i / 6, i / 6 + 1 / 6, 0, 1)
+                region = capture_target.internal_buffer.make_display_region(
+                    i / 6, i / 6 + 1 / 6, 0, 1)
                 region.set_sort(25 + i)
                 region.set_active(True)
                 region.disable_clears()
@@ -157,13 +164,16 @@ class Application(ShowBase):
             capture_cams[5].set_r(180)
 
             destination_cubemap = Texture("TemporaryCubemap")
-            destination_cubemap.setup_cube_map(capture_resolution, Texture.T_float, Texture.F_rgba16)
+            destination_cubemap.setup_cube_map(capture_resolution,
+                                               Texture.T_float,
+                                               Texture.F_rgba16)
 
             # Target to convert the FBO to a cubemap
             target_store_cubemap = RenderTarget()
             target_store_cubemap.size = capture_resolution * 6, capture_resolution
             target_store_cubemap.prepare_buffer()
-            target_store_cubemap.set_shader_inputs(SourceTex=capture_target.color_tex, DestTex=destination_cubemap)
+            target_store_cubemap.set_shader_inputs(
+                SourceTex=capture_target.color_tex, DestTex=destination_cubemap)
 
             target_store_cubemap.shader = store_shader
 
@@ -173,18 +183,30 @@ class Application(ShowBase):
             target_convolute.size = 6, 1
             # target_convolute.add_color_attachment(bits=16)
             target_convolute.prepare_buffer()
-            target_convolute.set_shader_inputs(SourceTex=destination_cubemap, DestTex=final_data, storeCoord=store_pta)
+            target_convolute.set_shader_inputs(SourceTex=destination_cubemap,
+                                               DestTex=final_data,
+                                               storeCoord=store_pta)
             target_convolute.shader = convolute_shader
 
             # Set initial shader
-            shader = Shader.load(Shader.SL_GLSL, "resources/first-bounce.vert.glsl", "resources/first-bounce.frag.glsl")
+            shader = Shader.load(Shader.SL_GLSL,
+                                 "resources/first-bounce.vert.glsl",
+                                 "resources/first-bounce.frag.glsl")
             render.set_shader(shader)
-            render.set_shader_inputs(ShadowMap=sun_shadow_target.depth_tex, shadowMVP=shadow_mvp, sunVector=sun_vector)
+            render.set_shader_inputs(ShadowMap=sun_shadow_target.depth_tex,
+                                     shadowMVP=shadow_mvp,
+                                     sunVector=sun_vector)
 
             worker_handles.append((capture_rig, store_pta))
 
         print("Preparing to render", max_probes, "probes ..")
-        widgets = [Counter(), "  ", Bar(), "  ", Percentage(), "  ", ETA(), " ", Rate()]
+        widgets = [
+            Counter(), "  ",
+            Bar(), "  ",
+            Percentage(), "  ",
+            ETA(), " ",
+            Rate()
+        ]
         progressbar = ProgressBar(widgets=widgets, maxval=max_probes).start()
         progressbar.update(0)
 
@@ -195,14 +217,19 @@ class Application(ShowBase):
                 for x_pos in range(num_probes.x):
                     index = x_pos + y_pos * num_probes.x + z_pos * num_probes.y * num_probes.x
                     #     print("Baking", index, "out of", max_probes)
-                    offs_x = start_point.x + x_pos / (num_probes.x + 0.5) * model_size.x
-                    offs_y = start_point.y + y_pos / (num_probes.y + 0.5) * model_size.y
-                    offs_z = start_point.z + z_pos / (num_probes.z + 0.5) * model_size.z
+                    offs_x = start_point.x + x_pos / (num_probes.x +
+                                                      0.5) * model_size.x
+                    offs_y = start_point.y + y_pos / (num_probes.y +
+                                                      0.5) * model_size.y
+                    offs_z = start_point.z + z_pos / (num_probes.z +
+                                                      0.5) * model_size.z
 
                     store_x = index % divisor
                     store_y = index // divisor
 
-                    work_queue.append((Vec3(offs_x, offs_y, offs_z), LVecBase2i(store_x, store_y)))
+                    work_queue.append(
+                        (Vec3(offs_x, offs_y,
+                              offs_z), LVecBase2i(store_x, store_y)))
 
         for i, (pos, store) in enumerate(work_queue):
             worker_handles[i % num_bakers][0].set_pos(pos)
@@ -221,7 +248,8 @@ class Application(ShowBase):
         print("Writing out configuration")
         with open("_bake_params.py", "w") as handle:
             handle.write("#Autogenerated\n")
-            handle.write("from panda3d.core import LPoint3f, LVecBase3i, LVector3f\n")
+            handle.write(
+                "from panda3d.core import LPoint3f, LVecBase3i, LVector3f\n")
             handle.write("BAKE_MESH_START = " + str(start_point) + "\n")
             handle.write("BAKE_MESH_END = " + str(end_point) + "\n")
             handle.write("BAKE_MESH_PROBECOUNT = " + str(num_probes) + "\n")
@@ -233,9 +261,11 @@ class Application(ShowBase):
             handle.write("#define LPoint3f vec3\n")
             handle.write("#define LVector3f vec3\n")
             handle.write("#define LVecBase3i ivec3\n")
-            handle.write("const vec3 bake_mesh_start = " + str(start_point) + ";\n")
+            handle.write("const vec3 bake_mesh_start = " + str(start_point) +
+                         ";\n")
             handle.write("const vec3 bake_mesh_end = " + str(end_point) + ";\n")
-            handle.write("const ivec3 bake_mesh_probecount = " + str(num_probes) + ";\n")
+            handle.write("const ivec3 bake_mesh_probecount = " +
+                         str(num_probes) + ";\n")
             handle.write("const int bake_divisor = " + str(divisor) + ";\n")
             handle.write("const vec3 sun_vector = " + str(sun_vector) + ";\n")
 
@@ -245,7 +275,8 @@ class Application(ShowBase):
 
     def get_mvp(self, cam_node):
         """ Computes the view-projection matrix of a camera """
-        return render.get_transform(cam_node).get_mat() * cam_node.node().get_lens().get_projection_mat()
+        return render.get_transform(cam_node).get_mat() * cam_node.node(
+        ).get_lens().get_projection_mat()
 
 
 Application()

@@ -59,16 +59,20 @@ class MainCamera(BaseSensor):
         from metadrive.engine.core.terrain import Terrain
         engine.cam.node().setTagStateKey(CameraTagStateKey.RGB)
         engine.cam.node().setTagState(
-            Semantics.TERRAIN.label, Terrain.make_render_state(engine, "terrain.vert.glsl", "terrain.frag.glsl")
-        )
+            Semantics.TERRAIN.label,
+            Terrain.make_render_state(engine, "terrain.vert.glsl",
+                                      "terrain.frag.glsl"))
 
         self.camera_queue = None
         self.camera_dist = camera_dist
-        self.camera_pitch = -engine.global_config["camera_pitch"] if engine.global_config["camera_pitch"
-                                                                                          ] is not None else None
+        self.camera_pitch = -engine.global_config[
+            "camera_pitch"] if engine.global_config[
+                "camera_pitch"] is not None else None
         self.camera_smooth = engine.global_config["camera_smooth"]
-        self.camera_smooth_buffer_size = engine.global_config["camera_smooth_buffer_size"]
-        self.direction_running_mean = deque(maxlen=self.camera_smooth_buffer_size if self.camera_smooth else 1)
+        self.camera_smooth_buffer_size = engine.global_config[
+            "camera_smooth_buffer_size"]
+        self.direction_running_mean = deque(
+            maxlen=self.camera_smooth_buffer_size if self.camera_smooth else 1)
         self.world_light = engine.world_light  # light chases the chase camera, when not using global light
         self.inputs = InputState()
         self.current_track_agent = None
@@ -97,12 +101,16 @@ class MainCamera(BaseSensor):
         engine.accept("mouse1", self._move_to_pointer)
 
         # default top-down
-        self.top_down_camera_height = engine.global_config["top_down_camera_initial_z"]
+        self.top_down_camera_height = engine.global_config[
+            "top_down_camera_initial_z"]
         self.camera_x = engine.global_config["top_down_camera_initial_x"]
         self.camera_y = engine.global_config["top_down_camera_initial_y"]
         self.camera_hpr = [0, 0, 0]
         engine.interface.undisplay()
-        engine.task_manager.add(self._top_down_task, self.TOP_DOWN_TASK_NAME, extraArgs=[], appendTask=True)
+        engine.task_manager.add(self._top_down_task,
+                                self.TOP_DOWN_TASK_NAME,
+                                extraArgs=[],
+                                appendTask=True)
 
         # TPP rotate
         if not engine.global_config["show_mouse"]:
@@ -111,7 +119,8 @@ class MainCamera(BaseSensor):
             props.setMouseMode(WindowProperties.MConfined)
             engine.win.requestProperties(props)
         self.mouse_rotate = 0
-        self.last_mouse_pos = engine.mouseWatcherNode.getMouseX() if self.has_mouse else 0
+        self.last_mouse_pos = engine.mouseWatcherNode.getMouseX(
+        ) if self.has_mouse else 0
         self.static_timer = 0
         self.move_into_window_timer = 0
         self._in_recover = False
@@ -136,7 +145,8 @@ class MainCamera(BaseSensor):
 
             # make texture
             self.cuda_texture = Texture()
-            engine.win.addRenderTexture(self.cuda_texture, GraphicsOutput.RTMCopyTexture)
+            engine.win.addRenderTexture(self.cuda_texture,
+                                        GraphicsOutput.RTMCopyTexture)
 
             def _callback_func(cbdata: DisplayRegionDrawCallbackData):
                 # print("DRAW CALLBACK!!!!!!!!!!!!!!!11")
@@ -150,10 +160,12 @@ class MainCamera(BaseSensor):
             # Fill the buffer due to multi-thread (3 stage)
             for _ in range(3):
                 engine.graphicsEngine.renderFrame()
-            engine.cam.node().getDisplayRegion(0).setDrawCallback(_callback_func)
+            engine.cam.node().getDisplayRegion(0).setDrawCallback(
+                _callback_func)
 
             self.gsg = GraphicsStateGuardianBase.getDefaultGsg()
-            self.texture_context_future = self.cuda_texture.prepare(self.gsg.prepared_objects)
+            self.texture_context_future = self.cuda_texture.prepare(
+                self.gsg.prepared_objects)
             self.cuda_texture_identifier = None
             self.new_cuda_mem_ptr = None
             self.cuda_rendered_result = None
@@ -181,10 +193,16 @@ class MainCamera(BaseSensor):
         """
         if self.engine.task_manager.hasTaskNamed(self.TOP_DOWN_TASK_NAME):
             # adjust hpr
-            p_pos = panda_vector(position, self.engine.global_config["top_down_camera_initial_z"])
-            self.camera_x, self.camera_y, self.top_down_camera_height = p_pos[0], p_pos[1], p_pos[2]
+            p_pos = panda_vector(
+                position,
+                self.engine.global_config["top_down_camera_initial_z"])
+            self.camera_x, self.camera_y, self.top_down_camera_height = p_pos[
+                0], p_pos[1], p_pos[2]
             self.camera_hpr = hpr or [0, 0, 0]
-            self.engine.task_manager.add(self._top_down_task, self.TOP_DOWN_TASK_NAME, extraArgs=[], appendTask=True)
+            self.engine.task_manager.add(self._top_down_task,
+                                         self.TOP_DOWN_TASK_NAME,
+                                         extraArgs=[],
+                                         appendTask=True)
 
     def reset(self):
         self.direction_running_mean.clear()
@@ -230,9 +248,12 @@ class MainCamera(BaseSensor):
             # camera is facing to y
             current_forward_dir = [forward_dir[0], forward_dir[1]]
         else:
-            current_forward_dir = self._dir_of_lane(vehicle.navigation.current_ref_lanes[0], vehicle.position)
+            current_forward_dir = self._dir_of_lane(
+                vehicle.navigation.current_ref_lanes[0], vehicle.position)
         self.direction_running_mean.append(current_forward_dir)
-        forward_dir = np.mean(self.direction_running_mean, axis=0) if self.camera_smooth else current_forward_dir
+        forward_dir = np.mean(
+            self.direction_running_mean,
+            axis=0) if self.camera_smooth else current_forward_dir
         forward_dir[0] = np.cos(self.mouse_rotate) * current_forward_dir[0] - np.sin(self.mouse_rotate) * \
                          current_forward_dir[1]
         forward_dir[1] = np.sin(self.mouse_rotate) * current_forward_dir[0] + np.cos(self.mouse_rotate) * \
@@ -248,22 +269,24 @@ class MainCamera(BaseSensor):
 
         self.camera.setPos(*camera_pos)
         if self.engine.global_config["show_coordinates"]:
-            self.engine.set_coordinates_indicator_pos([chassis_pos[0], chassis_pos[1]])
+            self.engine.set_coordinates_indicator_pos(
+                [chassis_pos[0], chassis_pos[1]])
         current_pos = vehicle.chassis.getPos()
         current_pos[2] += 2
 
         if self.camera_pitch is None:
             self.camera.lookAt(current_pos)
             # camera is facing to y
-            self.camera.setH(vehicle.origin.getH() + np.rad2deg(self.mouse_rotate))
+            self.camera.setH(vehicle.origin.getH() +
+                             np.rad2deg(self.mouse_rotate))
         else:
             # camera is facing to y
             self.camera.setH(vehicle.origin.getH())
             self.camera.setP(self.camera_pitch)
         if self.FOLLOW_LANE:
             self.camera.setH(
-                self._heading_of_lane(vehicle.navigation.current_ref_lanes[0], vehicle.position) / np.pi * 180 - 90
-            )
+                self._heading_of_lane(vehicle.navigation.current_ref_lanes[0],
+                                      vehicle.position) / np.pi * 180 - 90)
 
         # Don't use reparentTo()
         # pos = vehicle.convert_to_world_coordinates([0.8, 0.], vehicle.position)
@@ -280,7 +303,8 @@ class MainCamera(BaseSensor):
         :param pos: Tuple, MetaDrive coordinates
         :return: heading theta
         """
-        heading_theta = panda_heading(lane.heading_theta_at(lane.local_coordinates(pos)[0]))
+        heading_theta = panda_heading(
+            lane.heading_theta_at(lane.local_coordinates(pos)[0]))
         return heading_theta
 
     @staticmethod
@@ -304,7 +328,8 @@ class MainCamera(BaseSensor):
         self.engine.interface.display()
         pos = None
         if self.FOLLOW_LANE:
-            pos = self._pos_on_lane(vehicle)  # Return None if routing system is not ready
+            pos = self._pos_on_lane(
+                vehicle)  # Return None if routing system is not ready
         if pos is None:
             pos = vehicle.position
 
@@ -313,10 +338,14 @@ class MainCamera(BaseSensor):
         if self.engine.task_manager.hasTaskNamed(self.TOP_DOWN_TASK_NAME):
             self.engine.task_manager.remove(self.TOP_DOWN_TASK_NAME)
         self.mouse_rotate = 0
-        self.last_mouse_pos = self.engine.mouseWatcherNode.getMouseX() if self.has_mouse else 0
+        self.last_mouse_pos = self.engine.mouseWatcherNode.getMouseX(
+        ) if self.has_mouse else 0
         self.static_timer = 0
         self.set_mouse_to_center()
-        self.engine.task_manager.add(self._chase_task, self.CHASE_TASK_NAME, extraArgs=[vehicle], appendTask=True)
+        self.engine.task_manager.add(self._chase_task,
+                                     self.CHASE_TASK_NAME,
+                                     extraArgs=[vehicle],
+                                     appendTask=True)
         self.camera_queue = queue.Queue(self.queue_length)
         for i in range(self.queue_length - 1):
             self.camera_queue.put(Vec3(pos[0], -pos[1], 0))
@@ -329,7 +358,8 @@ class MainCamera(BaseSensor):
         :return: position on the center lane
         """
         if vehicle.navigation.current_ref_lanes is None:
-            raise ValueError("No routing module, I don't know which lane to follow")
+            raise ValueError(
+                "No routing module, I don't know which lane to follow")
 
         lane = vehicle.navigation.current_ref_lanes[0]
         lane_num = len(vehicle.navigation.current_ref_lanes)
@@ -366,12 +396,16 @@ class MainCamera(BaseSensor):
                 current_pos = self.camera.getPos()
                 self.camera_x, self.camera_y = current_pos[0], current_pos[1]
                 self.camera_hpr = [0, 0, 0]
-            self.engine.task_manager.add(self._top_down_task, self.TOP_DOWN_TASK_NAME, extraArgs=[], appendTask=True)
+            self.engine.task_manager.add(self._top_down_task,
+                                         self.TOP_DOWN_TASK_NAME,
+                                         extraArgs=[],
+                                         appendTask=True)
 
     def _top_down_task(self, task):
         if not self.run_task:
             return task.cont
-        self.top_down_camera_height = self._update_height(self.top_down_camera_height)
+        self.top_down_camera_height = self._update_height(
+            self.top_down_camera_height)
 
         if self.inputs.isSet("up"):
             self.camera_y += 1.0
@@ -382,9 +416,11 @@ class MainCamera(BaseSensor):
         if self.inputs.isSet("right"):
             self.camera_x += 1.0
 
-        self.camera.setPos(self.camera_x, self.camera_y, self.top_down_camera_height)
+        self.camera.setPos(self.camera_x, self.camera_y,
+                           self.top_down_camera_height)
         if self.engine.global_config["show_coordinates"]:
-            self.engine.set_coordinates_indicator_pos([self.camera_x, self.camera_y])
+            self.engine.set_coordinates_indicator_pos(
+                [self.camera_x, self.camera_y])
         if abs(sum(self.camera_hpr)) < 0.0001:
             self.camera.lookAt(self.camera_x, self.camera_y, 0)
         else:
@@ -424,12 +460,14 @@ class MainCamera(BaseSensor):
             # Transform to global coordinates
             pFrom = self.engine.render.getRelativePoint(self.engine.cam, pFrom)
             pTo = self.engine.render.getRelativePoint(self.engine.cam, pTo)
-            ret = self.engine.physics_world.dynamic_world.rayTestClosest(pFrom, pTo, CollisionGroup.Terrain)
+            ret = self.engine.physics_world.dynamic_world.rayTestClosest(
+                pFrom, pTo, CollisionGroup.Terrain)
             self.camera_x = ret.getHitPos()[0]
             self.camera_y = ret.getHitPos()[1]
 
     def is_bird_view_camera(self):
-        return True if self.engine.task_manager.hasTaskNamed(self.TOP_DOWN_TASK_NAME) else False
+        return True if self.engine.task_manager.hasTaskNamed(
+            self.TOP_DOWN_TASK_NAME) else False
 
     @property
     def has_mouse(self):
@@ -442,15 +480,18 @@ class MainCamera(BaseSensor):
         if self.has_mouse:
             win_middle_x = self.engine.win.getXSize() / 2
             win_middle_y = self.engine.win.getYSize() / 2
-            self.engine.win.movePointer(mouse_id, int(win_middle_x), int(win_middle_y))
+            self.engine.win.movePointer(mouse_id, int(win_middle_x),
+                                        int(win_middle_y))
 
     @property
     def mouse_into_window(self):
         return True if not self._last_frame_has_mouse and self.has_mouse else False
 
-    def perceive(
-        self, to_float=True, new_parent_node: Union[NodePath, None] = None, position=None, hpr=None
-    ) -> np.ndarray:
+    def perceive(self,
+                 to_float=True,
+                 new_parent_node: Union[NodePath, None] = None,
+                 position=None,
+                 hpr=None) -> np.ndarray:
         """
         When to_float is set to False, the image will be represented by unit8 with component value ranging from [0-255].
         Otherwise, it will be float type with component value ranging from [0.-1.]. By default, the reset parameters are
@@ -510,7 +551,8 @@ class MainCamera(BaseSensor):
             img = self.cuda_rendered_result[..., :-1][..., ::-1][::-1]
         else:
             origin_img = engine.win.getDisplayRegion(1).getScreenshot()
-            img = np.frombuffer(origin_img.getRamImage().getData(), dtype=np.uint8)
+            img = np.frombuffer(origin_img.getRamImage().getData(),
+                                dtype=np.uint8)
             img = img.reshape((origin_img.getYSize(), origin_img.getXSize(), 4))
             img = img[::-1]
             img = img[..., :self.num_channels]
@@ -537,13 +579,11 @@ class MainCamera(BaseSensor):
     @property
     def cuda_array(self):
         assert self.mapped
-        return cp.ndarray(
-            shape=(self.cuda_shape[1], self.cuda_shape[0], 4),
-            dtype=self.cuda_dtype,
-            strides=self.cuda_strides,
-            order=self.cuda_order,
-            memptr=self._cuda_buffer
-        )
+        return cp.ndarray(shape=(self.cuda_shape[1], self.cuda_shape[0], 4),
+                          dtype=self.cuda_dtype,
+                          strides=self.cuda_strides,
+                          order=self.cuda_order,
+                          memptr=self._cuda_buffer)
 
     @property
     def cuda_buffer(self):
@@ -571,48 +611,54 @@ class MainCamera(BaseSensor):
         return False
 
     def register(self):
-        self.cuda_texture_identifier = self.texture_context_future.result().getNativeId()
+        self.cuda_texture_identifier = self.texture_context_future.result(
+        ).getNativeId()
         assert self.cuda_texture_identifier is not None
         if self.registered:
             return self.cuda_graphics_resource
         self.cuda_graphics_resource = check_cudart_err(
             cudart.cudaGraphicsGLRegisterImage(
-                self.cuda_texture_identifier, GL_TEXTURE_2D, cudaGraphicsRegisterFlags.cudaGraphicsRegisterFlagsReadOnly
-            )
-        )
+                self.cuda_texture_identifier, GL_TEXTURE_2D,
+                cudaGraphicsRegisterFlags.cudaGraphicsRegisterFlagsReadOnly))
         return self.cuda_graphics_resource
 
     def unregister(self):
         if self.registered:
             self.unmap()
             self.cuda_graphics_resource = check_cudart_err(
-                cudart.cudaGraphicsUnregisterResource(self.cuda_graphics_resource)
-            )
+                cudart.cudaGraphicsUnregisterResource(
+                    self.cuda_graphics_resource))
 
     def map(self, stream=0):
         if not self.registered:
             raise RuntimeError("Cannot map an unregistered buffer.")
         if self.mapped:
             return self._cuda_buffer
-        check_cudart_err(cudart.cudaGraphicsMapResources(1, self.cuda_graphics_resource, stream))
-        array = check_cudart_err(cudart.cudaGraphicsSubResourceGetMappedArray(self.graphics_resource, 0, 0))
-        channelformat, cudaextent, flag = check_cudart_err(cudart.cudaArrayGetInfo(array))
+        check_cudart_err(
+            cudart.cudaGraphicsMapResources(1, self.cuda_graphics_resource,
+                                            stream))
+        array = check_cudart_err(
+            cudart.cudaGraphicsSubResourceGetMappedArray(
+                self.graphics_resource, 0, 0))
+        channelformat, cudaextent, flag = check_cudart_err(
+            cudart.cudaArrayGetInfo(array))
 
         depth = 1
         byte = 4  # four channel
         if self.new_cuda_mem_ptr is None:
-            success, self.new_cuda_mem_ptr = cudart.cudaMalloc(cudaextent.height * cudaextent.width * byte * depth)
+            success, self.new_cuda_mem_ptr = cudart.cudaMalloc(
+                cudaextent.height * cudaextent.width * byte * depth)
         check_cudart_err(
             cudart.cudaMemcpy2DFromArray(
-                self.new_cuda_mem_ptr, cudaextent.width * byte * depth, array, 0, 0, cudaextent.width * byte * depth,
-                cudaextent.height, cudart.cudaMemcpyKind.cudaMemcpyDeviceToDevice
-            )
-        )
+                self.new_cuda_mem_ptr, cudaextent.width * byte * depth, array,
+                0, 0, cudaextent.width * byte * depth, cudaextent.height,
+                cudart.cudaMemcpyKind.cudaMemcpyDeviceToDevice))
         if self._cuda_buffer is None:
             self._cuda_buffer = cp.cuda.MemoryPointer(
-                cp.cuda.UnownedMemory(self.new_cuda_mem_ptr, cudaextent.width * depth * byte * cudaextent.height, self),
-                0
-            )
+                cp.cuda.UnownedMemory(
+                    self.new_cuda_mem_ptr,
+                    cudaextent.width * depth * byte * cudaextent.height, self),
+                0)
         return self.cuda_array
 
     def unmap(self, stream=None):
@@ -620,7 +666,9 @@ class MainCamera(BaseSensor):
             raise RuntimeError("Cannot unmap an unregistered buffer.")
         if not self.mapped:
             return self
-        self._cuda_buffer = check_cudart_err(cudart.cudaGraphicsUnmapResources(1, self.cuda_graphics_resource, stream))
+        self._cuda_buffer = check_cudart_err(
+            cudart.cudaGraphicsUnmapResources(1, self.cuda_graphics_resource,
+                                              stream))
         return self
 
     # def get_image(self):

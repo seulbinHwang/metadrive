@@ -21,7 +21,9 @@ def merge_config(old_dict, new_dict, new_keys_allowed=False):
     return Config(merged)
 
 
-def _check_keys(new_config: Union[dict, "Config"], old_config: Union[dict, "Config"], prefix=""):
+def _check_keys(new_config: Union[dict, "Config"],
+                old_config: Union[dict, "Config"],
+                prefix=""):
     if isinstance(new_config, Config):
         new_config = new_config.get_dict()
     if isinstance(old_config, Config):
@@ -34,10 +36,9 @@ def _check_keys(new_config: Union[dict, "Config"], old_config: Union[dict, "Conf
         return True
     else:
         raise KeyError(
-            "Unexpected keys: {} in new dict{} when update config. Existing keys: {}.".format(
-                new_keys - own_keys, "'s '{}'".format(prefix) if prefix else "", own_keys
-            )
-        )
+            "Unexpected keys: {} in new dict{} when update config. Existing keys: {}."
+            .format(new_keys - own_keys,
+                    "'s '{}'".format(prefix) if prefix else "", own_keys))
 
 
 def _recursive_check_keys(new_config, old_config, prefix=""):
@@ -51,7 +52,8 @@ def _recursive_check_keys(new_config, old_config, prefix=""):
                 _recursive_check_keys(new, old, new_prefix)
 
 
-def config_to_dict(config: Union[Any, dict, "Config"], serializable=False) -> dict:
+def config_to_dict(config: Union[Any, dict, "Config"],
+                   serializable=False) -> dict:
     # Return the flatten and json-able dict
     if not isinstance(config, (dict, Config)):
         return config
@@ -60,7 +62,10 @@ def config_to_dict(config: Union[Any, dict, "Config"], serializable=False) -> di
         if isinstance(v, Config):
             v = v.get_dict()
         elif isinstance(v, dict):
-            v = {sub_k: config_to_dict(sub_v, serializable) for sub_k, sub_v in v.items()}
+            v = {
+                sub_k: config_to_dict(sub_v, serializable)
+                for sub_k, sub_v in v.items()
+            }
         elif serializable and isinstance(v, np.ndarray):
             v = v.tolist()
         ret[k] = v
@@ -76,6 +81,7 @@ class Config:
     For these <key, value> items, use Config["your key"] = None to init your PgConfig, then it will not implement
     type check at the first time. key "config" in map.py and key "force_fps" in world.py are good examples.
     """
+
     def __init__(self, config: Union["Config", dict], unchangeable=False):
         self._unchangeable = False
         if isinstance(config, Config):
@@ -123,7 +129,10 @@ class Config:
     def get_serializable_dict(self):
         return config_to_dict(self._config, serializable=True)
 
-    def update(self, new_dict: Union[dict, "Config"], allow_add_new_key=True, stop_recursive_update=None):
+    def update(self,
+               new_dict: Union[dict, "Config"],
+               allow_add_new_key=True,
+               stop_recursive_update=None):
         """
         Update this dict with extra configs
         :param new_dict: extra configs
@@ -142,10 +151,8 @@ class Config:
             if len(diff) > 0:
                 raise KeyError(
                     "'{}' does not exist in existing config. "
-                    "Please use config.update(...) to update the config. Existing keys: {}.".format(
-                        diff, self._config.keys()
-                    )
-                )
+                    "Please use config.update(...) to update the config. Existing keys: {}."
+                    .format(diff, self._config.keys()))
         for k, v in new_dict.items():
             if k not in self:
                 if isinstance(v, dict):
@@ -170,10 +177,8 @@ class Config:
                 return False
             else:
                 raise TypeError(
-                    "Type error! The item {} has original type {} and updating type {}.".format(
-                        k, type(self[k]), type(v)
-                    )
-                )
+                    "Type error! The item {} has original type {} and updating type {}."
+                    .format(k, type(self[k]), type(v)))
         if not isinstance(self[k], Config):
             self._set_item(k, Config(self[k]), allow_overwrite)
         self[k].update(v, allow_add_new_key=allow_overwrite)
@@ -211,10 +216,8 @@ class Config:
         if key not in self._config:
             raise KeyError(
                 "'{}' does not exist in existing config. "
-                "Please use config.update(...) to update the config. Existing keys: {}.".format(
-                    key, self._config.keys()
-                )
-            )
+                "Please use config.update(...) to update the config. Existing keys: {}."
+                .format(key, self._config.keys()))
 
     def copy(self, unchangeable=None):
         """If unchangeable is None, then just following the original config's setting."""
@@ -241,7 +244,8 @@ class Config:
             value = str(value)
         if self._unchangeable:
             raise ValueError("This config is not changeable!")
-        if (not allow_overwrite) and (self._config[key] is not None and value is not None):
+        if (not allow_overwrite) and (self._config[key] is not None and
+                                      value is not None):
             type_correct = isinstance(value, type(self._config[key]))
             if isinstance(self._config[key], Config):
                 type_correct = type_correct or isinstance(value, dict)
@@ -330,7 +334,8 @@ def _is_identical(k1, v1, k2, v2):
     if k1 != k2:
         return False
     if isinstance(v1, (dict, Config)) or isinstance(v2, (dict, Config)):
-        if (not isinstance(v2, (dict, Config))) or (not isinstance(v1, (dict, Config))):
+        if (not isinstance(v2, (dict, Config))) or (not isinstance(
+                v1, (dict, Config))):
             return False
         if set(v1.keys()) != set(v2.keys()):
             return False

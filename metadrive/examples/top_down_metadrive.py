@@ -27,14 +27,15 @@ def draw_multi_channels_top_down_observation(obs, show_time=4):
     num_channels = obs.shape[-1]
     assert num_channels == 5
     channel_names = [
-        "Road and navigation", "Ego now and previous pos", "Neighbor at step t", "Neighbor at step t-1",
-        "Neighbor at step t-2"
+        "Road and navigation", "Ego now and previous pos", "Neighbor at step t",
+        "Neighbor at step t-1", "Neighbor at step t-2"
     ]
     fig, axs = plt.subplots(1, num_channels, figsize=(15, 4), dpi=80)
     count = 0
 
     def close_event():
-        plt.close()  # timer calls this function after 3 seconds and closes the window
+        plt.close(
+        )  # timer calls this function after 3 seconds and closes the window
 
     timer = fig.canvas.new_timer(
         interval=show_time * 1000
@@ -69,17 +70,19 @@ if __name__ == "__main__":
             traffic_density=0.1,
             num_scenarios=100,
             start_seed=random.randint(0, 1000),
-        )
-    )
+        ))
     try:
         o, _ = env.reset()
         for i in range(1, 100000):
             o, r, tm, tc, info = env.step(expert(env.agent))
-            env.render(mode="top_down", text={"Quit": "ESC"}, film_size=(2000, 2000))
+            env.render(mode="top_down",
+                       text={"Quit": "ESC"},
+                       film_size=(2000, 2000))
             if tm or tc:
                 env.reset()
             if i % 50 == 0:
-                draw_multi_channels_top_down_observation(o, show_time=5)  # show time 4s
+                draw_multi_channels_top_down_observation(
+                    o, show_time=5)  # show time 4s
                 # ret = input("Do you wish to quit? Type any ESC to quite, or press enter to continue")
                 # if len(ret) == 0:
                 #     continue

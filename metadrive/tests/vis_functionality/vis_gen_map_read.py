@@ -10,14 +10,23 @@ def vis_gen_map_read():
     """
     env_num = 3
     step = 500
-    generate_config = {"num_scenarios": env_num, "start_seed": 0, "use_render": True}
-    restore_config = {"num_scenarios": env_num, "start_seed": 0, "use_render": True}
+    generate_config = {
+        "num_scenarios": env_num,
+        "start_seed": 0,
+        "use_render": True
+    }
+    restore_config = {
+        "num_scenarios": env_num,
+        "start_seed": 0,
+        "use_render": True
+    }
 
     setup_logger(debug=True)
     try:
         env = MetaDriveEnv(generate_config)
         env.reset()
-        data = env.engine.map_manager.dump_all_maps(file_name="test_10maps.pickle")
+        data = env.engine.map_manager.dump_all_maps(
+            file_name="test_10maps.pickle")
         for i in range(step):
             env.step(env.action_space.sample())
         env.close()

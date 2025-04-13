@@ -35,10 +35,8 @@ def get_result(env):
         if s > 20 and env.agent.speed_km_h >= 100 and not reported_max_speed:
             spend = (s - 1 - reported_start) * 0.1
             print(
-                "Achieve max speed: {} at {}. Spend {} s. Current location: {}".format(
-                    max_speed_km_h, s - 1, spend, env.agent.position
-                )
-            )
+                "Achieve max speed: {} at {}. Spend {} s. Current location: {}".
+                format(max_speed_km_h, s - 1, spend, env.agent.position))
             # print("real time spend to acc: {}".format(time.time() - start_time))
             reported_max_speed = s
             max_speed_loc = env.agent.position
@@ -61,7 +59,8 @@ def get_result(env):
             else:
                 action = np.array([-1.0, 1.0])
                 if abs(current_heading - start_heading) >= np.pi / 2:
-                    rotate_displacement = np.asarray(env.agent.position) - np.asarray(rotate_start_pos)
+                    rotate_displacement = np.asarray(
+                        env.agent.position) - np.asarray(rotate_start_pos)
                     reported_rotation = True
 
         o, r, tm, tc, i = env.step(action)
@@ -75,29 +74,27 @@ def get_result(env):
 if __name__ == '__main__':
 
     for friction in [0.8]:
-        env = MetaDriveEnv(
-            {
-                "num_scenarios": 1,
-                "traffic_density": 0.0,
-                "start_seed": 4,
-                "manual_control": True,
-                "use_render": True,
-                "image_observation": True,
-                "vehicle_config": {
-                    "max_engine_force": 1000,
-                    "max_brake_force": 100,
-                    "max_steering": 40,
-                    "wheel_friction": friction
-                },
-                "map_config": {
-                    BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
-                    BaseMap.GENERATE_CONFIG: "SSSSSSSSSS"
-                }
+        env = MetaDriveEnv({
+            "num_scenarios": 1,
+            "traffic_density": 0.0,
+            "start_seed": 4,
+            "manual_control": True,
+            "use_render": True,
+            "image_observation": True,
+            "vehicle_config": {
+                "max_engine_force": 1000,
+                "max_brake_force": 100,
+                "max_steering": 40,
+                "wheel_friction": friction
+            },
+            "map_config": {
+                BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
+                BaseMap.GENERATE_CONFIG: "SSSSSSSSSS"
             }
-        )
+        })
         acc_time, brake_dist, rotate_dis = get_result(env)
         print(
             "Friction {}. Acceleration time: {:.3f}. Brake distance: {:.3f}. Rotation 90 degree displacement X: {:.3f}, Y: {:.3f}\n\n"
-            .format(friction, acc_time, brake_dist, rotate_dis[0], rotate_dis[1])
-        )
+            .format(friction, acc_time, brake_dist, rotate_dis[0],
+                    rotate_dis[1]))
         env.close()

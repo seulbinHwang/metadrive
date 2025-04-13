@@ -16,7 +16,8 @@ if __name__ == "__main__":
     initialize_asset_loader(engine=test)
     global_network = NodeRoadNetwork()
     blocks = []
-    init_block = FirstPGBlock(global_network, 3.0, 3, test.render, test.world, 1)
+    init_block = FirstPGBlock(global_network, 3.0, 3, test.render, test.world,
+                              1)
 
     block = StdInterSection(1, init_block.get_socket(0), global_network, 1)
     block.construct_from_config(
@@ -24,11 +25,11 @@ if __name__ == "__main__":
             Parameter.radius: 10,
             Parameter.change_lane_num: 0,
             Parameter.decrease_increase: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(2, block.get_socket(1), global_network, 1)
-    block.construct_from_config({Parameter.length: 388}, test.render, test.world)
+    block.construct_from_config({Parameter.length: 388}, test.render,
+                                test.world)
 
     block = StdInterSection(3, block.get_socket(0), global_network, 1)
     block.construct_from_config(
@@ -36,8 +37,7 @@ if __name__ == "__main__":
             Parameter.radius: 10,
             Parameter.change_lane_num: 0,
             Parameter.decrease_increase: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(4, block.get_socket(2), global_network, 1)
     block.construct_from_config({Parameter.length: 70}, test.render, test.world)
@@ -49,8 +49,7 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 1,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(6, t_1.get_socket(0), global_network, 1)
     block.construct_from_config({Parameter.length: 68}, test.render, test.world)
@@ -62,8 +61,7 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 2,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(101, t_last.get_socket(0), global_network, 1)
     block.construct_from_config({Parameter.length: 9}, test.render, test.world)
@@ -75,8 +73,7 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 1,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(8, t_2.get_socket(0), global_network, 1)
     block.construct_from_config({Parameter.length: 70}, test.render, test.world)
@@ -87,8 +84,7 @@ if __name__ == "__main__":
             Parameter.radius: 10,
             Parameter.change_lane_num: 0,
             Parameter.decrease_increase: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(10, block.get_socket(2), global_network, 1)
     block.construct_from_config({Parameter.length: 70}, test.render, test.world)
@@ -100,11 +96,11 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 1,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(12, t_3.get_socket(0), global_network, 1)
-    block.construct_from_config({Parameter.length: 130}, test.render, test.world)
+    block.construct_from_config({Parameter.length: 130}, test.render,
+                                test.world)
 
     t_4 = TInterSection(13, block.get_socket(0), global_network, 1)
     t_4.construct_from_config(
@@ -113,8 +109,7 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 1,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(14, t_4.get_socket(0), global_network, 1)
     block.construct_from_config({Parameter.length: 70}, test.render, test.world)
@@ -125,11 +120,11 @@ if __name__ == "__main__":
             Parameter.radius: 10,
             Parameter.change_lane_num: 0,
             Parameter.decrease_increase: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(16, block.get_socket(2), global_network, 1)
-    block.construct_from_config({Parameter.length: 259}, test.render, test.world)
+    block.construct_from_config({Parameter.length: 259}, test.render,
+                                test.world)
 
     t_5 = TInterSection(17, block.get_socket(0), global_network, 1)
     t_5.construct_from_config(
@@ -138,8 +133,7 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 1,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(18, t_5.get_socket(0), global_network, 1)
     block.construct_from_config({Parameter.length: 47}, test.render, test.world)
@@ -154,11 +148,11 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 0,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(21, t_6.get_socket(1), global_network, 1)
-    block.construct_from_config({Parameter.length: 130}, test.render, test.world)
+    block.construct_from_config({Parameter.length: 130}, test.render,
+                                test.world)
 
     t_7 = TInterSection(22, block.get_socket(0), global_network, 1)
     t_7.construct_from_config(
@@ -167,14 +161,14 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 0,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 2
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(23, t_7.get_socket(1), global_network, 1)
     block.construct_from_config({Parameter.length: 50}, test.render, test.world)
 
     block = Straight(24, t_7.get_socket(0), global_network, 1)
-    block.construct_from_config({Parameter.length: 130}, test.render, test.world)
+    block.construct_from_config({Parameter.length: 130}, test.render,
+                                test.world)
 
     t_8 = TInterSection(25, block.get_socket(0), global_network, 1)
     t_8.construct_from_config(
@@ -183,8 +177,7 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 0,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(26, t_8.get_socket(1), global_network, 1)
     block.construct_from_config({Parameter.length: 50}, test.render, test.world)
@@ -196,8 +189,7 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 1,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 2
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     o = Roundabout(28, t_9.get_socket(0), global_network, 1)
     o.construct_from_config(
@@ -205,8 +197,7 @@ if __name__ == "__main__":
             Parameter.radius_exit: 5,
             Parameter.radius_inner: 30,
             Parameter.angle: 60
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     curve = Curve(29, o.get_socket(0), global_network, 1)
     curve.construct_from_config(
@@ -215,11 +206,11 @@ if __name__ == "__main__":
             Parameter.dir: 0,
             Parameter.angle: 90,
             Parameter.length: 70
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(30, t_6.get_socket(0), global_network, 1)
-    block.construct_from_config({Parameter.length: 120}, test.render, test.world)
+    block.construct_from_config({Parameter.length: 120}, test.render,
+                                test.world)
 
     t_10 = TInterSection(31, block.get_socket(0), global_network, 1)
     t_10.construct_from_config(
@@ -228,8 +219,7 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 1,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(32, t_10.get_socket(0), global_network, 1)
     block.construct_from_config({Parameter.length: 16}, test.render, test.world)
@@ -241,8 +231,7 @@ if __name__ == "__main__":
             Parameter.change_lane_num: 1,
             Parameter.decrease_increase: 0,
             Parameter.t_intersection_type: 0
-        }, test.render, test.world
-    )
+        }, test.render, test.world)
 
     block = Straight(34, t_11.get_socket(1), global_network, 1)
     block.construct_from_config({Parameter.length: 40}, test.render, test.world)

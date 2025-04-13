@@ -33,6 +33,7 @@ from direct.showbase.ShowBase import ShowBase
 
 
 class Application(ShowBase):
+
     def __init__(self):
         load_prc_file_data(
             "", """
@@ -43,8 +44,7 @@ class Application(ShowBase):
             notify-level-display error
             print-pipe-types #f
             gl-version 4 3
-        """
-        )
+        """)
 
         ShowBase.__init__(self)
 
@@ -57,12 +57,15 @@ class Application(ShowBase):
         # High-Res 128^3 texture
         print("Computing high-res noise")
         voxel_grid = Texture("voxels")
-        voxel_grid.setup_3d_texture(w, h, d, Texture.T_unsigned_byte, Texture.F_rgba8)
-        cshader = Shader.load_compute(Shader.SL_GLSL, "generate_noise1.compute.glsl")
+        voxel_grid.setup_3d_texture(w, h, d, Texture.T_unsigned_byte,
+                                    Texture.F_rgba8)
+        cshader = Shader.load_compute(Shader.SL_GLSL,
+                                      "generate_noise1.compute.glsl")
         node.set_shader(cshader)
         node.set_shader_input("DestTex", voxel_grid)
         attr = node.get_attrib(ShaderAttrib)
-        self.graphicsEngine.dispatch_compute(((w + 7) // 8, (h + 7) // 8, (d + 3) // 4), attr, self.win.gsg)
+        self.graphicsEngine.dispatch_compute(
+            ((w + 7) // 8, (h + 7) // 8, (d + 3) // 4), attr, self.win.gsg)
         self.graphicsEngine.extract_texture_data(voxel_grid, self.win.gsg)
 
         print("Writing data ..")
@@ -73,12 +76,15 @@ class Application(ShowBase):
         print("Computing low-res noise")
         w, h, d = 32, 32, 32
         voxel_grid = Texture("voxels")
-        voxel_grid.setup_3d_texture(w, h, d, Texture.T_unsigned_byte, Texture.F_rgba8)
-        cshader = Shader.load_compute(Shader.SL_GLSL, "generate_noise2.compute.glsl")
+        voxel_grid.setup_3d_texture(w, h, d, Texture.T_unsigned_byte,
+                                    Texture.F_rgba8)
+        cshader = Shader.load_compute(Shader.SL_GLSL,
+                                      "generate_noise2.compute.glsl")
         node.set_shader(cshader)
         node.set_shader_input("DestTex", voxel_grid)
         attr = node.get_attrib(ShaderAttrib)
-        self.graphicsEngine.dispatch_compute(((w + 7) // 8, (h + 7) // 8, (d + 3) // 4), attr, self.win.gsg)
+        self.graphicsEngine.dispatch_compute(
+            ((w + 7) // 8, (h + 7) // 8, (d + 3) // 4), attr, self.win.gsg)
         self.graphicsEngine.extract_texture_data(voxel_grid, self.win.gsg)
 
         print("Writing data ..")

@@ -10,6 +10,7 @@ class PSSM:
     This is the implementation of PSSM for adding shadow for the scene.
     It is based on https://github.com/el-dee/panda3d-samples
     """
+
     def __init__(self, engine):
         assert engine.world_light, "world_light should be created before having this shadow"
 
@@ -86,7 +87,8 @@ class PSSM:
         Returns: task.con (task.continue)
 
         """
-        light_dir = self.directional_light.get_mat().xform(-self.directional_light.node().get_direction()).xyz
+        light_dir = self.directional_light.get_mat().xform(
+            -self.directional_light.node().get_direction()).xyz
         self.camera_rig.update(self.engine.camera, light_dir)
 
         src_mvp_array = self.camera_rig.get_mvp_array()
@@ -109,7 +111,8 @@ class PSSM:
         """
         self.camera_rig = PSSMCameraRig(self.num_splits)
         # Set the max distance from the camera where shadows are rendered
-        self.camera_rig.set_pssm_distance(self.engine.global_config["shadow_range"])
+        self.camera_rig.set_pssm_distance(
+            self.engine.global_config["shadow_range"])
         # Set the distance between the far plane of the frustum and the sun, objects farther do not cas shadows
         self.camera_rig.set_sun_distance(64)
         # Set the logarithmic factor that defines the splits
@@ -135,7 +138,8 @@ class PSSM:
         self.depth_tex.setFormat(Texture.FDepthComponent)
         self.depth_tex.setMinfilter(SamplerState.FTShadow)
         self.depth_tex.setMagfilter(SamplerState.FTShadow)
-        self.buffer = self.create_render_buffer(self.split_resolution * self.num_splits, self.split_resolution, 32)
+        self.buffer = self.create_render_buffer(
+            self.split_resolution * self.num_splits, self.split_resolution, 32)
 
         # Remove all unused display regions
         self.buffer.remove_all_display_regions()
@@ -149,8 +153,8 @@ class PSSM:
         # Prepare the display regions, one for each split
         for i in range(self.num_splits):
             region = self.buffer.make_display_region(
-                i / self.num_splits, i / self.num_splits + 1 / self.num_splits, 0, 1
-            )
+                i / self.num_splits, i / self.num_splits + 1 / self.num_splits,
+                0, 1)
             region.set_sort(25 + i)
             # Clears are done on the buffer
             region.disable_clears()
@@ -186,8 +190,7 @@ class PSSM:
             use_pssm=self.use_pssm,
             fog=self.fog,
             split_count=self.num_splits,
-            light_direction=self.engine.world_light.direction_pos
-        )
+            light_direction=self.engine.world_light.direction_pos)
 
     def create_render_buffer(self, size_x, size_y, depth_bits):
         """
@@ -221,15 +224,17 @@ class PSSM:
         buffer_props.set_stencil_bits(0)
 
         buffer = self.engine.graphics_engine.make_output(
-            self.engine.win.get_pipe(), "pssm_buffer", 1, buffer_props, window_props, GraphicsPipe.BF_refuse_window,
-            self.engine.win.gsg, self.engine.win
-        )
+            self.engine.win.get_pipe(), "pssm_buffer", 1, buffer_props,
+            window_props, GraphicsPipe.BF_refuse_window, self.engine.win.gsg,
+            self.engine.win)
 
         if buffer is None:
             print("Failed to create buffer")
             return
 
-        buffer.add_render_texture(self.depth_tex, GraphicsOutput.RTM_bind_or_copy, GraphicsOutput.RTP_depth)
+        buffer.add_render_texture(self.depth_tex,
+                                  GraphicsOutput.RTM_bind_or_copy,
+                                  GraphicsOutput.RTP_depth)
 
         buffer.set_sort(-1001)
         buffer.disable_clears()

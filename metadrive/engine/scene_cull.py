@@ -22,32 +22,50 @@ class SceneCull:
     LOD_OBJECT_PHYSICS_DIST = 100000
 
     @classmethod
-    def cull_distant_blocks(cls, engine, blocks: list, poses: List[tuple], max_distance=None):
+    def cull_distant_blocks(cls,
+                            engine,
+                            blocks: list,
+                            poses: List[tuple],
+                            max_distance=None):
         # A distance based LOD rendering
         for block in blocks:
-            if not cls.all_out_of_bounding_box(block.bounding_box, poses, cls.LOD_MAP_VIS_DIST):
+            if not cls.all_out_of_bounding_box(block.bounding_box, poses,
+                                               cls.LOD_MAP_VIS_DIST):
                 if not block.origin.hasParent():
                     block.origin.reparentTo(engine.worldNP)
             else:
                 if block.origin.hasParent():
                     block.origin.detachNode()
-            if not cls.all_out_of_bounding_box(block.bounding_box, poses, max_distance or cls.LOD_MAP_PHYSICS_DIST):
-                block.dynamic_nodes.attach_to_physics_world(engine.physics_world.dynamic_world)
+            if not cls.all_out_of_bounding_box(
+                    block.bounding_box, poses, max_distance or
+                    cls.LOD_MAP_PHYSICS_DIST):
+                block.dynamic_nodes.attach_to_physics_world(
+                    engine.physics_world.dynamic_world)
             else:
-                block.dynamic_nodes.detach_from_physics_world(engine.physics_world.dynamic_world)
+                block.dynamic_nodes.detach_from_physics_world(
+                    engine.physics_world.dynamic_world)
 
     @classmethod
-    def cull_distant_traffic_vehicles(cls, engine, vehicles: list, poses: List[tuple], max_distance=None):
-        cls._cull_elements(
-            engine, vehicles, poses, cls.LOD_VEHICLE_VIS_DIST, max_distance or cls.LOD_VEHICLE_PHYSICS_DIST
-        )
+    def cull_distant_traffic_vehicles(cls,
+                                      engine,
+                                      vehicles: list,
+                                      poses: List[tuple],
+                                      max_distance=None):
+        cls._cull_elements(engine, vehicles, poses, cls.LOD_VEHICLE_VIS_DIST,
+                           max_distance or cls.LOD_VEHICLE_PHYSICS_DIST)
 
     @classmethod
-    def cull_distant_objects(cls, engine, objects: list, poses: List[tuple], max_distance=None):
-        cls._cull_elements(engine, objects, poses, cls.LOD_OBJECT_VIS_DIST, max_distance or cls.LOD_OBJECT_PHYSICS_DIST)
+    def cull_distant_objects(cls,
+                             engine,
+                             objects: list,
+                             poses: List[tuple],
+                             max_distance=None):
+        cls._cull_elements(engine, objects, poses, cls.LOD_OBJECT_VIS_DIST,
+                           max_distance or cls.LOD_OBJECT_PHYSICS_DIST)
 
     @classmethod
-    def _cull_elements(cls, engine, elements: list, poses: List[tuple], vis_distance: float, physics_distance: float):
+    def _cull_elements(cls, engine, elements: list, poses: List[tuple],
+                       vis_distance: float, physics_distance: float):
         for obj in elements:
             v_p = obj.position
             if not cls.all_distance_greater_than(vis_distance, poses, v_p):
@@ -58,9 +76,11 @@ class SceneCull:
                     obj.origin.detachNode()
 
             if not cls.all_distance_greater_than(physics_distance, poses, v_p):
-                obj.dynamic_nodes.attach_to_physics_world(engine.physics_world.dynamic_world)
+                obj.dynamic_nodes.attach_to_physics_world(
+                    engine.physics_world.dynamic_world)
             else:
-                obj.dynamic_nodes.detach_from_physics_world(engine.physics_world.dynamic_world)
+                obj.dynamic_nodes.detach_from_physics_world(
+                    engine.physics_world.dynamic_world)
 
     @staticmethod
     def all_distance_greater_than(distance, poses, target_pos):
@@ -81,7 +101,8 @@ class SceneCull:
     @staticmethod
     def out_of_bounding_box(bounding_box, pose, margin_distance):
         bb2 = [
-            pose[0] - margin_distance, pose[0] + margin_distance, pose[1] - margin_distance, pose[1] + margin_distance
+            pose[0] - margin_distance, pose[0] + margin_distance,
+            pose[1] - margin_distance, pose[1] + margin_distance
         ]
         if bounding_box[0] > bb2[1] or \
                 bounding_box[1] < bb2[0] or \

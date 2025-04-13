@@ -63,8 +63,7 @@ class IDMVehicle(ControlledVehicle):
             heading,
             speed,
             # target_lane_index, target_speed, route,
-            np_random=np_random
-        )
+            np_random=np_random)
         # self.enable_lane_change = enable_lane_change
         # self.timer = timer or (np.sum(self.position) * np.pi) % self.LANE_CHANGE_DELAY
 
@@ -90,8 +89,7 @@ class IDMVehicle(ControlledVehicle):
             # target_speed=vehicle.target_speed,
             # route=vehicle.route,
             # timer=getattr(vehicle, 'timer', None),
-            np_random=vehicle.np_random
-        )
+            np_random=vehicle.np_random)
         return v
 
     def act(self, action: Union[dict, str] = None):
@@ -112,15 +110,19 @@ class IDMVehicle(ControlledVehicle):
         if self.enable_lane_change:
             self.change_lane_policy()
         action['steering'] = self.steering_control(self.target_lane_index)
-        action['steering'] = clip(action['steering'], -self.MAX_STEERING_ANGLE, self.MAX_STEERING_ANGLE)
+        action['steering'] = clip(action['steering'], -self.MAX_STEERING_ANGLE,
+                                  self.MAX_STEERING_ANGLE)
 
         # Longitudinal: IDM
-        action['acceleration'] = self.acceleration(
-            ego_vehicle=self, front_vehicle=front_vehicle, rear_vehicle=rear_vehicle
-        )
+        action['acceleration'] = self.acceleration(ego_vehicle=self,
+                                                   front_vehicle=front_vehicle,
+                                                   rear_vehicle=rear_vehicle)
         # action['acceleration'] = self.recover_from_stop(action['acceleration'])
-        action['acceleration'] = clip(action['acceleration'], -self.ACC_MAX, self.ACC_MAX)
-        Vehicle.act(self, action)  # Skip ControlledVehicle.act(), or the command will be override.
+        action['acceleration'] = clip(action['acceleration'], -self.ACC_MAX,
+                                      self.ACC_MAX)
+        Vehicle.act(
+            self, action
+        )  # Skip ControlledVehicle.act(), or the command will be override.
 
     # def step(self, dt: float):
     #     """
@@ -135,9 +137,10 @@ class IDMVehicle(ControlledVehicle):
     #         self.action['acceleration'] = -self.speed / dt
     #     super().step(dt)
 
-    def acceleration(
-        self, ego_vehicle: ControlledVehicle, front_vehicle: Vehicle = None, rear_vehicle: Vehicle = None
-    ) -> float:
+    def acceleration(self,
+                     ego_vehicle: ControlledVehicle,
+                     front_vehicle: Vehicle = None,
+                     rear_vehicle: Vehicle = None) -> float:
         """
         Compute an acceleration command with the Intelligent Driver Model.
 
@@ -154,8 +157,10 @@ class IDMVehicle(ControlledVehicle):
         """
         if not ego_vehicle or isinstance(ego_vehicle, BaseStaticObject):
             return 0
-        ego_target_speed = utils.not_zero(getattr(ego_vehicle, "target_speed", 0))
-        acceleration = self.COMFORT_ACC_MAX * (1 - np.power(max(ego_vehicle.speed, 0) / ego_target_speed, self.DELTA))
+        ego_target_speed = utils.not_zero(
+            getattr(ego_vehicle, "target_speed", 0))
+        acceleration = self.COMFORT_ACC_MAX * (1 - np.power(
+            max(ego_vehicle.speed, 0) / ego_target_speed, self.DELTA))
 
         if front_vehicle:
             d = ego_vehicle.lane_distance_to(front_vehicle)
@@ -165,7 +170,9 @@ class IDMVehicle(ControlledVehicle):
             acceleration = -self.speed / 0.2
         return acceleration
 
-    def desired_gap(self, ego_vehicle: Vehicle, front_vehicle: Vehicle = None) -> float:
+    def desired_gap(self,
+                    ego_vehicle: Vehicle,
+                    front_vehicle: Vehicle = None) -> float:
         """
         Compute the desired distance between a vehicle and its leading vehicle.
 
@@ -177,10 +184,12 @@ class IDMVehicle(ControlledVehicle):
         tau = self.TIME_WANTED
         ab = -self.COMFORT_ACC_MAX * self.COMFORT_ACC_MIN
         dv = ego_vehicle.speed - front_vehicle.speed
-        d_star = d0 + ego_vehicle.speed * tau + ego_vehicle.speed * dv / (2 * np.sqrt(ab))
+        d_star = d0 + ego_vehicle.speed * tau + ego_vehicle.speed * dv / (
+            2 * np.sqrt(ab))
         return d_star
 
-    def maximum_speed(self, front_vehicle: Vehicle = None) -> Tuple[float, float]:
+    def maximum_speed(self,
+                      front_vehicle: Vehicle = None) -> Tuple[float, float]:
         """
         Compute the maximum allowed speed to avoid Inevitable Collision States.
 
@@ -197,13 +206,17 @@ class IDMVehicle(ControlledVehicle):
         a0 = self.COMFORT_ACC_MIN
         a1 = self.COMFORT_ACC_MIN
         tau = self.TIME_WANTED
-        d = max(self.lane_distance_to(front_vehicle) - self.LENGTH / 2 - front_vehicle.LENGTH / 2 - d0, 0)
+        d = max(
+            self.lane_distance_to(front_vehicle) - self.LENGTH / 2 -
+            front_vehicle.LENGTH / 2 - d0, 0)
         v1_0 = front_vehicle.speed
-        delta = 4 * (a0 * a1 * tau)**2 + 8 * a0 * (a1**2) * d + 4 * a0 * a1 * v1_0**2
+        delta = 4 * (a0 * a1 *
+                     tau)**2 + 8 * a0 * (a1**2) * d + 4 * a0 * a1 * v1_0**2
         v_max = -a0 * tau + np.sqrt(delta) / (2 * a1)
 
         # Speed control
-        self.target_speed = min(self.maximum_speed(front_vehicle), self.target_speed)
+        self.target_speed = min(self.maximum_speed(front_vehicle),
+                                self.target_speed)
         acceleration = self.speed_control(self.target_speed)
 
         return v_max, acceleration
@@ -239,9 +252,11 @@ class IDMVehicle(ControlledVehicle):
         self.timer = 0
 
         # decide to make a lane change
-        for lane_index in self.traffic_mgr.current_map.road_network.side_lanes(self.lane_index):
+        for lane_index in self.traffic_mgr.current_map.road_network.side_lanes(
+                self.lane_index):
             # Is the candidate lane close enough?
-            if not self.traffic_mgr.current_map.road_network.get_lane(lane_index).is_reachable_from(self.position):
+            if not self.traffic_mgr.current_map.road_network.get_lane(
+                    lane_index).is_reachable_from(self.position):
                 continue
             # Does the MOBIL model recommend a lane change?
             if self.mobil(lane_index):
@@ -259,19 +274,23 @@ class IDMVehicle(ControlledVehicle):
         :return: whether the lane change should be performed
         """
         # Is the maneuver unsafe for the new following vehicle?
-        new_preceding, new_following = self.traffic_mgr.neighbour_vehicles(self, lane_index)
-        new_following_a = self.acceleration(ego_vehicle=new_following, front_vehicle=new_preceding)
-        new_following_pred_a = self.acceleration(ego_vehicle=new_following, front_vehicle=self)
+        new_preceding, new_following = self.traffic_mgr.neighbour_vehicles(
+            self, lane_index)
+        new_following_a = self.acceleration(ego_vehicle=new_following,
+                                            front_vehicle=new_preceding)
+        new_following_pred_a = self.acceleration(ego_vehicle=new_following,
+                                                 front_vehicle=self)
         if new_following_pred_a < -self.LANE_CHANGE_MAX_BRAKING_IMPOSED:
             return False
 
         # Do I have a planned route for a specific lane which is safe for me to access?
         old_preceding, old_following = self.traffic_mgr.neighbour_vehicles(self)
-        self_pred_a = self.acceleration(ego_vehicle=self, front_vehicle=new_preceding)
+        self_pred_a = self.acceleration(ego_vehicle=self,
+                                        front_vehicle=new_preceding)
         if self.route and self.route[0][2]:
             # Wrong direction
-            if np.sign(lane_index[2] - self.target_lane_index[2]) != np.sign(self.route[0][2] -
-                                                                             self.target_lane_index[2]):
+            if np.sign(lane_index[2] - self.target_lane_index[2]) != np.sign(
+                    self.route[0][2] - self.target_lane_index[2]):
                 return False
             # Unsafe braking required
             elif self_pred_a < -self.LANE_CHANGE_MAX_BRAKING_IMPOSED:
@@ -279,12 +298,15 @@ class IDMVehicle(ControlledVehicle):
 
         # Is there an acceleration advantage for me and/or my followers to change lane?
         else:
-            self_a = self.acceleration(ego_vehicle=self, front_vehicle=old_preceding)
-            old_following_a = self.acceleration(ego_vehicle=old_following, front_vehicle=self)
-            old_following_pred_a = self.acceleration(ego_vehicle=old_following, front_vehicle=old_preceding)
+            self_a = self.acceleration(ego_vehicle=self,
+                                       front_vehicle=old_preceding)
+            old_following_a = self.acceleration(ego_vehicle=old_following,
+                                                front_vehicle=self)
+            old_following_pred_a = self.acceleration(
+                ego_vehicle=old_following, front_vehicle=old_preceding)
             jerk = self_pred_a - self_a + self.POLITENESS * (
-                new_following_pred_a - new_following_a + old_following_pred_a - old_following_a
-            )
+                new_following_pred_a - new_following_a + old_following_pred_a -
+                old_following_a)
             if jerk < self.LANE_CHANGE_MIN_ACC_GAIN:
                 return False
 
@@ -304,8 +326,9 @@ class IDMVehicle(ControlledVehicle):
         if self.target_lane_index != self.lane_index and self.speed < stopped_speed:
             _, rear = self.traffic_mgr.neighbour_vehicles(self)
             _, new_rear = self.traffic_mgr.neighbour_vehicles(
-                self, self.traffic_mgr.current_map.road_network.get_lane(self.target_lane_index)
-            )
+                self,
+                self.traffic_mgr.current_map.road_network.get_lane(
+                    self.target_lane_index))
             # Check for free room behind on both lanes
             if (not rear or rear.lane_distance_to(self) > safe_distance) and \
                     (not new_rear or new_rear.lane_distance_to(self) > safe_distance):
@@ -318,49 +341,56 @@ class LinearVehicle(IDMVehicle):
     """A Vehicle whose longitudinal and lateral controllers are linear with respect to parameters."""
 
     ACCELERATION_PARAMETERS = [0.3, 0.3, 2.0]
-    STEERING_PARAMETERS = [ControlledVehicle.KP_HEADING, ControlledVehicle.KP_HEADING * ControlledVehicle.KP_LATERAL]
+    STEERING_PARAMETERS = [
+        ControlledVehicle.KP_HEADING,
+        ControlledVehicle.KP_HEADING * ControlledVehicle.KP_LATERAL
+    ]
 
-    ACCELERATION_RANGE = np.array([0.5 * np.array(ACCELERATION_PARAMETERS), 1.5 * np.array(ACCELERATION_PARAMETERS)])
-    STEERING_RANGE = np.array(
-        [np.array(STEERING_PARAMETERS) - np.array([0.07, 1.5]),
-         np.array(STEERING_PARAMETERS) + np.array([0.07, 1.5])]
-    )
+    ACCELERATION_RANGE = np.array([
+        0.5 * np.array(ACCELERATION_PARAMETERS),
+        1.5 * np.array(ACCELERATION_PARAMETERS)
+    ])
+    STEERING_RANGE = np.array([
+        np.array(STEERING_PARAMETERS) - np.array([0.07, 1.5]),
+        np.array(STEERING_PARAMETERS) + np.array([0.07, 1.5])
+    ])
 
     TIME_WANTED = 2.5
 
-    def __init__(
-        self,
-        traffic_mgr: PGTrafficManager,
-        position: List,
-        heading: float = 0,
-        speed: float = 0,
-        target_lane_index: int = None,
-        target_speed: float = None,
-        route: Route = None,
-        enable_lane_change: bool = True,
-        timer: float = None,
-        data: dict = None,
-        np_random=None
-    ):
-        super().__init__(
-            traffic_mgr, position, heading, speed, target_lane_index, target_speed, route, enable_lane_change, timer,
-            np_random
-        )
+    def __init__(self,
+                 traffic_mgr: PGTrafficManager,
+                 position: List,
+                 heading: float = 0,
+                 speed: float = 0,
+                 target_lane_index: int = None,
+                 target_speed: float = None,
+                 route: Route = None,
+                 enable_lane_change: bool = True,
+                 timer: float = None,
+                 data: dict = None,
+                 np_random=None):
+        super().__init__(traffic_mgr, position, heading, speed,
+                         target_lane_index, target_speed, route,
+                         enable_lane_change, timer, np_random)
         self.data = data if data is not None else {}
 
     def act(self, action: Union[dict, str] = None):
         super().act(action)
 
     def randomize_behavior(self):
-        ua = self.traffic_mgr.np_random.uniform(size=np.shape(self.ACCELERATION_PARAMETERS))
-        self.ACCELERATION_PARAMETERS = self.ACCELERATION_RANGE[
-            0] + ua * (self.ACCELERATION_RANGE[1] - self.ACCELERATION_RANGE[0])
-        ub = self.traffic_mgr.np_random.uniform(size=np.shape(self.STEERING_PARAMETERS))
-        self.STEERING_PARAMETERS = self.STEERING_RANGE[0] + ub * (self.STEERING_RANGE[1] - self.STEERING_RANGE[0])
+        ua = self.traffic_mgr.np_random.uniform(
+            size=np.shape(self.ACCELERATION_PARAMETERS))
+        self.ACCELERATION_PARAMETERS = self.ACCELERATION_RANGE[0] + ua * (
+            self.ACCELERATION_RANGE[1] - self.ACCELERATION_RANGE[0])
+        ub = self.traffic_mgr.np_random.uniform(
+            size=np.shape(self.STEERING_PARAMETERS))
+        self.STEERING_PARAMETERS = self.STEERING_RANGE[0] + ub * (
+            self.STEERING_RANGE[1] - self.STEERING_RANGE[0])
 
-    def acceleration(
-        self, ego_vehicle: ControlledVehicle, front_vehicle: Vehicle = None, rear_vehicle: Vehicle = None
-    ) -> float:
+    def acceleration(self,
+                     ego_vehicle: ControlledVehicle,
+                     front_vehicle: Vehicle = None,
+                     rear_vehicle: Vehicle = None) -> float:
         """
         Compute an acceleration command with a Linear Model.
 
@@ -379,21 +409,20 @@ class LinearVehicle(IDMVehicle):
         return float(
             utils.dot3(
                 self.ACCELERATION_PARAMETERS,
-                self.acceleration_features(ego_vehicle, front_vehicle, rear_vehicle)
+                self.acceleration_features(ego_vehicle, front_vehicle,
+                                           rear_vehicle)
                 # np.dot(self.ACCELERATION_PARAMETERS, self.acceleration_features(ego_vehicle, front_vehicle, rear_vehicle))
-            )
-        )
+            ))
 
-    def acceleration_features(
-        self,
-        ego_vehicle: ControlledVehicle,
-        front_vehicle: Vehicle = None,
-        rear_vehicle: Vehicle = None
-    ) -> np.ndarray:
+    def acceleration_features(self,
+                              ego_vehicle: ControlledVehicle,
+                              front_vehicle: Vehicle = None,
+                              rear_vehicle: Vehicle = None) -> np.ndarray:
         vt, dv, dp = 0, 0, 0
         if ego_vehicle:
             vt = ego_vehicle.target_speed - ego_vehicle.speed
-            d_safe = self.DISTANCE_WANTED + np.maximum(ego_vehicle.speed, 0) * self.TIME_WANTED
+            d_safe = self.DISTANCE_WANTED + np.maximum(ego_vehicle.speed,
+                                                       0) * self.TIME_WANTED
             if front_vehicle:
                 d = ego_vehicle.lane_distance_to(front_vehicle)
                 dv = min(front_vehicle.speed - ego_vehicle.speed, 0)
@@ -409,7 +438,9 @@ class LinearVehicle(IDMVehicle):
         :param target_lane_index: index of the lane to follow
         :return: a steering wheel angle command [rad]
         """
-        return float(np.dot(np.array(self.STEERING_PARAMETERS), self.steering_features(target_lane_index)))
+        return float(
+            np.dot(np.array(self.STEERING_PARAMETERS),
+                   self.steering_features(target_lane_index)))
 
     def steering_features(self, target_lane_index: LaneIndex) -> np.ndarray:
         """
@@ -418,16 +449,16 @@ class LinearVehicle(IDMVehicle):
         :param target_lane_index: index of the lane to follow
         :return: a array of features
         """
-        lane = self.traffic_mgr.current_map.road_network.get_lane(target_lane_index)
+        lane = self.traffic_mgr.current_map.road_network.get_lane(
+            target_lane_index)
         lane_coords = lane.local_coordinates(self.position)
         lane_next_coords = lane_coords[0] + self.speed * self.PURSUIT_TAU
         lane_future_heading = lane.heading_theta_at(lane_next_coords)
-        features = np.array(
-            [
-                utils.wrap_to_pi(lane_future_heading - self.heading) * self.LENGTH / utils.not_zero(self.speed),
-                -lane_coords[1] * self.LENGTH / (utils.not_zero(self.speed)**2)
-            ]
-        )
+        features = np.array([
+            utils.wrap_to_pi(lane_future_heading - self.heading) * self.LENGTH /
+            utils.not_zero(self.speed),
+            -lane_coords[1] * self.LENGTH / (utils.not_zero(self.speed)**2)
+        ])
         return features
 
 

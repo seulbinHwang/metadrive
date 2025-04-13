@@ -30,21 +30,23 @@ GOAL_DEPENDENT_STATE_DIM = 3
 
 
 class CustomizedObservation(BaseObservation):
+
     def __init__(self, config):
         self.state_obs = StateObservation(config)
         super(CustomizedObservation, self).__init__(config)
         self.latest_observation = {}
 
-        self.lane_detect_dim = self.config['vehicle_config']['lane_line_detector']['num_lasers']
-        self.side_detect_dim = self.config['vehicle_config']['side_detector']['num_lasers']
-        self.vehicle_detect_dim = self.config['vehicle_config']['lidar']['num_lasers']
+        self.lane_detect_dim = self.config['vehicle_config'][
+            'lane_line_detector']['num_lasers']
+        self.side_detect_dim = self.config['vehicle_config']['side_detector'][
+            'num_lasers']
+        self.vehicle_detect_dim = self.config['vehicle_config']['lidar'][
+            'num_lasers']
 
     @property
     def observation_space(self):
-        shape = (
-            EGO_STATE_DIM + self.side_detect_dim + self.lane_detect_dim + self.vehicle_detect_dim + NAVI_DIM +
-            GOAL_DEPENDENT_STATE_DIM,
-        )
+        shape = (EGO_STATE_DIM + self.side_detect_dim + self.lane_detect_dim +
+                 self.vehicle_detect_dim + NAVI_DIM + GOAL_DEPENDENT_STATE_DIM,)
         return gym.spaces.Box(-1.0, 1.0, shape=shape, dtype=np.float32)
 
     def observe(self, vehicle, navigation=None):
@@ -78,14 +80,19 @@ class CustomizedObservation(BaseObservation):
 
         # Goal-dependent infos
         goal_dependent_info = []
-        lateral_to_left, lateral_to_right = vehicle._dist_to_route_left_right(navigation=navigation)
+        lateral_to_left, lateral_to_right = vehicle._dist_to_route_left_right(
+            navigation=navigation)
         if self.engine.current_map:
-            total_width = float((self.engine.current_map.MAX_LANE_NUM + 1) * self.engine.current_map.MAX_LANE_WIDTH)
+            total_width = float((self.engine.current_map.MAX_LANE_NUM + 1) *
+                                self.engine.current_map.MAX_LANE_WIDTH)
         else:
             total_width = 100
         lateral_to_left /= total_width
         lateral_to_right /= total_width
-        goal_dependent_info += [clip(lateral_to_left, 0.0, 1.0), clip(lateral_to_right, 0.0, 1.0)]
+        goal_dependent_info += [
+            clip(lateral_to_left, 0.0, 1.0),
+            clip(lateral_to_right, 0.0, 1.0)
+        ]
         current_reference_lane = navigation.current_ref_lanes[-1]
         goal_dependent_info += [
             # The angular difference between vehicle's heading and the lane heading at this location.
@@ -109,10 +116,12 @@ class CustomizedObservation(BaseObservation):
         ])
 
         # The velocity of target vehicle
-        info[0] = clip((vehicle.speed_km_h + 1) / (vehicle.max_speed_km_h + 1), 0.0, 1.0)
+        info[0] = clip((vehicle.speed_km_h + 1) / (vehicle.max_speed_km_h + 1),
+                       0.0, 1.0)
 
         # Current steering
-        info[1] = clip((vehicle.steering / vehicle.MAX_STEERING + 1) / 2, 0.0, 1.0)
+        info[1] = clip((vehicle.steering / vehicle.MAX_STEERING + 1) / 2, 0.0,
+                       1.0)
 
         # The normalized actions at last steps
         info[2] = clip((vehicle.last_current_action[1][0] + 1) / 2, 0.0, 1.0)
@@ -121,7 +130,8 @@ class CustomizedObservation(BaseObservation):
         # Current angular acceleration (yaw rate)
         heading_dir_last = vehicle.last_heading_dir
         heading_dir_now = vehicle.heading
-        cos_beta = heading_dir_now.dot(heading_dir_last) / (norm(*heading_dir_now) * norm(*heading_dir_last))
+        cos_beta = heading_dir_now.dot(heading_dir_last) / (
+            norm(*heading_dir_now) * norm(*heading_dir_last))
         beta_diff = np.arccos(clip(cos_beta, 0.0, 1.0))
         yaw_rate = beta_diff / 0.1
         info[4] = clip(yaw_rate, 0.0, 1.0)
@@ -129,37 +139,34 @@ class CustomizedObservation(BaseObservation):
         return info
 
     def side_detector_observe(self, vehicle):
-        return np.asarray(
-            self.engine.get_sensor("side_detector").perceive(
-                vehicle,
-                num_lasers=vehicle.config["side_detector"]["num_lasers"],
-                distance=vehicle.config["side_detector"]["distance"],
-                physics_world=vehicle.engine.physics_world.static_world,
-                show=vehicle.config["show_side_detector"],
-            ).cloud_points,
-            dtype=np.float32
-        )
+        return np.asarray(self.engine.get_sensor("side_detector").perceive(
+            vehicle,
+            num_lasers=vehicle.config["side_detector"]["num_lasers"],
+            distance=vehicle.config["side_detector"]["distance"],
+            physics_world=vehicle.engine.physics_world.static_world,
+            show=vehicle.config["show_side_detector"],
+        ).cloud_points,
+                          dtype=np.float32)
 
     def lane_line_detector_observe(self, vehicle):
-        return np.asarray(
-            self.engine.get_sensor("lane_line_detector").perceive(
-                vehicle,
-                vehicle.engine.physics_world.static_world,
-                num_lasers=vehicle.config["lane_line_detector"]["num_lasers"],
-                distance=vehicle.config["lane_line_detector"]["distance"],
-                show=vehicle.config["show_lane_line_detector"],
-            ).cloud_points,
-            dtype=np.float32
-        )
+        return np.asarray(self.engine.get_sensor("lane_line_detector").perceive(
+            vehicle,
+            vehicle.engine.physics_world.static_world,
+            num_lasers=vehicle.config["lane_line_detector"]["num_lasers"],
+            distance=vehicle.config["lane_line_detector"]["distance"],
+            show=vehicle.config["show_lane_line_detector"],
+        ).cloud_points,
+                          dtype=np.float32)
 
     def vehicle_detector_observe(self, vehicle):
-        cloud_points, detected_objects = self.engine.get_sensor("lidar").perceive(
-            vehicle,
-            physics_world=self.engine.physics_world.dynamic_world,
-            num_lasers=vehicle.config["lidar"]["num_lasers"],
-            distance=vehicle.config["lidar"]["distance"],
-            show=vehicle.config["show_lidar"],
-        )
+        cloud_points, detected_objects = self.engine.get_sensor(
+            "lidar").perceive(
+                vehicle,
+                physics_world=self.engine.physics_world.dynamic_world,
+                num_lasers=vehicle.config["lidar"]["num_lasers"],
+                distance=vehicle.config["lidar"]["distance"],
+                show=vehicle.config["show_lidar"],
+            )
         return np.asarray(cloud_points, dtype=np.float32)
 
     def destroy(self):
@@ -173,13 +180,11 @@ class CustomizedObservation(BaseObservation):
 
 
 class CustomizedIntersection(InterSectionWithUTurn):
-    PARAMETER_SPACE = ParameterSpace(
-        {
-            Parameter.radius: BoxSpace(min=9, max=20.0),
-            Parameter.change_lane_num: DiscreteSpace(min=0, max=2),
-            Parameter.decrease_increase: DiscreteSpace(min=0, max=0)
-        }
-    )
+    PARAMETER_SPACE = ParameterSpace({
+        Parameter.radius: BoxSpace(min=9, max=20.0),
+        Parameter.change_lane_num: DiscreteSpace(min=0, max=2),
+        Parameter.decrease_increase: DiscreteSpace(min=0, max=0)
+    })
 
 
 class MultiGoalIntersectionNavigationManager(BaseManager):
@@ -189,18 +194,24 @@ class MultiGoalIntersectionNavigationManager(BaseManager):
     """
     GOALS = {
         "u_turn": (-Road(FirstPGBlock.NODE_2, FirstPGBlock.NODE_3)).end_node,
-        "right_turn": Road(
-            CustomizedIntersection.node(block_idx=1, part_idx=0, road_idx=0),
-            CustomizedIntersection.node(block_idx=1, part_idx=0, road_idx=1)
-        ).end_node,
-        "go_straight": Road(
-            CustomizedIntersection.node(block_idx=1, part_idx=1, road_idx=0),
-            CustomizedIntersection.node(block_idx=1, part_idx=1, road_idx=1)
-        ).end_node,
-        "left_turn": Road(
-            CustomizedIntersection.node(block_idx=1, part_idx=2, road_idx=0),
-            CustomizedIntersection.node(block_idx=1, part_idx=2, road_idx=1)
-        ).end_node,
+        "right_turn":
+            Road(
+                CustomizedIntersection.node(block_idx=1, part_idx=0,
+                                            road_idx=0),
+                CustomizedIntersection.node(block_idx=1, part_idx=0,
+                                            road_idx=1)).end_node,
+        "go_straight":
+            Road(
+                CustomizedIntersection.node(block_idx=1, part_idx=1,
+                                            road_idx=0),
+                CustomizedIntersection.node(block_idx=1, part_idx=1,
+                                            road_idx=1)).end_node,
+        "left_turn":
+            Road(
+                CustomizedIntersection.node(block_idx=1, part_idx=2,
+                                            road_idx=0),
+                CustomizedIntersection.node(block_idx=1, part_idx=2,
+                                            road_idx=1)).end_node,
     }
 
     def __init__(self):
@@ -218,8 +229,7 @@ class MultiGoalIntersectionNavigationManager(BaseManager):
                 show_line_to_dest=vehicle_config["show_line_to_dest"],
                 panda_color=colors[c],  # color for navigation marker
                 name=dest_name,
-                vehicle_config=vehicle_config
-            )
+                vehicle_config=vehicle_config)
 
     @property
     def agent(self):
@@ -254,65 +264,66 @@ class MultiGoalIntersectionEnvBase(MetaDriveEnv):
     This environment is an intersection with multiple goals. We provide the reward function, observation, termination
     conditions for each goal in the info dict returned by env.reset and env.step, with prefix "goals/{goal_name}/".
     """
+
     @classmethod
     def default_config(cls):
         config = MetaDriveEnv.default_config()
         # config.update(VaryingDynamicsConfig)
-        config.update(
-            {
-                "use_multigoal_intersection": True,
+        config.update({
+            "use_multigoal_intersection": True,
 
-                # Set the map to an Intersection
-                "start_seed": 0,
+            # Set the map to an Intersection
+            "start_seed": 0,
 
-                # Even though the map will not change, the traffic flow will change.
-                "num_scenarios": 1000,
+            # Even though the map will not change, the traffic flow will change.
+            "num_scenarios": 1000,
 
-                # Remove all traffic vehicles for now.
-                # "traffic_density": 0.2,
+            # Remove all traffic vehicles for now.
+            # "traffic_density": 0.2,
 
-                # If the vehicle does not reach the default destination, it will receive a penalty.
-                "wrong_way_penalty": 10.0,
-                # "crash_sidewalk_penalty": 10.0,
-                # "crash_vehicle_penalty": 10.0,
-                # "crash_object_penalty": 10.0,
-                # "out_of_road_penalty": 10.0,
-                "out_of_route_penalty": 0.0,
-                # "success_reward": 10.0,
-                # "driving_reward": 1.0,
-                # "on_continuous_line_done": True,
-                # "out_of_road_done": True,
-                "vehicle_config": {
-                    "show_navi_mark": False,
-                    "show_line_to_navi_mark": False,
-                    "show_line_to_dest": False,
-                    "show_dest_mark": False,
+            # If the vehicle does not reach the default destination, it will receive a penalty.
+            "wrong_way_penalty": 10.0,
+            # "crash_sidewalk_penalty": 10.0,
+            # "crash_vehicle_penalty": 10.0,
+            # "crash_object_penalty": 10.0,
+            # "out_of_road_penalty": 10.0,
+            "out_of_route_penalty": 0.0,
+            # "success_reward": 10.0,
+            # "driving_reward": 1.0,
+            # "on_continuous_line_done": True,
+            # "out_of_road_done": True,
+            "vehicle_config": {
+                "show_navi_mark": False,
+                "show_line_to_navi_mark": False,
+                "show_line_to_dest": False,
+                "show_dest_mark": False,
 
-                    # Remove navigation arrows in the window as we are in multi-goal environment.
-                    "show_navigation_arrow": False,
+                # Remove navigation arrows in the window as we are in multi-goal environment.
+                "show_navigation_arrow": False,
 
-                    # Turn off vehicle's own navigation module.
-                    "side_detector": dict(num_lasers=120, distance=50),  # laser num, distance
-                    "lidar": dict(num_lasers=120, distance=50),
+                # Turn off vehicle's own navigation module.
+                "side_detector": dict(num_lasers=120,
+                                      distance=50),  # laser num, distance
+                "lidar": dict(num_lasers=120, distance=50),
 
-                    # To avoid goal-dependent lane detection, we use Lidar to detect distance to nearby lane lines.
-                    # Otherwise, we will ask the navigation module to provide current lane and extract the lateral
-                    # distance directly on this lane.
-                    "lane_line_detector": dict(num_lasers=0, distance=20)
-                }
+                # To avoid goal-dependent lane detection, we use Lidar to detect distance to nearby lane lines.
+                # Otherwise, we will ask the navigation module to provide current lane and extract the lateral
+                # distance directly on this lane.
+                "lane_line_detector": dict(num_lasers=0, distance=20)
             }
-        )
+        })
         return config
 
     def _post_process_config(self, config):
         config = super()._post_process_config(config)
         if config["use_multigoal_intersection"]:
             config['map'] = None
-            config['map_config'] = dict(
-                type="block_sequence", config=[
-                    CustomizedIntersection,
-                ], lane_num=2, lane_width=3.5
-            )
+            config['map_config'] = dict(type="block_sequence",
+                                        config=[
+                                            CustomizedIntersection,
+                                        ],
+                                        lane_num=2,
+                                        lane_width=3.5)
         return config
 
     # def _get_agent_manager(self):
@@ -331,36 +342,43 @@ class MultiGoalIntersectionEnvBase(MetaDriveEnv):
 
         # Introducing a new navigation manager
         if self.config["use_multigoal_intersection"]:
-            self.engine.register_manager("goal_manager", MultiGoalIntersectionNavigationManager())
+            self.engine.register_manager(
+                "goal_manager", MultiGoalIntersectionNavigationManager())
 
     def _get_step_return(self, actions, engine_info):
         """Add goal-dependent observation to the info dict."""
-        o, r, tm, tc, i = super(MultiGoalIntersectionEnvBase, self)._get_step_return(actions, engine_info)
+        o, r, tm, tc, i = super(MultiGoalIntersectionEnvBase,
+                                self)._get_step_return(actions, engine_info)
 
         if self.config["use_multigoal_intersection"]:
             for goal_name in self.engine.goal_manager.goals.keys():
                 navi = self.engine.goal_manager.get_navigation(goal_name)
-                goal_obs = self.observations["default_agent"].observe(self.agents[DEFAULT_AGENT], navi)
+                goal_obs = self.observations["default_agent"].observe(
+                    self.agents[DEFAULT_AGENT], navi)
                 i["obs/goals/{}".format(goal_name)] = goal_obs
             assert r == i["reward/default_reward"]
             assert i["route_completion"] == i["route_completion/goals/default"]
 
         else:
-            i["obs/goals/default"] = self.observations["default_agent"].observe(self.agents[DEFAULT_AGENT])
+            i["obs/goals/default"] = self.observations["default_agent"].observe(
+                self.agents[DEFAULT_AGENT])
         return o, r, tm, tc, i
 
     def _get_reset_return(self, reset_info):
         """Add goal-dependent observation to the info dict."""
-        o, i = super(MultiGoalIntersectionEnvBase, self)._get_reset_return(reset_info)
+        o, i = super(MultiGoalIntersectionEnvBase,
+                     self)._get_reset_return(reset_info)
 
         if self.config["use_multigoal_intersection"]:
             for goal_name in self.engine.goal_manager.goals.keys():
                 navi = self.engine.goal_manager.get_navigation(goal_name)
-                goal_obs = self.observations["default_agent"].observe(self.agents[DEFAULT_AGENT], navi)
+                goal_obs = self.observations["default_agent"].observe(
+                    self.agents[DEFAULT_AGENT], navi)
                 i["obs/goals/{}".format(goal_name)] = goal_obs
 
         else:
-            i["obs/goals/default"] = self.observations["default_agent"].observe(self.agents[DEFAULT_AGENT])
+            i["obs/goals/default"] = self.observations["default_agent"].observe(
+                self.agents[DEFAULT_AGENT])
 
         return o, i
 
@@ -380,14 +398,16 @@ class MultiGoalIntersectionEnvBase(MetaDriveEnv):
         long_now, lateral_now = current_lane.local_coordinates(vehicle.position)
 
         # Reward for moving forward in current lane
-        reward += self.config["driving_reward"] * (long_now - long_last) * positive_road
+        reward += self.config["driving_reward"] * (long_now -
+                                                   long_last) * positive_road
 
         left, right = vehicle._dist_to_route_left_right(navigation=navi)
         out_of_route = (right < 0) or (left < 0)
 
         # Reward for speed, sign determined by whether in the correct lanes (instead of driving in the wrong
         # direction).
-        reward += self.config["speed_reward"] * (vehicle.speed_km_h / vehicle.max_speed_km_h) * positive_road
+        reward += self.config["speed_reward"] * (
+            vehicle.speed_km_h / vehicle.max_speed_km_h) * positive_road
         if self._is_arrive_destination(vehicle):
             if self._is_arrive_destination(vehicle, goal_name):
                 reward += self.config["success_reward"]
@@ -423,18 +443,21 @@ class MultiGoalIntersectionEnvBase(MetaDriveEnv):
             for goal_name in self.engine.goal_manager.goals.keys():
                 navi = self.engine.goal_manager.get_navigation(goal_name)
                 prefix = goal_name
-                reward, route_completion = self._reward_per_navigation(vehicle, navi, goal_name)
+                reward, route_completion = self._reward_per_navigation(
+                    vehicle, navi, goal_name)
                 step_info[f"reward/goals/{prefix}"] = reward
                 step_info[f"route_completion/goals/{prefix}"] = route_completion
 
         else:
             navi = vehicle.navigation
             goal_name = "default"
-            reward, route_completion = self._reward_per_navigation(vehicle, navi, goal_name)
+            reward, route_completion = self._reward_per_navigation(
+                vehicle, navi, goal_name)
             step_info[f"reward/goals/{goal_name}"] = reward
             step_info[f"route_completion/goals/{goal_name}"] = route_completion
 
-        default_reward, default_rc = self._reward_per_navigation(vehicle, vehicle.navigation, "default")
+        default_reward, default_rc = self._reward_per_navigation(
+            vehicle, vehicle.navigation, "default")
         step_info[f"reward/goals/default"] = default_reward
         step_info[f"route_completion/goals/default"] = default_rc
         step_info[f"reward/default_reward"] = default_reward
@@ -470,27 +493,31 @@ class MultiGoalIntersectionEnvBase(MetaDriveEnv):
             navi = vehicle.navigation
 
         long, lat = navi.final_lane.local_coordinates(vehicle.position)
-        flag = (navi.final_lane.length - 5 < long < navi.final_lane.length + 5) and (
-            navi.get_current_lane_width() / 2 >= lat >=
-            (0.5 - navi.get_current_lane_num()) * navi.get_current_lane_width()
-        )
+        flag = (navi.final_lane.length - 5 < long < navi.final_lane.length +
+                5) and (navi.get_current_lane_width() / 2 >= lat >=
+                        (0.5 - navi.get_current_lane_num()) *
+                        navi.get_current_lane_width())
         return flag
 
     def done_function(self, vehicle_id: str):
         """
         Compared to MetaDriveEnv's done_function, we add more stats here to record which goal is arrived.
         """
-        done, done_info = super(MultiGoalIntersectionEnvBase, self).done_function(vehicle_id)
+        done, done_info = super(MultiGoalIntersectionEnvBase,
+                                self).done_function(vehicle_id)
         vehicle = self.agents[vehicle_id]
 
         if self.config["use_multigoal_intersection"]:
             for goal_name in self.engine.goal_manager.goals.keys():
-                done_info[f"arrive_dest/goals/{goal_name}"] = self._is_arrive_destination(vehicle, goal_name)
+                done_info[
+                    f"arrive_dest/goals/{goal_name}"] = self._is_arrive_destination(
+                        vehicle, goal_name)
 
         else:
             done_info[f"arrive_dest/goals/default"] = done
 
-        done_info["arrive_dest/goals/default"] = self._is_arrive_destination(vehicle, "default")
+        done_info["arrive_dest/goals/default"] = self._is_arrive_destination(
+            vehicle, "default")
 
         return done, done_info
 
@@ -501,14 +528,14 @@ class MultiGoalIntersectionEnv(MultiGoalIntersectionEnvBase):
     @classmethod
     def default_config(cls):
         config = MultiGoalIntersectionEnvBase.default_config()
-        config.update(
-            {"goal_probabilities": {
+        config.update({
+            "goal_probabilities": {
                 "u_turn": 0.25,
                 "right_turn": 0.25,
                 "go_straight": 0.25,
                 "left_turn": 0.25,
-            }}
-        )
+            }
+        })
         return config
 
     def step(self, actions):
@@ -516,11 +543,15 @@ class MultiGoalIntersectionEnv(MultiGoalIntersectionEnvBase):
 
         o = i['obs/goals/{}'.format(self.current_goal)]
         r = i['reward/goals/{}'.format(self.current_goal)]
-        i['route_completion'] = i['route_completion/goals/{}'.format(self.current_goal)]
+        i['route_completion'] = i['route_completion/goals/{}'.format(
+            self.current_goal)]
         i['arrive_dest'] = i['arrive_dest/goals/{}'.format(self.current_goal)]
-        i['reward/goals/default'] = i['reward/goals/{}'.format(self.current_goal)]
-        i['route_completion/goals/default'] = i['route_completion/goals/{}'.format(self.current_goal)]
-        i['arrive_dest/goals/default'] = i['arrive_dest/goals/{}'.format(self.current_goal)]
+        i['reward/goals/default'] = i['reward/goals/{}'.format(
+            self.current_goal)]
+        i['route_completion/goals/default'] = i[
+            'route_completion/goals/{}'.format(self.current_goal)]
+        i['arrive_dest/goals/default'] = i['arrive_dest/goals/{}'.format(
+            self.current_goal)]
         i["current_goal"] = self.current_goal
         return o, r, tm, tc, i
 
@@ -537,17 +568,22 @@ class MultiGoalIntersectionEnv(MultiGoalIntersectionEnvBase):
         # Sample a goal from the goal set
         if self.config["use_multigoal_intersection"]:
             p = self.config["goal_probabilities"]
-            self.current_goal = np.random.choice(list(p.keys()), p=list(p.values()))
+            self.current_goal = np.random.choice(list(p.keys()),
+                                                 p=list(p.values()))
 
         else:
             self.current_goal = "default"
 
         o = i['obs/goals/{}'.format(self.current_goal)]
-        i['route_completion'] = i['route_completion/goals/{}'.format(self.current_goal)]
+        i['route_completion'] = i['route_completion/goals/{}'.format(
+            self.current_goal)]
         i['arrive_dest'] = i['arrive_dest/goals/{}'.format(self.current_goal)]
-        i['reward/goals/default'] = i['reward/goals/{}'.format(self.current_goal)]
-        i['route_completion/goals/default'] = i['route_completion/goals/{}'.format(self.current_goal)]
-        i['arrive_dest/goals/default'] = i['arrive_dest/goals/{}'.format(self.current_goal)]
+        i['reward/goals/default'] = i['reward/goals/{}'.format(
+            self.current_goal)]
+        i['route_completion/goals/default'] = i[
+            'route_completion/goals/{}'.format(self.current_goal)]
+        i['arrive_dest/goals/default'] = i['arrive_dest/goals/{}'.format(
+            self.current_goal)]
         i["current_goal"] = self.current_goal
 
         return o, i
@@ -594,7 +630,8 @@ if __name__ == "__main__":
 
         print('=======================')
         print("Full observation shape:\n\t", o.shape)
-        print("Goal-agnostic observation shape:\n\t", NAVI_DIM + GOAL_DEPENDENT_STATE_DIM)
+        print("Goal-agnostic observation shape:\n\t",
+              NAVI_DIM + GOAL_DEPENDENT_STATE_DIM)
         print("Observation shape for each goals: ")
         for k in sorted(info.keys()):
             if k.startswith("obs/goals/"):

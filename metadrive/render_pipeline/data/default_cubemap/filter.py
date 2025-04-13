@@ -35,6 +35,7 @@ from direct.showbase.ShowBase import ShowBase
 
 
 class Application(ShowBase):
+
     def __init__(self):
         load_prc_file_data(
             "", """
@@ -45,8 +46,7 @@ class Application(ShowBase):
             notify-level-display error
             print-pipe-types #f
             gl-version 4 3
-        """
-        )
+        """)
 
         ShowBase.__init__(self)
 
@@ -62,7 +62,8 @@ class Application(ShowBase):
         if isfile(join(source_path, "1.png")):
             extension = ".png"
 
-        cubemap = self.loader.loadCubeMap(Filename.from_os_specific(join(source_path, "#" + extension)))
+        cubemap = self.loader.loadCubeMap(
+            Filename.from_os_specific(join(source_path, "#" + extension)))
         mipmap, size = -1, 1024
 
         cshader = Shader.load_compute(Shader.SL_GLSL, "filter.compute.glsl")
@@ -78,21 +79,28 @@ class Application(ShowBase):
 
             for i in range(6):
                 node.set_shader(cshader)
-                node.set_shader_inputs(
-                    SourceTex=cubemap, DestTex=dest_cubemap, currentSize=size, currentMip=mipmap, currentFace=i
-                )
+                node.set_shader_inputs(SourceTex=cubemap,
+                                       DestTex=dest_cubemap,
+                                       currentSize=size,
+                                       currentMip=mipmap,
+                                       currentFace=i)
                 attr = node.get_attrib(ShaderAttrib)
-                self.graphicsEngine.dispatch_compute(((size + 15) // 16, (size + 15) // 16, 1), attr, self.win.gsg)
+                self.graphicsEngine.dispatch_compute(
+                    ((size + 15) // 16, (size + 15) // 16, 1), attr,
+                    self.win.gsg)
 
             print(" Extracting data ..")
 
             self.graphicsEngine.extract_texture_data(dest_cubemap, self.win.gsg)
 
             print(" Writing data ..")
-            dest_cubemap.write(join(filter_dir, "{}-#.png".format(mipmap)), 0, 0, True, False)
+            dest_cubemap.write(join(filter_dir, "{}-#.png".format(mipmap)), 0,
+                               0, True, False)
 
         print("Reading in data back in ..")
-        tex = self.loader.loadCubeMap(Filename.from_os_specific(join(base_path, "tmp/#-#.png")), readMipmaps="True")
+        tex = self.loader.loadCubeMap(Filename.from_os_specific(
+            join(base_path, "tmp/#-#.png")),
+                                      readMipmaps="True")
 
         print("Writing txo ..")
         tex.write("cubemap.txo.pz")

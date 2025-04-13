@@ -13,18 +13,24 @@ def test_waymo_env(policy, render=False, num_scenarios=3):
     TrajectoryIDMPolicy.NORMAL_SPEED = 30
     asset_path = AssetLoader.asset_path
     try:
-        env = ScenarioEnv(
-            {
-                "manual_control": False,
-                "no_traffic": True if policy == TrajectoryIDMPolicy else False,
-                "use_render": render,
-                "agent_policy": policy,
-                "show_crosswalk": True,
-                "show_sidewalk": True,
-                "data_directory": AssetLoader.file_path(asset_path, "waymo", unix_style=False),
-                "num_scenarios": num_scenarios
-            }
-        )
+        env = ScenarioEnv({
+            "manual_control":
+                False,
+            "no_traffic":
+                True if policy == TrajectoryIDMPolicy else False,
+            "use_render":
+                render,
+            "agent_policy":
+                policy,
+            "show_crosswalk":
+                True,
+            "show_sidewalk":
+                True,
+            "data_directory":
+                AssetLoader.file_path(asset_path, "waymo", unix_style=False),
+            "num_scenarios":
+                num_scenarios
+        })
         for seed in range(0, num_scenarios):
             env.reset(seed=seed)
             for i in range(1000):
@@ -32,7 +38,8 @@ def test_waymo_env(policy, render=False, num_scenarios=3):
                 assert env.observation_space.contains(o)
                 if tm or tc:
                     assert info["arrive_dest"], "Can not arrive dest"
-                    print("{} track_length: ".format(env.engine.global_seed), info["track_length"])
+                    print("{} track_length: ".format(env.engine.global_seed),
+                          info["track_length"])
                     # assert info["arrive_dest"], "Can not arrive dest"
                     break
 
@@ -46,17 +53,22 @@ def test_waymo_env(policy, render=False, num_scenarios=3):
 def test_store_map_memory_leakage(render=False):
     TrajectoryIDMPolicy.NORMAL_SPEED = 30
     asset_path = AssetLoader.asset_path
-    env = ScenarioEnv(
-        {
-            "manual_control": False,
-            "no_traffic": False,
-            "store_map": True,
-            "use_render": render,
-            "agent_policy": ReplayEgoCarPolicy,
-            "data_directory": AssetLoader.file_path(asset_path, "waymo", unix_style=False),
-            "num_scenarios": 3
-        }
-    )
+    env = ScenarioEnv({
+        "manual_control":
+            False,
+        "no_traffic":
+            False,
+        "store_map":
+            True,
+        "use_render":
+            render,
+        "agent_policy":
+            ReplayEgoCarPolicy,
+        "data_directory":
+            AssetLoader.file_path(asset_path, "waymo", unix_style=False),
+        "num_scenarios":
+            3
+    })
     try:
 
         memory = []

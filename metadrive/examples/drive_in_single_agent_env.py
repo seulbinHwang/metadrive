@@ -29,23 +29,25 @@ if __name__ == "__main__":
         random_lane_num=True,
         on_continuous_line_done=False,
         out_of_route_done=True,
-        vehicle_config=dict(show_lidar=True, show_navi_mark=False, show_line_to_navi_mark=False),
+        vehicle_config=dict(show_lidar=True,
+                            show_navi_mark=False,
+                            show_line_to_navi_mark=False),
         # debug=True,
         # debug_static_world=True,
         map=4,  # seven block
         start_seed=10,
     )
     parser = argparse.ArgumentParser()
-    parser.add_argument("--observation", type=str, default="lidar", choices=["lidar", "rgb_camera"])
+    parser.add_argument("--observation",
+                        type=str,
+                        default="lidar",
+                        choices=["lidar", "rgb_camera"])
     args = parser.parse_args()
     if args.observation == "rgb_camera":
         config.update(
-            dict(
-                image_observation=True,
-                sensors=dict(rgb_camera=(RGBCamera, 400, 300)),
-                interface_panel=["rgb_camera", "dashboard"]
-            )
-        )
+            dict(image_observation=True,
+                 sensors=dict(rgb_camera=(RGBCamera, 400, 300)),
+                 interface_panel=["rgb_camera", "dashboard"]))
     env = MetaDriveEnv(config)
     try:
         o, _ = env.reset(seed=21)
@@ -53,7 +55,9 @@ if __name__ == "__main__":
         env.agent.expert_takeover = True
         if args.observation == "rgb_camera":
             assert isinstance(o, dict)
-            print("The observation is a dict with numpy arrays as values: ", {k: v.shape for k, v in o.items()})
+            print("The observation is a dict with numpy arrays as values: ", {
+                k: v.shape for k, v in o.items()
+            })
         else:
             assert isinstance(o, np.ndarray)
             print("The observation is an numpy array with shape: ", o.shape)
@@ -61,11 +65,14 @@ if __name__ == "__main__":
             o, r, tm, tc, info = env.step([0, 0])
             env.render(
                 text={
-                    "Auto-Drive (Switch mode: T)": "on" if env.current_track_agent.expert_takeover else "off",
-                    "Current Observation": args.observation,
-                    "Keyboard Control": "W,A,S,D",
-                }
-            )
+                    "Auto-Drive (Switch mode: T)":
+                        "on" if env.current_track_agent.
+                        expert_takeover else "off",
+                    "Current Observation":
+                        args.observation,
+                    "Keyboard Control":
+                        "W,A,S,D",
+                })
             print("Navigation information: ", info["navigation_command"])
 
             if args.observation == "rgb_camera":

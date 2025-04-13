@@ -8,7 +8,9 @@ from metadrive.scenario.scenario_description import ScenarioDescription as SD
 from metadrive.utils.math import get_boxes_bounding_box
 from metadrive.utils.pg.utils import get_lanes_bounding_box
 
-lane_info = namedtuple("edge_lane", ["lane", "entry_lanes", "exit_lanes", "left_lanes", "right_lanes"])
+lane_info = namedtuple(
+    "edge_lane",
+    ["lane", "entry_lanes", "exit_lanes", "left_lanes", "right_lanes"])
 
 
 class EdgeRoadNetwork(BaseRoadNetwork):
@@ -16,19 +18,18 @@ class EdgeRoadNetwork(BaseRoadNetwork):
     Compared to NodeRoadNetwork representing the relation of lanes in a node-based graph, EdgeRoadNetwork stores the
     relationship in edge-based graph, which is more common in real map representation
     """
+
     def __init__(self):
         super(EdgeRoadNetwork, self).__init__()
         self.graph = {}
 
     def add_lane(self, lane) -> None:
         assert lane.index is not None, "Lane index can not be None"
-        self.graph[lane.index] = lane_info(
-            lane=lane,
-            entry_lanes=lane.entry_lanes or [],
-            exit_lanes=lane.exit_lanes or [],
-            left_lanes=lane.left_lanes or [],
-            right_lanes=lane.right_lanes or []
-        )
+        self.graph[lane.index] = lane_info(lane=lane,
+                                           entry_lanes=lane.entry_lanes or [],
+                                           exit_lanes=lane.exit_lanes or [],
+                                           left_lanes=lane.left_lanes or [],
+                                           right_lanes=lane.right_lanes or [])
 
     def get_lane(self, index: LaneIndex):
         return self.graph[index].lane
@@ -41,7 +42,8 @@ class EdgeRoadNetwork(BaseRoadNetwork):
     def add(self, other, no_intersect=True):
         for id, lane_info in other.graph.items():
             if no_intersect:
-                assert id not in self.graph.keys(), "Intersect: {} exists in two network".format(id)
+                assert id not in self.graph.keys(
+                ), "Intersect: {} exists in two network".format(id)
             self.graph[id] = other.graph[id]
         return self
 
@@ -54,7 +56,8 @@ class EdgeRoadNetwork(BaseRoadNetwork):
         lanes = []
         for id, lane_info, in self.graph.items():
             lanes.append(lane_info.lane)
-        res_x_max, res_x_min, res_y_max, res_y_min = get_boxes_bounding_box([get_lanes_bounding_box(lanes)])
+        res_x_max, res_x_min, res_y_max, res_y_min = get_boxes_bounding_box(
+            [get_lanes_bounding_box(lanes)])
         return res_x_min, res_x_max, res_y_min, res_y_max
 
     def shortest_path(self, start: str, goal: str):
@@ -68,7 +71,9 @@ class EdgeRoadNetwork(BaseRoadNetwork):
         :param goal: goal edge
         :return: list of paths from start to goal.
         """
-        lanes = self.graph[start].left_lanes + self.graph[start].right_lanes + [start]
+        lanes = self.graph[start].left_lanes + self.graph[start].right_lanes + [
+            start
+        ]
 
         queue = [(lane, [lane]) for lane in lanes]
         while queue:
@@ -140,8 +145,11 @@ class EdgeRoadNetwork(BaseRoadNetwork):
 
 
 class OpenDriveRoadNetwork(EdgeRoadNetwork):
+
     def add_lane(self, lane) -> None:
         assert lane.index is not None, "Lane index can not be None"
-        self.graph[lane.index] = lane_info(
-            lane=lane, entry_lanes=None, exit_lanes=None, left_lanes=None, right_lanes=None
-        )
+        self.graph[lane.index] = lane_info(lane=lane,
+                                           entry_lanes=None,
+                                           exit_lanes=None,
+                                           left_lanes=None,
+                                           right_lanes=None)

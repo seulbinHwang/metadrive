@@ -24,10 +24,8 @@ from metadrive.tests.vis_block.vis_block_base import TestBlock
 
 
 def format_cudart_err(err):
-    return (
-        f"{cudart.cudaGetErrorName(err)[1].decode('utf-8')}({int(err)}): "
-        f"{cudart.cudaGetErrorString(err)[1].decode('utf-8')}"
-    )
+    return (f"{cudart.cudaGetErrorName(err)[1].decode('utf-8')}({int(err)}): "
+            f"{cudart.cudaGetErrorString(err)[1].decode('utf-8')}")
 
 
 def check_cudart_err(args):
@@ -52,11 +50,16 @@ def check_cudart_err(args):
 
 
 class CUDATest:
-    def __init__(self, window_type="onscreen", shape=None, test_ram_image=False):
+
+    def __init__(self,
+                 window_type="onscreen",
+                 shape=None,
+                 test_ram_image=False):
         assert shape is not None
         self.engine = engine = TestBlock(window_type=window_type)
 
-        model = self.engine.loader.loadModel(AssetLoader.file_path("models", "box.bam"))
+        model = self.engine.loader.loadModel(
+            AssetLoader.file_path("models", "box.bam"))
         model.setColor(0.3, 0.5, 0.8)
         model.reparentTo(engine.worldNP)
 
@@ -92,11 +95,13 @@ class CUDATest:
         self.engine.graphicsEngine.renderFrame()
         self.engine.graphicsEngine.renderFrame()
         self.engine.graphicsEngine.renderFrame()
-        self.engine.cam.node().getDisplayRegion(0).setDrawCallback(_callback_func)
+        self.engine.cam.node().getDisplayRegion(0).setDrawCallback(
+            _callback_func)
 
         self.texture_identifier = None
         self.gsg = GraphicsStateGuardianBase.getDefaultGsg()
-        self.texture_context_future = self.texture.prepare(self.gsg.prepared_objects)
+        self.texture_context_future = self.texture.prepare(
+            self.gsg.prepared_objects)
         self.new_cuda_mem_ptr = None
 
         self.current_data = None
@@ -104,13 +109,12 @@ class CUDATest:
     @property
     def cuda_array(self):
         assert self.mapped
-        return cp.ndarray(
-            shape=(self._shape[1], self._shape[0], self._shape[-1]),
-            dtype=self._dtype,
-            strides=self._strides,
-            order=self._order,
-            memptr=self._cuda_buffer
-        )
+        return cp.ndarray(shape=(self._shape[1], self._shape[0],
+                                 self._shape[-1]),
+                          dtype=self._dtype,
+                          strides=self._strides,
+                          order=self._order,
+                          memptr=self._cuda_buffer)
 
     @property
     def gl_buffer(self):
@@ -145,22 +149,23 @@ class CUDATest:
         self.unregister()
 
     def register(self):
-        self.texture_identifier = self.texture_context_future.result().getNativeId()
+        self.texture_identifier = self.texture_context_future.result(
+        ).getNativeId()
         assert self.texture_identifier is not None
         if self.registered:
             return self._graphics_resource
         self._graphics_resource = check_cudart_err(
             cudart.cudaGraphicsGLRegisterImage(
-                self.texture_identifier, GL_TEXTURE_2D, cudaGraphicsRegisterFlags.cudaGraphicsRegisterFlagsReadOnly
-            )
-        )
+                self.texture_identifier, GL_TEXTURE_2D,
+                cudaGraphicsRegisterFlags.cudaGraphicsRegisterFlagsReadOnly))
         return self._graphics_resource
 
     def unregister(self):
         if not self.registered:
             return self
         self.unmap()
-        self._graphics_resource = check_cudart_err(cudart.cudaGraphicsUnregisterResource(self._graphics_resource))
+        self._graphics_resource = check_cudart_err(
+            cudart.cudaGraphicsUnregisterResource(self._graphics_resource))
         return self
 
     def map(self, stream=0):
@@ -169,25 +174,30 @@ class CUDATest:
         if self.mapped:
             return self._cuda_buffer
         # self.engine.graphicsEngine.renderFrame()
-        check_cudart_err(cudart.cudaGraphicsMapResources(1, self._graphics_resource, stream))
-        array = check_cudart_err(cudart.cudaGraphicsSubResourceGetMappedArray(self.graphics_resource, 0, 0))
-        channelformat, cudaextent, flag = check_cudart_err(cudart.cudaArrayGetInfo(array))
+        check_cudart_err(
+            cudart.cudaGraphicsMapResources(1, self._graphics_resource, stream))
+        array = check_cudart_err(
+            cudart.cudaGraphicsSubResourceGetMappedArray(
+                self.graphics_resource, 0, 0))
+        channelformat, cudaextent, flag = check_cudart_err(
+            cudart.cudaArrayGetInfo(array))
 
         depth = 1
         byte = 4  # four channel
         if self.new_cuda_mem_ptr is None:
-            success, self.new_cuda_mem_ptr = cudart.cudaMalloc(cudaextent.height * cudaextent.width * byte * depth)
+            success, self.new_cuda_mem_ptr = cudart.cudaMalloc(
+                cudaextent.height * cudaextent.width * byte * depth)
         check_cudart_err(
             cudart.cudaMemcpy2DFromArray(
-                self.new_cuda_mem_ptr, cudaextent.width * byte * depth, array, 0, 0, cudaextent.width * byte * depth,
-                cudaextent.height, cudart.cudaMemcpyKind.cudaMemcpyDeviceToDevice
-            )
-        )
+                self.new_cuda_mem_ptr, cudaextent.width * byte * depth, array,
+                0, 0, cudaextent.width * byte * depth, cudaextent.height,
+                cudart.cudaMemcpyKind.cudaMemcpyDeviceToDevice))
         if self._cuda_buffer is None:
             self._cuda_buffer = cp.cuda.MemoryPointer(
-                cp.cuda.UnownedMemory(self.new_cuda_mem_ptr, cudaextent.width * depth * byte * cudaextent.height, self),
-                0
-            )
+                cp.cuda.UnownedMemory(
+                    self.new_cuda_mem_ptr,
+                    cudaextent.width * depth * byte * cudaextent.height, self),
+                0)
         return self.cuda_array
 
     def unmap(self, stream=None):
@@ -196,7 +206,9 @@ class CUDATest:
         if not self.mapped:
             return self
 
-        self._cuda_buffer = check_cudart_err(cudart.cudaGraphicsUnmapResources(1, self._graphics_resource, stream))
+        self._cuda_buffer = check_cudart_err(
+            cudart.cudaGraphicsUnmapResources(1, self._graphics_resource,
+                                              stream))
 
         return self
 
@@ -211,7 +223,9 @@ if __name__ == "__main__":
     loadPrcFileData("", "win-size {} {}".format(*win_size))
     test_ram_image = False
     render = False
-    env = CUDATest(window_type="offscreen", shape=(*win_size, 4), test_ram_image=test_ram_image)
+    env = CUDATest(window_type="offscreen",
+                   shape=(*win_size, 4),
+                   test_ram_image=test_ram_image)
 
     # important
     env.engine.graphicsEngine.renderFrame()
@@ -222,7 +236,8 @@ if __name__ == "__main__":
         env.step()
         if test_ram_image:
             origin_img = env.texture
-            img = np.frombuffer(origin_img.getRamImage().getData(), dtype=np.uint8)
+            img = np.frombuffer(origin_img.getRamImage().getData(),
+                                dtype=np.uint8)
             img = img.reshape((origin_img.getYSize(), origin_img.getXSize(), 4))
             img = img
             torch_img = torch.from_numpy(img)

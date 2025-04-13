@@ -10,7 +10,9 @@ class ExtensionDirection(Enum):
 
 
 class ExtendingLane(StraightLane):
-    def __init__(self, extension_direction: ExtensionDirection, *args, **kwargs):
+
+    def __init__(self, extension_direction: ExtensionDirection, *args,
+                 **kwargs):
         super(ExtendingLane, self).__init__(*args, **kwargs)
         self.extension_direction = extension_direction
 
@@ -34,7 +36,8 @@ class ExtendingLane(StraightLane):
             return self._polygon
 
         polygon = []
-        longs = np.arange(0, self.length + self.POLYGON_SAMPLE_RATE, self.POLYGON_SAMPLE_RATE)
+        longs = np.arange(0, self.length + self.POLYGON_SAMPLE_RATE,
+                          self.POLYGON_SAMPLE_RATE)
         for longitude in longs:
             point = self.position(longitude, -self.width / 2)
             polygon.append([point[0], point[1]])

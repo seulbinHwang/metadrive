@@ -58,7 +58,10 @@ class PSSMSceneShadowStage(RenderStage):
 
     @property
     def produced_pipes(self):
-        return {"PSSMSceneSunShadowMapPCF": (self.target.depth_tex, self.make_pcf_state())}
+        return {
+            "PSSMSceneSunShadowMapPCF": (self.target.depth_tex,
+                                         self.make_pcf_state())
+        }
 
     def make_pcf_state(self):
         state = SamplerState()
@@ -83,9 +86,11 @@ class PSSMSceneShadowStage(RenderStage):
             else:
                 focus_point, focus_size = self.focus
 
-                self.cam_lens.set_near_far(0.0, 2 * (focus_size + self.sun_distance))
+                self.cam_lens.set_near_far(0.0,
+                                           2 * (focus_size + self.sun_distance))
                 self.cam_lens.set_film_size(2 * focus_size, 2 * focus_size)
-                self.cam_node.set_pos(focus_point + self.sun_vector * (self.sun_distance + focus_size))
+                self.cam_node.set_pos(focus_point + self.sun_vector *
+                                      (self.sun_distance + focus_size))
                 self.cam_node.look_at(focus_point)
 
                 snap_shadow_map(self.mvp, self.cam_node, self.resolution)

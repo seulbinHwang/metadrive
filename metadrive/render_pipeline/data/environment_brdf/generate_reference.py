@@ -58,7 +58,8 @@ for config_name in configs_to_run:
 
         # run mitsuba
         print("Running mitsuba for ior =", ior, "( index =", pass_index, ")")
-        with open("res/scene" + config["template_suffix"] + ".templ.xml", "r") as handle:
+        with open("res/scene" + config["template_suffix"] + ".templ.xml",
+                  "r") as handle:
             content = handle.read()
 
         content = content.replace("%IOR%", str(ior))
@@ -97,7 +98,8 @@ for config_name in configs_to_run:
             curr_nxv = nxv_values[index]
             next_nxv = nxv_values[next_index]
 
-            lerp_factor = (NxV - curr_nxv) / max(1e-10, abs(next_nxv - curr_nxv))
+            lerp_factor = (NxV - curr_nxv) / max(1e-10,
+                                                 abs(next_nxv - curr_nxv))
             lerp_factor = max(0.0, min(1.0, lerp_factor))
             indices.append((index, next_index, lerp_factor))
 

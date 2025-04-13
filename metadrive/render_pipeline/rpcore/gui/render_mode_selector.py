@@ -39,8 +39,13 @@ from metadrive.render_pipeline.rpcore.gui.checkbox_collection import CheckboxCol
 
 class RenderModeSelector(DraggableWindow):
     """ Window which offers the user to select a render mode to apply """
+
     def __init__(self, pipeline, parent):
-        DraggableWindow.__init__(self, width=690, height=340, parent=parent, title="Select render mode")
+        DraggableWindow.__init__(self,
+                                 width=690,
+                                 height=340,
+                                 parent=parent,
+                                 title="Select render mode")
         self._pipeline = pipeline
         self._selected_mode = ""
         self._create_components()
@@ -78,7 +83,8 @@ class RenderModeSelector(DraggableWindow):
 
         max_column_height = 9
 
-        for idx, (mode, mode_id, requires_cxx, requires_plugin, special) in enumerate(render_modes):
+        for idx, (mode, mode_id, requires_cxx, requires_plugin,
+                  special) in enumerate(render_modes):
             offs_y = (idx % max_column_height) * 24 + 35
             offs_x = (idx // max_column_height) * 220
             enabled = True
@@ -86,22 +92,22 @@ class RenderModeSelector(DraggableWindow):
                 enabled = False
 
             if requires_plugin:
-                if not self._pipeline.plugin_mgr.is_plugin_enabled(requires_plugin):
+                if not self._pipeline.plugin_mgr.is_plugin_enabled(
+                        requires_plugin):
                     enabled = False
 
-            box = LabeledCheckbox(
-                parent=debugger_content,
-                x=offs_x,
-                y=offs_y,
-                text=mode.upper(),
-                text_color=Vec3(0.4),
-                radio=True,
-                chb_checked=(mode_id == self._selected_mode),
-                chb_callback=partial(self._set_render_mode, mode_id, special),
-                text_size=14,
-                expand_width=230,
-                enabled=enabled
-            )
+            box = LabeledCheckbox(parent=debugger_content,
+                                  x=offs_x,
+                                  y=offs_y,
+                                  text=mode.upper(),
+                                  text_color=Vec3(0.4),
+                                  radio=True,
+                                  chb_checked=(mode_id == self._selected_mode),
+                                  chb_callback=partial(self._set_render_mode,
+                                                       mode_id, special),
+                                  text_size=14,
+                                  expand_width=230,
+                                  enabled=enabled)
             collection.add(box.checkbox)
 
     def _set_render_mode(self, mode_id, special, value):
@@ -122,7 +128,8 @@ class RenderModeSelector(DraggableWindow):
             # Don't activate the generic debugging mode for special modes. This
             # is for modes like luminance which expect the scene to be rendered
             # unaltered.
-            self._pipeline.stage_mgr.defines["ANY_DEBUG_MODE"] = 0 if special else 1
+            self._pipeline.stage_mgr.defines[
+                "ANY_DEBUG_MODE"] = 0 if special else 1
             self._pipeline.stage_mgr.defines["_RM_" + mode_id] = 1
 
         self._selected_mode = mode_id

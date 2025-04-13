@@ -19,7 +19,8 @@ def assert_dict_almost_equal(dict1, dict2, tol=1e-3):
     Recursively assert that two dictionaries are almost equal.
     Allows for tiny differences (less than tol) using numpy's allclose function.
     """
-    assert dict1.keys() == dict2.keys(), f"Keys mismatch: {dict1.keys()} != {dict2.keys()}"
+    assert dict1.keys() == dict2.keys(
+    ), f"Keys mismatch: {dict1.keys()} != {dict2.keys()}"
 
     for key in dict1:
         val1 = dict1[key]
@@ -32,7 +33,8 @@ def assert_dict_almost_equal(dict1, dict2, tol=1e-3):
             if isinstance(val1, str):
                 assert val1 == val2, f"Values for key '{key}' are not equal: {val1} != {val2}"
             elif np.isscalar(val1) and np.isnan(val1):
-                assert np.isnan(val2).all(), f"Values for key '{key}' are not equal: {val1} != {val2}"
+                assert np.isnan(val2).all(
+                ), f"Values for key '{key}' are not equal: {val1} != {val2}"
             else:
                 assert np.allclose(
                     val1, val2, rtol=tol
@@ -47,10 +49,15 @@ def are_traces_deterministic(traces) -> bool:
     grouped_traces = defaultdict(list)
     for trace in traces:
         repetition_id = trace["repetition"]
-        grouped_traces[repetition_id].append({k: v for k, v in trace.items() if k != "repetition"})
+        grouped_traces[repetition_id].append({
+            k: v for k, v in trace.items() if k != "repetition"
+        })
 
     # Convert traces to lists of dictionaries
-    stripped_traces = [sorted(group, key=lambda x: sorted(x.items())) for group in grouped_traces.values()]
+    stripped_traces = [
+        sorted(group, key=lambda x: sorted(x.items()))
+        for group in grouped_traces.values()
+    ]
 
     # Compare each trace list to the first one
     first_trace = stripped_traces[0]  # This is a list of dictionaries
@@ -60,21 +67,20 @@ def are_traces_deterministic(traces) -> bool:
             assert_dict_almost_equal(first_trace[i], trace[i])
 
 
-@pytest.mark.parametrize(
-    "n_scenarios, seed, expert_driving, force_step", [
-        (10, 0, True, 0),
-        (10, 0, False, 0),
-        (10, 1, True, 0),
-        (10, 1, False, 0),
-        (10, 2, True, 1),
-        (10, 3, False, 1),
-        (10, 3, False, 10),
-        (10, 3, True, 10),
-        (10, 3, True, 50),
-        (10, 3, False, 50),
-    ]
-)
-def test_determinism_reset(n_scenarios, seed, expert_driving, force_step) -> list:
+@pytest.mark.parametrize("n_scenarios, seed, expert_driving, force_step", [
+    (10, 0, True, 0),
+    (10, 0, False, 0),
+    (10, 1, True, 0),
+    (10, 1, False, 0),
+    (10, 2, True, 1),
+    (10, 3, False, 1),
+    (10, 3, False, 10),
+    (10, 3, True, 10),
+    (10, 3, True, 50),
+    (10, 3, False, 50),
+])
+def test_determinism_reset(n_scenarios, seed, expert_driving,
+                           force_step) -> list:
     """
     Runs same scenario n time and collects the traces
     """
@@ -98,7 +104,9 @@ def test_determinism_reset(n_scenarios, seed, expert_driving, force_step) -> lis
                     break
 
                 if expert_driving:
-                    action, exp_obs = expert(env.agent, deterministic=True, need_obs=True)
+                    action, exp_obs = expert(env.agent,
+                                             deterministic=True,
+                                             need_obs=True)
                 else:
                     action = [0, 0.33]
 
@@ -118,19 +126,18 @@ def test_determinism_reset(n_scenarios, seed, expert_driving, force_step) -> lis
     return traces
 
 
-@pytest.mark.parametrize(
-    "n_scenarios, seed, expert_driving, force_step", [
-        (10, 0, True, 0),
-        (10, 1, False, 0),
-        (10, 2, True, 1),
-        (10, 3, False, 1),
-        (10, 3, True, 10),
-        (10, 3, False, 10),
-        (10, 3, True, 50),
-        (10, 3, False, 50),
-    ]
-)
-def test_determinism_close(n_scenarios, seed, expert_driving, force_step) -> list:
+@pytest.mark.parametrize("n_scenarios, seed, expert_driving, force_step", [
+    (10, 0, True, 0),
+    (10, 1, False, 0),
+    (10, 2, True, 1),
+    (10, 3, False, 1),
+    (10, 3, True, 10),
+    (10, 3, False, 10),
+    (10, 3, True, 50),
+    (10, 3, False, 50),
+])
+def test_determinism_close(n_scenarios, seed, expert_driving,
+                           force_step) -> list:
     """
     Runs same scenario n time and collects the traces
     """
@@ -139,7 +146,10 @@ def test_determinism_close(n_scenarios, seed, expert_driving, force_step) -> lis
     try:
 
         for rep in range(n_scenarios):
-            env = MetaDriveEnv(config={"map": "C", "num_scenarios": n_scenarios})
+            env = MetaDriveEnv(config={
+                "map": "C",
+                "num_scenarios": n_scenarios
+            })
 
             obs, step_info = env.reset(seed)
             step_info["repetition"] = rep
@@ -152,7 +162,8 @@ def test_determinism_close(n_scenarios, seed, expert_driving, force_step) -> lis
                     break
 
                 # get action from expert driving, or a dummy action
-                action = (expert(env.agent, deterministic=True) if expert_driving else [0, 0.33])
+                action = (expert(env.agent, deterministic=True)
+                          if expert_driving else [0, 0.33])
                 obs, reward, tm, tr, step_info = env.step(action)
                 step_info["repetition"] = rep
                 traces.append(step_info)

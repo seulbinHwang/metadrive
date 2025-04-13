@@ -35,11 +35,12 @@ class Plugin(BasePlugin):
     description = ("This plugins adds support for volumetric lighting")
     version = "0.1 alpha (!)"
 
-    required_plugins = ("pssm", )
+    required_plugins = ("pssm",)
 
     def on_stage_setup(self):
         self.stage = self.create_stage(VolumetricsStage)
-        self.stage.enable_volumetric_shadows = self.get_setting("enable_volumetric_shadows")
+        self.stage.enable_volumetric_shadows = self.get_setting(
+            "enable_volumetric_shadows")
 
         if self.get_plugin_instance("pssm").get_setting("use_pcf"):
             self.stage.required_pipes.append("PSSMShadowAtlasPCF")

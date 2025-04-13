@@ -93,14 +93,16 @@ class BaseEngine(EngineCore, Randomizable):
         # curriculum reset
         self._max_level = self.global_config.get("curriculum_level", 1)
         self._current_level = 0
-        self._num_scenarios_per_level = int(self.global_config.get("num_scenarios", 1) / self._max_level)
+        self._num_scenarios_per_level = int(
+            self.global_config.get("num_scenarios", 1) / self._max_level)
 
     def add_policy(self, object_id, policy_class, *args, **kwargs):
         policy = policy_class(*args, **kwargs)
         self._object_policies[object_id] = policy
         if self.record_episode:
             assert self.record_manager is not None, "No record manager"
-            self.record_manager.add_policy_info(object_id, policy_class, *args, **kwargs)
+            self.record_manager.add_policy_info(object_id, policy_class, *args,
+                                                **kwargs)
         return policy
 
     def get_policy(self, object_id):
@@ -120,10 +122,14 @@ class BaseEngine(EngineCore, Randomizable):
             return True if object_id in self._object_policies else False
         else:
             return True if object_id in self._object_policies and isinstance(
-                self._object_policies[object_id], policy_cls
-            ) else False
+                self._object_policies[object_id], policy_cls) else False
 
-    def spawn_object(self, object_class, force_spawn=False, auto_fill_random_seed=True, record=True, **kwargs):
+    def spawn_object(self,
+                     object_class,
+                     force_spawn=False,
+                     auto_fill_random_seed=True,
+                     record=True,
+                     **kwargs):
         """
         Call this func to spawn one object
         :param object_class: object class
@@ -141,7 +147,8 @@ class BaseEngine(EngineCore, Randomizable):
         else:
             obj = self._dying_objects[object_class.__name__].pop()
             obj.reset(**kwargs)
-            if not is_map_related_class(object_class) and ("name" not in kwargs or kwargs["name"] is None):
+            if not is_map_related_class(object_class) and (
+                    "name" not in kwargs or kwargs["name"] is None):
                 obj.random_rename()
 
         if "name" in kwargs and kwargs["name"] is not None:
@@ -149,16 +156,15 @@ class BaseEngine(EngineCore, Randomizable):
         if "id" in kwargs and kwargs["name"] is not None:
             assert kwargs["id"] == obj.id == obj.name
 
-        if self.global_config["record_episode"] and not self.replay_episode and record:
+        if self.global_config[
+                "record_episode"] and not self.replay_episode and record:
             self.record_manager.add_spawn_info(obj, object_class, kwargs)
         self._spawned_objects[obj.id] = obj
         color = self._pick_color(obj.id)
         if color == (-1, -1, -1):
             raise ValueError(
-                "No color available for object: {} instance segment mask. We already used all {} colors...".format(
-                    obj.id, BaseEngine.MAX_COLOR
-                )
-            )
+                "No color available for object: {} instance segment mask. We already used all {} colors..."
+                .format(obj.id, BaseEngine.MAX_COLOR))
 
         obj.attach_to_world(self.worldNP, self.physics_world)
         return obj
@@ -246,7 +252,10 @@ class BaseEngine(EngineCore, Randomizable):
     def get_object(self, object_id):
         return self.get_objects([object_id])
 
-    def clear_objects(self, filter: Optional[Union[Callable, List]], force_destroy=False, record=True):
+    def clear_objects(self,
+                      filter: Optional[Union[Callable, List]],
+                      force_destroy=False,
+                      record=True):
         """
         Destroy all self-generated objects or objects satisfying the filter condition
         Since we don't expect a iterator, and the number of objects is not so large, we don't use built-in filter()
@@ -258,10 +267,13 @@ class BaseEngine(EngineCore, Randomizable):
         In addition, we need to remove a color mapping whenever an object is destructed.
         
         """
-        force_destroy_this_obj = True if force_destroy or self.global_config["force_destroy"] else False
+        force_destroy_this_obj = True if force_destroy or self.global_config[
+            "force_destroy"] else False
 
         if isinstance(filter, (list, tuple)):
-            exclude_objects = {obj_id: self._spawned_objects[obj_id] for obj_id in filter}
+            exclude_objects = {
+                obj_id: self._spawned_objects[obj_id] for obj_id in filter
+            }
         elif callable(filter):
             exclude_objects = dict()
             for id, obj in self._spawned_objects.items():
@@ -290,12 +302,14 @@ class BaseEngine(EngineCore, Randomizable):
                 if obj.class_name not in self._dying_objects:
                     self._dying_objects[obj.class_name] = []
                 # We have a limit for buffering objects
-                if len(self._dying_objects[obj.class_name]) < self.global_config["num_buffering_objects"]:
+                if len(self._dying_objects[obj.class_name]
+                      ) < self.global_config["num_buffering_objects"]:
                     self._dying_objects[obj.class_name].append(obj)
                 else:
                     #self._clean_color(obj.id)
                     obj.destroy()
-            if self.global_config["record_episode"] and not self.replay_episode and record:
+            if self.global_config[
+                    "record_episode"] and not self.replay_episode and record:
                 self.record_manager.add_clear_info(obj)
         return exclude_objects.keys()
 
@@ -328,9 +342,11 @@ class BaseEngine(EngineCore, Randomizable):
             self.addTask(self.report_body_nums, "report_num")
 
         # Update record replay
-        self.replay_episode = True if self.global_config["replay_episode"] is not None else False
+        self.replay_episode = True if self.global_config[
+            "replay_episode"] is not None else False
         self.record_episode = self.global_config["record_episode"]
-        self.only_reset_when_replay = self.global_config["only_reset_when_replay"]
+        self.only_reset_when_replay = self.global_config[
+            "only_reset_when_replay"]
 
         _debug_memory_usage = False
 
@@ -353,7 +369,8 @@ class BaseEngine(EngineCore, Randomizable):
             if _debug_memory_usage:
                 lm = process_memory()
                 if lm - cm != 0:
-                    print("{}: Before Reset! Mem Change {:.3f}MB".format(manager_name, (lm - cm) / 1e6))
+                    print("{}: Before Reset! Mem Change {:.3f}MB".format(
+                        manager_name, (lm - cm) / 1e6))
                 cm = lm
         self.terrain.before_reset()
         self._object_clean_check()
@@ -368,7 +385,8 @@ class BaseEngine(EngineCore, Randomizable):
             if _debug_memory_usage:
                 lm = process_memory()
                 if lm - cm != 0:
-                    print("{}: Reset! Mem Change {:.3f}MB".format(manager_name, (lm - cm) / 1e6))
+                    print("{}: Reset! Mem Change {:.3f}MB".format(
+                        manager_name, (lm - cm) / 1e6))
                 cm = lm
 
         for manager_name, manager in self.managers.items():
@@ -378,7 +396,8 @@ class BaseEngine(EngineCore, Randomizable):
             if _debug_memory_usage:
                 lm = process_memory()
                 if lm - cm != 0:
-                    print("{}: After Reset! Mem Change {:.3f}MB".format(manager_name, (lm - cm) / 1e6))
+                    print("{}: After Reset! Mem Change {:.3f}MB".format(
+                        manager_name, (lm - cm) / 1e6))
                 cm = lm
 
         # reset terrain
@@ -467,7 +486,9 @@ class BaseEngine(EngineCore, Randomizable):
 
         step_infos = {}
         if self.record_episode:
-            assert list(self.managers.keys())[-1] == "record_manager", "Record Manager should have lowest priority"
+            assert list(
+                self.managers.keys()
+            )[-1] == "record_manager", "Record Manager should have lowest priority"
         for manager in self.managers.values():
             new_step_info = manager.after_step(*args, **kwargs)
             step_infos = concat_step_infos([step_infos, new_step_info])
@@ -554,14 +575,18 @@ class BaseEngine(EngineCore, Randomizable):
         """
         assert manager_name not in self._managers, "Manager {} already exists in BaseEngine, Use update_manager() to " \
                                                    "overwrite".format(manager_name)
-        assert not hasattr(self, manager_name), "Manager name can not be same as the attribute in BaseEngine"
+        assert not hasattr(
+            self, manager_name
+        ), "Manager name can not be same as the attribute in BaseEngine"
         self._managers[manager_name] = manager
         setattr(self, manager_name, manager)
-        self._managers = OrderedDict(sorted(self._managers.items(), key=lambda k_v: k_v[-1].PRIORITY))
+        self._managers = OrderedDict(
+            sorted(self._managers.items(), key=lambda k_v: k_v[-1].PRIORITY))
 
     def seed(self, random_seed):
         start_seed = self.gets_start_index(self.global_config)
-        random_seed = ((random_seed - start_seed) % self._num_scenarios_per_level) + start_seed
+        random_seed = ((random_seed - start_seed) %
+                       self._num_scenarios_per_level) + start_seed
         random_seed += self._current_level * self._num_scenarios_per_level
         self.global_random_seed = random_seed
         super(BaseEngine, self).seed(random_seed)
@@ -579,7 +604,9 @@ class BaseEngine(EngineCore, Randomizable):
         elif start_scenario_index is not None:
             return start_scenario_index
         else:
-            logger.warning("Can not find `start_seed` or `start_scenario_index`. Use 0 as `start_seed`")
+            logger.warning(
+                "Can not find `start_seed` or `start_scenario_index`. Use 0 as `start_seed`"
+            )
             return 0
 
     @property
@@ -630,7 +657,8 @@ class BaseEngine(EngineCore, Randomizable):
         from metadrive.engine.core.main_camera import MainCamera
         # Not we should always enable main camera RGBCamera will return incorrect result, as we are using PSSM!
         if self.mode != RENDER_MODE_NONE:
-            return MainCamera(self, self.global_config["camera_height"], self.global_config["camera_dist"])
+            return MainCamera(self, self.global_config["camera_height"],
+                              self.global_config["camera_dist"])
         else:
             return None
 
@@ -649,16 +677,18 @@ class BaseEngine(EngineCore, Randomizable):
         for manager in self._managers.values():
             assert len(manager.spawned_objects) == 0
 
-        objs_need_to_release = self.get_objects(
-            filter=lambda obj: isinstance(obj, BaseVehicle) or isinstance(obj, TrafficObject)
-        )
+        objs_need_to_release = self.get_objects(filter=lambda obj: isinstance(
+            obj, BaseVehicle) or isinstance(obj, TrafficObject))
         assert len(
             objs_need_to_release) == 0, "You should clear all generated objects by using engine.clear_objects " \
                                         "in each manager.before_step()"
 
         # rigid body check
         bodies = []
-        for world in [self.physics_world.dynamic_world, self.physics_world.static_world]:
+        for world in [
+                self.physics_world.dynamic_world,
+                self.physics_world.static_world
+        ]:
             bodies += world.getRigidBodies()
             bodies += world.getSoftBodies()
             bodies += world.getGhosts()
@@ -675,23 +705,29 @@ class BaseEngine(EngineCore, Randomizable):
                                    "Uncleared bodies: {}".format(filtered)
 
         children = self.worldNP.getChildren()
-        assert len(children) == 0, "NodePath are not cleaned thoroughly. Remaining NodePath: {}".format(children)
+        assert len(
+            children
+        ) == 0, "NodePath are not cleaned thoroughly. Remaining NodePath: {}".format(
+            children)
 
-    def update_manager(self, manager_name: str, manager, destroy_previous_manager=True):
+    def update_manager(self,
+                       manager_name: str,
+                       manager,
+                       destroy_previous_manager=True):
         """
         Update an existing manager with a new one
         :param manager_name: existing manager name
         :param manager: new manager
         """
         assert manager_name in self._managers, "You may want to call register manager, since {} is not in engine".format(
-            manager_name
-        )
+            manager_name)
         existing_manager = self._managers.pop(manager_name)
         if destroy_previous_manager:
             existing_manager.destroy()
         self._managers[manager_name] = manager
         setattr(self, manager_name, manager)
-        self._managers = OrderedDict(sorted(self._managers.items(), key=lambda k_v: k_v[-1].PRIORITY))
+        self._managers = OrderedDict(
+            sorted(self._managers.items(), key=lambda k_v: k_v[-1].PRIORITY))
 
     @property
     def managers(self):
@@ -719,14 +755,15 @@ class BaseEngine(EngineCore, Randomizable):
 
     def _get_window_image(self, return_bytes=False):
         window_count = self.graphicsEngine.getNumWindows() - 1
-        texture = self.graphicsEngine.getWindow(window_count).getDisplayRegion(0).getScreenshot()
+        texture = self.graphicsEngine.getWindow(window_count).getDisplayRegion(
+            0).getScreenshot()
 
         assert texture.getXSize() == self.global_config["window_size"][0], (
-            texture.getXSize(), texture.getYSize(), self.global_config["window_size"]
-        )
+            texture.getXSize(), texture.getYSize(),
+            self.global_config["window_size"])
         assert texture.getYSize() == self.global_config["window_size"][1], (
-            texture.getXSize(), texture.getYSize(), self.global_config["window_size"]
-        )
+            texture.getXSize(), texture.getYSize(),
+            self.global_config["window_size"])
 
         image_bytes = texture.getRamImage().getData()
 
@@ -746,20 +783,35 @@ class BaseEngine(EngineCore, Randomizable):
         This function automatically initialize models/objects. It can prevent the lagging when creating some objects
         for the first time.
         """
-        if self.global_config["preload_models"] and self.mode != RENDER_MODE_NONE:
+        if self.global_config[
+                "preload_models"] and self.mode != RENDER_MODE_NONE:
             from metadrive.component.traffic_participants.pedestrian import Pedestrian
             from metadrive.component.traffic_light.base_traffic_light import BaseTrafficLight
             from metadrive.component.static_object.traffic_object import TrafficBarrier
             from metadrive.component.static_object.traffic_object import TrafficCone
             Pedestrian.init_pedestrian_model()
-            warm_up_pedestrian = self.spawn_object(Pedestrian, position=[0, 0], heading_theta=0, record=False)
-            warm_up_light = self.spawn_object(BaseTrafficLight, lane=None, position=[0, 0], record=False)
-            barrier = self.spawn_object(TrafficBarrier, position=[0, 0], heading_theta=0, record=False)
-            cone = self.spawn_object(TrafficCone, position=[0, 0], heading_theta=0, record=False)
+            warm_up_pedestrian = self.spawn_object(Pedestrian,
+                                                   position=[0, 0],
+                                                   heading_theta=0,
+                                                   record=False)
+            warm_up_light = self.spawn_object(BaseTrafficLight,
+                                              lane=None,
+                                              position=[0, 0],
+                                              record=False)
+            barrier = self.spawn_object(TrafficBarrier,
+                                        position=[0, 0],
+                                        heading_theta=0,
+                                        record=False)
+            cone = self.spawn_object(TrafficCone,
+                                     position=[0, 0],
+                                     heading_theta=0,
+                                     record=False)
             for vel in Pedestrian.SPEED_LIST:
                 warm_up_pedestrian.set_velocity([1, 0], vel - 0.1)
                 self.taskMgr.step()
-            self.clear_objects([warm_up_pedestrian.id, warm_up_light.id, barrier.id, cone.id], record=False)
+            self.clear_objects(
+                [warm_up_pedestrian.id, warm_up_light.id, barrier.id, cone.id],
+                record=False)
             warm_up_pedestrian = None
             warm_up_light = None
             barrier = None
@@ -776,8 +828,7 @@ class BaseEngine(EngineCore, Randomizable):
             if AssetLoader.should_update_asset():
                 AssetLoader.logger.warning(
                     "Assets outdated! Current: {}, Expected: {}. "
-                    "Updating the assets ...".format(asset_version(), VERSION)
-                )
+                    "Updating the assets ...".format(asset_version(), VERSION))
                 pull_asset(update=True)
             else:
                 AssetLoader.logger.info("Assets version: {}".format(VERSION))
@@ -805,7 +856,8 @@ class BaseEngine(EngineCore, Randomizable):
         :return: task
         """
         raise DeprecationWarning
-        assert object_id in self._object_tasks, "Can not find the task for object(id: {})".format(object_id)
+        assert object_id in self._object_tasks, "Can not find the task for object(id: {})".format(
+            object_id)
         return self._object_tasks[object_id]
 
 
@@ -819,7 +871,8 @@ if __name__ == "__main__":
 
     from metadrive.engine.asset_loader import AssetLoader
 
-    car_model = world.loader.loadModel(AssetLoader.file_path("models", "vehicle", "lada", "vehicle.gltf"))
+    car_model = world.loader.loadModel(
+        AssetLoader.file_path("models", "vehicle", "lada", "vehicle.gltf"))
     car_model.reparentTo(world.render)
     car_model.set_pos(0, 0, 190)
     # world.render_pipeline.prepare_scene(env.engine.render)

@@ -40,10 +40,11 @@ class DepthCamera(BaseCamera):
         from metadrive.engine.core.terrain import Terrain
         cam.setTagState(
             Semantics.TERRAIN.label,
-            Terrain.make_render_state(self.engine, "terrain.vert.glsl", "terrain_depth.frag.glsl")
-        )
+            Terrain.make_render_state(self.engine, "terrain.vert.glsl",
+                                      "terrain_depth.frag.glsl"))
         if self.enable_cuda:
-            size = LVector2(self.depth_tex.getXSize(), self.depth_tex.getYSize())
+            size = LVector2(self.depth_tex.getXSize(),
+                            self.depth_tex.getYSize())
             self.compute_node.set_shader_input("fromTex", self.depth_tex)
             self.compute_node.set_shader_input("toTex", self.output_tex)
             self.compute_node.set_shader_input("texSize", size)
@@ -84,11 +85,12 @@ class DepthCamera(BaseCamera):
         buffer_props.set_float_depth(True)
 
         self.buffer = buffer = self.engine.graphicsEngine.makeOutput(
-            self.engine.pipe, "Depth buffer", -2, props, window_props, GraphicsPipe.BFRefuseWindow,
-            self.engine.win.getGsg(), self.engine.win
-        )
+            self.engine.pipe, "Depth buffer", -2,
+            props, window_props, GraphicsPipe.BFRefuseWindow,
+            self.engine.win.getGsg(), self.engine.win)
         mode = GraphicsOutput.RTMBindOrCopy if self._enable_cuda else GraphicsOutput.RTMCopyRam
-        self.buffer.addRenderTexture(self.depth_tex, mode, GraphicsOutput.RTPDepth)
+        self.buffer.addRenderTexture(self.depth_tex, mode,
+                                     GraphicsOutput.RTPDepth)
         buffer.set_sort(-1000)
         buffer.disable_clears()
         buffer.get_display_region(0).disable_clears()
@@ -107,11 +109,14 @@ class DepthCamera(BaseCamera):
 
         if self.enable_cuda:
             self.output_tex = Texture()
-            self.output_tex.setup_2d_texture(
-                self.depth_tex.getXSize(), self.depth_tex.getYSize(), Texture.T_unsigned_byte, Texture.F_rgba8
-            )
+            self.output_tex.setup_2d_texture(self.depth_tex.getXSize(),
+                                             self.depth_tex.getYSize(),
+                                             Texture.T_unsigned_byte,
+                                             Texture.F_rgba8)
             self.output_tex.set_clear_color((0, 0, 0, 1))
-            shader = Shader.load_compute(Shader.SL_GLSL, AssetLoader.file_path("../shaders", "depth_cuda.glsl"))
+            shader = Shader.load_compute(
+                Shader.SL_GLSL,
+                AssetLoader.file_path("../shaders", "depth_cuda.glsl"))
             self.compute_node = NodePath("dummy")
             self.compute_node.set_shader(shader)
 
@@ -119,11 +124,14 @@ class DepthCamera(BaseCamera):
         """
         Call me per frame when you want to access the depth texture result with cuda enabled
         """
-        work_group_x = int(np.ceil(self.depth_tex.getXSize() / self.shader_local_size[0]))
-        work_group_y = int(np.ceil(self.depth_tex.getYSize() / self.shader_local_size[1]))
+        work_group_x = int(
+            np.ceil(self.depth_tex.getXSize() / self.shader_local_size[0]))
+        work_group_y = int(
+            np.ceil(self.depth_tex.getYSize() / self.shader_local_size[1]))
         self.engine.graphicsEngine.dispatch_compute(
-            (work_group_x, work_group_y, 1), self.compute_node.get_attrib(ShaderAttrib), self.engine.win.get_gsg()
-        )
+            (work_group_x, work_group_y, 1),
+            self.compute_node.get_attrib(ShaderAttrib),
+            self.engine.win.get_gsg())
         # self.engine.graphicsEngine.extractTextureData(self.output_tex, self.engine.win.get_gsg())
         # self.output_tex.write("{}.png".format(self.engine.episode_step))
         return task.cont
@@ -135,7 +143,8 @@ class DepthCamera(BaseCamera):
 
         """
         origin_img = self.depth_tex
-        img = np.frombuffer(origin_img.getRamImage().getData(), dtype=np.float32)
+        img = np.frombuffer(origin_img.getRamImage().getData(),
+                            dtype=np.float32)
         img = img.reshape((origin_img.getYSize(), origin_img.getXSize(), -1))
         img = img[..., :self.num_channels]
         assert img.shape[-1] == 1
@@ -168,7 +177,8 @@ class DepthCamera(BaseCamera):
             self.quadcam = quad.attachNewNode(quadcamnode)
 
             # only show them when onscreen
-            self.display_region = self.engine.win.makeDisplayRegion(*display_region)
+            self.display_region = self.engine.win.makeDisplayRegion(
+                *display_region)
             self.display_region.setCamera(self.quadcam)
             self.draw_border(display_region)
 

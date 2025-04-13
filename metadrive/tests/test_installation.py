@@ -33,28 +33,28 @@ def capture_headless_image(cuda, image_source="main_camera"):
             vehicle_config={
                 "image_source": image_source,
             },
-        )
-    )
+        ))
     try:
         env.reset()
         for i in range(10):
             o, r, tm, tc, i = env.step([0, 1])
         assert isinstance(o, dict)
         # print("The observation is a dict with numpy arrays as values: ", {k: v.shape for k, v in o.items()})
-        o = o["image"][..., -1] * 255 if not cuda else o["image"].get()[..., -1] * 255
+        o = o["image"][...,
+                       -1] * 255 if not cuda else o["image"].get()[...,
+                                                                   -1] * 255
         cv2.imwrite(
             os.path.join(
                 MetaDrive_PACKAGE_DIR, "examples",
-                "{}_from_observation{}.png".format(image_source, "_cuda" if cuda else "")
-            ), o
-        )
+                "{}_from_observation{}.png".format(image_source,
+                                                   "_cuda" if cuda else "")), o)
         cam = env.engine.get_sensor(image_source)
         cam.save_image(
             env.agent,
             os.path.join(
-                MetaDrive_PACKAGE_DIR, "examples", "{}_from_buffer{}.png".format(image_source, "_cuda" if cuda else "")
-            )
-        )
+                MetaDrive_PACKAGE_DIR, "examples",
+                "{}_from_buffer{}.png".format(image_source,
+                                              "_cuda" if cuda else "")))
         # if image_source == "main_camera":
         #     ret = PNMImage()
         #     env.engine.win.getDisplayRegion(6).camera.node().getDisplayRegion(0).getScreenshot(ret)
@@ -66,9 +66,8 @@ def capture_headless_image(cuda, image_source="main_camera"):
             "{} Test result: \nHeadless mode Offscreen render launched successfully! \n"
             "images named \'{}_from_observation.png\' and \'{}_from_buffer.png\' are saved to {}. "
             "Open it to check if offscreen mode works well".format(
-                image_source, image_source, image_source, os.path.join(MetaDrive_PACKAGE_DIR, "examples")
-            )
-        )
+                image_source, image_source, image_source,
+                os.path.join(MetaDrive_PACKAGE_DIR, "examples")))
     finally:
         env.close()
 
@@ -93,7 +92,9 @@ def verify_installation(cuda=False, camera="main"):
         elif camera == "depth":
             capture_headless_image(cuda, image_source="depth_camera")
         else:
-            raise ValueError("Can not find camera: {}, please select from [rgb, depth, main]".format(camera))
+            raise ValueError(
+                "Can not find camera: {}, please select from [rgb, depth, main]"
+                .format(camera))
 
 
 if __name__ == "__main__":

@@ -38,7 +38,11 @@ class ControlledVehicle(Vehicle):
         # route: Route = None,
         np_random: np.random.RandomState = None,
     ):
-        super().__init__(road, position, heading, speed=speed, np_random=np_random)
+        super().__init__(road,
+                         position,
+                         heading,
+                         speed=speed,
+                         np_random=np_random)
         # self.target_lane_index = target_lane_index or self.lane_index
         # self.target_speed = target_speed or self.speed
         # self.route = route
@@ -53,15 +57,13 @@ class ControlledVehicle(Vehicle):
         :param vehicle: a vehicle
         :return: a new vehicle at the same dynamical state
         """
-        v = cls(
-            vehicle.traffic_mgr,
-            vehicle.position,
-            heading=vehicle.heading,
-            speed=vehicle.speed,
-            target_lane_index=vehicle.target_lane_index,
-            target_speed=vehicle.target_speed,
-            route=vehicle.route
-        )
+        v = cls(vehicle.traffic_mgr,
+                vehicle.position,
+                heading=vehicle.heading,
+                speed=vehicle.speed,
+                target_lane_index=vehicle.target_lane_index,
+                target_speed=vehicle.target_speed,
+                route=vehicle.route)
         return v
 
     # def plan_route_to(self, destination: str) -> "ControlledVehicle":

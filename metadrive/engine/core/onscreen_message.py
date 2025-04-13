@@ -74,7 +74,7 @@ class ScreenMessage(OnScreenDebug.OnScreenDebug):
                 isNew = ":"
             value = v[1]
             if type(value) == float:
-                value = "% 10.4f" % (value, )
+                value = "% 10.4f" % (value,)
             # else: other types will be converted to str by the "%s"
             if type(value) == str:
                 value = value.strip()

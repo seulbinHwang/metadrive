@@ -45,7 +45,8 @@ if __name__ == "__main__":
 
     # Download the module
     from submodule_downloader import download_submodule
-    download_submodule("tobspr", "P3DModuleBuilder", current_dir, files_to_ignore)
+    download_submodule("tobspr", "P3DModuleBuilder", current_dir,
+                       files_to_ignore)
 
     # Make an init script so we can import the code
     with open("scripts/__init__.py", "w") as handle:

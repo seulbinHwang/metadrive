@@ -8,9 +8,12 @@ class OpenDriveBlock(BaseBlock):
     """
     The OpenDriveBlock instance will wrap a section in a Road, which serves as a basic element for building a map
     """
-    def __init__(self, block_index: int, global_network, random_seed, section_data):
+
+    def __init__(self, block_index: int, global_network, random_seed,
+                 section_data):
         self.section_data = section_data
-        super(OpenDriveBlock, self).__init__(block_index, global_network, random_seed)
+        super(OpenDriveBlock, self).__init__(block_index, global_network,
+                                             random_seed)
 
     def _sample_topology(self) -> bool:
         for lane in self.section_data.allLanes:

@@ -5,6 +5,7 @@ from metadrive.manager.scenario_data_manager import ScenarioDataManager
 
 
 class QueueDict:
+
     def __init__(self, max_length):
         self.queue = deque(maxlen=max_length)
         self.dict = OrderedDict()
@@ -45,20 +46,27 @@ class ScenarioCurriculumManager(BaseManager):
             assert self.engine.global_config["sequential_seed"], \
                 "Sort and sequential seed is required for curriculum seed"
         if self.engine.global_config["episodes_to_evaluate_curriculum"] is None:
-            self._episodes_to_eval = int(self.engine.global_config["num_scenarios"] / curriculum_level)
+            self._episodes_to_eval = int(
+                self.engine.global_config["num_scenarios"] / curriculum_level)
         else:
-            self._episodes_to_eval = self.engine.global_config["episodes_to_evaluate_curriculum"]
+            self._episodes_to_eval = self.engine.global_config[
+                "episodes_to_evaluate_curriculum"]
         assert self._episodes_to_eval != 0, "episodes_to_evaluate_curriculum can not be 0"
-        assert self._episodes_to_eval % self.engine.global_config["num_workers"
-                                                                  ] == 0, "Can not be divisible by num_workers"
-        self._episodes_to_eval = int(self._episodes_to_eval / self.engine.global_config["num_workers"])
-        self.recent_route_completion = QueueDict(max_length=self._episodes_to_eval)
+        assert self._episodes_to_eval % self.engine.global_config[
+            "num_workers"] == 0, "Can not be divisible by num_workers"
+        self._episodes_to_eval = int(self._episodes_to_eval /
+                                     self.engine.global_config["num_workers"])
+        self.recent_route_completion = QueueDict(
+            max_length=self._episodes_to_eval)
         self.recent_success = QueueDict(max_length=self._episodes_to_eval)
-        self.target_success_rate = self.engine.global_config["target_success_rate"]
+        self.target_success_rate = self.engine.global_config[
+            "target_success_rate"]
 
     def log_episode(self, success, route_completion):
-        self.recent_route_completion.put(self.engine.data_manager.current_scenario_id, route_completion)
-        self.recent_success.put(self.engine.data_manager.current_scenario_id, success)
+        self.recent_route_completion.put(
+            self.engine.data_manager.current_scenario_id, route_completion)
+        self.recent_success.put(self.engine.data_manager.current_scenario_id,
+                                success)
 
     def before_reset(self):
         """
@@ -70,7 +78,8 @@ class ScenarioCurriculumManager(BaseManager):
 
     def _level_up(self):
         self.engine.level_up()
-        self.recent_route_completion = QueueDict(max_length=self._episodes_to_eval)
+        self.recent_route_completion = QueueDict(
+            max_length=self._episodes_to_eval)
         self.recent_success = QueueDict(max_length=self._episodes_to_eval)
         self.engine.map_manager.clear_stored_maps()
         self.engine.data_manager.clear_stored_scenarios()
@@ -81,4 +90,5 @@ class ScenarioCurriculumManager(BaseManager):
 
     @property
     def current_route_completion(self):
-        return sum(self.recent_route_completion.dict.values()) / self._episodes_to_eval
+        return sum(
+            self.recent_route_completion.dict.values()) / self._episodes_to_eval

@@ -8,18 +8,16 @@ setup_logger(debug=True)
 if __name__ == "__main__":
     import numpy as np
 
-    env = MetaDriveEnv(
-        {
-            "num_scenarios": 4,
-            "traffic_density": 0.0,
-            "use_render": True,
-            "map_config": {
-                BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
-                BaseMap.GENERATE_CONFIG: "SSSSSSSSSSSSS",
-            },
-            "manual_control": True
-        }
-    )
+    env = MetaDriveEnv({
+        "num_scenarios": 4,
+        "traffic_density": 0.0,
+        "use_render": True,
+        "map_config": {
+            BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
+            BaseMap.GENERATE_CONFIG: "SSSSSSSSSSSSS",
+        },
+        "manual_control": True
+    })
     acc = [0, 1]
     brake = [-1, -np.nan]
     env.reset()

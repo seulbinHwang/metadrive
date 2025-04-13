@@ -20,7 +20,8 @@ class ScenarioLightManager(BaseManager):
         self._scenario_id_to_obj_id = {}
         self._obj_id_to_scenario_id = {}
         self._lane_index_to_obj = {}
-        self.skip_missing_light = self.engine.global_config["skip_missing_light"]
+        self.skip_missing_light = self.engine.global_config[
+            "skip_missing_light"]
         self._episode_light_data = None
 
     def before_reset(self):
@@ -32,8 +33,10 @@ class ScenarioLightManager(BaseManager):
 
     def after_reset(self):
         for scenario_lane_id, light_info in self._episode_light_data.items():
-            if str(scenario_lane_id) not in self.engine.current_map.road_network.graph:
-                logger.warning("Can not find lane for this traffic light. Skip!")
+            if str(scenario_lane_id
+                  ) not in self.engine.current_map.road_network.graph:
+                logger.warning(
+                    "Can not find lane for this traffic light. Skip!")
                 if self.skip_missing_light:
                     continue
                 else:
@@ -41,17 +44,20 @@ class ScenarioLightManager(BaseManager):
                         "Can not find lane for this traffic light. "
                         "Set skip_missing_light=True for skipping missing light!"
                     )
-            lane_info = self.engine.current_map.road_network.graph[str(scenario_lane_id)]
+            lane_info = self.engine.current_map.road_network.graph[str(
+                scenario_lane_id)]
             position = self._get_light_position(light_info)
-            name = self.OBJECT_PREFIX + scenario_lane_id if self.engine.global_config["force_reuse_object_name"
-                                                                                      ] else None
-            traffic_light = self.spawn_object(ScenarioTrafficLight, lane=lane_info.lane, position=position, name=name)
+            name = self.OBJECT_PREFIX + scenario_lane_id if self.engine.global_config[
+                "force_reuse_object_name"] else None
+            traffic_light = self.spawn_object(ScenarioTrafficLight,
+                                              lane=lane_info.lane,
+                                              position=position,
+                                              name=name)
             self._scenario_id_to_obj_id[scenario_lane_id] = traffic_light.id
             self._obj_id_to_scenario_id[traffic_light.id] = scenario_lane_id
             if self.engine.global_config["force_reuse_object_name"]:
                 assert self.OBJECT_PREFIX + scenario_lane_id == traffic_light.id, (
-                    "Original id should be assigned to traffic lights"
-                )
+                    "Original id should be assigned to traffic lights")
             self._lane_index_to_obj[lane_info.lane.index] = traffic_light
             status = light_info[SD.TRAFFIC_LIGHT_STATUS][self.episode_step]
             traffic_light.set_status(status)
@@ -71,7 +77,8 @@ class ScenarioLightManager(BaseManager):
 
         for scenario_light_id, light_id, in self._scenario_id_to_obj_id.items():
             light_obj = self.spawned_objects[light_id]
-            status = self._episode_light_data[scenario_light_id][SD.TRAFFIC_LIGHT_STATUS][self.episode_step]
+            status = self._episode_light_data[scenario_light_id][
+                SD.TRAFFIC_LIGHT_STATUS][self.episode_step]
             light_obj.set_status(status)
 
     def has_traffic_light(self, lane_index):
@@ -87,7 +94,8 @@ class ScenarioLightManager(BaseManager):
 
     def _get_episode_light_data(self):
         ret = dict()
-        for lane_id, light_info in self.current_scenario[SD.DYNAMIC_MAP_STATES].items():
+        for lane_id, light_info in self.current_scenario[
+                SD.DYNAMIC_MAP_STATES].items():
             ret[lane_id] = copy.deepcopy(light_info[SD.STATE])
             ret[lane_id]["metadata"] = copy.deepcopy(light_info[SD.METADATA])
 
@@ -99,19 +107,26 @@ class ScenarioLightManager(BaseManager):
                     # This traffic light has no effect.
                     first_pos = -1
                 else:
-                    first_pos = np.argwhere(ret[lane_id][SD.TRAFFIC_LIGHT_LANE] != 0)[0, 0]
+                    first_pos = np.argwhere(
+                        ret[lane_id][SD.TRAFFIC_LIGHT_LANE] != 0)[0, 0]
                 traffic_light_position = traffic_light_position[first_pos]
             else:
                 # New data format where position is a [3, ] array.
-                traffic_light_position = light_info[SD.TRAFFIC_LIGHT_POSITION][:2]
+                traffic_light_position = light_info[
+                    SD.TRAFFIC_LIGHT_POSITION][:2]
 
             ret[lane_id][SD.TRAFFIC_LIGHT_POSITION] = traffic_light_position
 
-            assert light_info[SD.TYPE] == MetaDriveType.TRAFFIC_LIGHT, "Can not handle {}".format(light_info[SD.TYPE])
+            assert light_info[
+                SD.
+                TYPE] == MetaDriveType.TRAFFIC_LIGHT, "Can not handle {}".format(
+                    light_info[SD.TYPE])
         return ret
 
     def get_state(self):
         return {
-            SD.OBJ_ID_TO_ORIGINAL_ID: copy.deepcopy(self._obj_id_to_scenario_id),
-            SD.ORIGINAL_ID_TO_OBJ_ID: copy.deepcopy(self._scenario_id_to_obj_id)
+            SD.OBJ_ID_TO_ORIGINAL_ID:
+                copy.deepcopy(self._obj_id_to_scenario_id),
+            SD.ORIGINAL_ID_TO_OBJ_ID:
+                copy.deepcopy(self._scenario_id_to_obj_id)
         }

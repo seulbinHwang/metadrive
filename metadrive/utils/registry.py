@@ -18,12 +18,11 @@ def _initialize_registry():
     from metadrive.component.pgblock.straight import Straight
     from metadrive.component.pgblock.tollgate import TollGate
     from metadrive.component.pgblock.bidirection import Bidirection
-    _metadrive_class_list.extend(
-        [
-            Merge, Split, Curve, InFork, OutFork, ParkingLot, InRampOnStraight, OutRampOnStraight, Roundabout,
-            StdInterSection, StdTInterSection, StdInterSectionWithUTurn, Straight, TollGate, Bidirection
-        ]
-    )
+    _metadrive_class_list.extend([
+        Merge, Split, Curve, InFork, OutFork, ParkingLot, InRampOnStraight,
+        OutRampOnStraight, Roundabout, StdInterSection, StdTInterSection,
+        StdInterSectionWithUTurn, Straight, TollGate, Bidirection
+    ])
 
     global _metadrive_class_registry
     _metadrive_class_registry = {k.__name__: k for k in _metadrive_class_list}
@@ -35,6 +34,5 @@ def get_metadrive_class(class_name):
         _initialize_registry()
 
     assert class_name in _metadrive_class_registry, "{} is not in Registry: {}".format(
-        class_name, _metadrive_class_registry.keys()
-    )
+        class_name, _metadrive_class_registry.keys())
     return _metadrive_class_registry[class_name]

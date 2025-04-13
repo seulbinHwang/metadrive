@@ -17,19 +17,19 @@ def test_horizon(cfg, use_render=False):
     is_marl = env_cls == MultiAgentMetaDrive
     horizon = cfg[1]
     truncate_as_terminate = cfg[2]
-    env = env_cls(
-        {
-            "use_render": use_render,
-            "horizon": horizon,
-            "num_scenarios": 1,
-            "truncate_as_terminate": truncate_as_terminate
-        }
-    )
+    env = env_cls({
+        "use_render": use_render,
+        "horizon": horizon,
+        "num_scenarios": 1,
+        "truncate_as_terminate": truncate_as_terminate
+    })
     o, _ = env.reset()
     test_pass = True if horizon is None else False
     try:
         for i in range(1, 500):
-            action = {k: [0, -1] for k in env.agents.keys()} if is_marl else [0, -1]
+            action = {
+                k: [0, -1] for k in env.agents.keys()
+            } if is_marl else [0, -1]
             o, r, tms, tcs, infos = env.step(action)
             if not isinstance(tms, dict):
                 tms = dict(__all__=tms)

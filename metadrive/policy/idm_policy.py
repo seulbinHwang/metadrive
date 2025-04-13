@@ -9,6 +9,7 @@ import logging
 
 
 class FrontBackObjects:
+
     def __init__(self, front_ret, back_ret, front_dist, back_dist):
         self.front_objs = front_ret
         self.back_objs = back_ret
@@ -80,7 +81,12 @@ class FrontBackObjects:
         return self.back_dist[1]
 
     @classmethod
-    def get_find_front_back_objs(cls, objs, lane, position, max_distance, ref_lanes=None):
+    def get_find_front_back_objs(cls,
+                                 objs,
+                                 lane,
+                                 position,
+                                 max_distance,
+                                 ref_lanes=None):
         """
         Find objects in front of/behind the lane and its left lanes/right lanes, return objs, dist.
         If ref_lanes is None, return filter results of this lane
@@ -88,12 +94,19 @@ class FrontBackObjects:
         if ref_lanes is not None:
             assert lane in ref_lanes
         idx = lane.index[-1] if ref_lanes is not None else None
-        left_lane = ref_lanes[idx - 1] if ref_lanes is not None and idx > 0 else None
-        right_lane = ref_lanes[idx + 1] if ref_lanes is not None and idx + 1 < len(ref_lanes) else None
+        left_lane = ref_lanes[idx -
+                              1] if ref_lanes is not None and idx > 0 else None
+        right_lane = ref_lanes[
+            idx +
+            1] if ref_lanes is not None and idx + 1 < len(ref_lanes) else None
         lanes = [left_lane, lane, right_lane]
 
-        min_front_long = [max_distance if lane is not None else None for lane in lanes]
-        min_back_long = [max_distance if lane is not None else None for lane in lanes]
+        min_front_long = [
+            max_distance if lane is not None else None for lane in lanes
+        ]
+        min_back_long = [
+            max_distance if lane is not None else None for lane in lanes
+        ]
 
         front_ret = [None, None, None]
         back_ret = [None, None, None]
@@ -101,15 +114,22 @@ class FrontBackObjects:
         find_front_in_current_lane = [False, False, False]
         find_back_in_current_lane = [False, False, False]
 
-        current_long = [lane.local_coordinates(position)[0] if lane is not None else None for lane in lanes]
-        left_long = [lane.length - current_long[idx] if lane is not None else None for idx, lane in enumerate(lanes)]
+        current_long = [
+            lane.local_coordinates(position)[0] if lane is not None else None
+            for lane in lanes
+        ]
+        left_long = [
+            lane.length - current_long[idx] if lane is not None else None
+            for idx, lane in enumerate(lanes)
+        ]
 
         for i, lane in enumerate(lanes):
             if lane is None:
                 continue
             for obj in objs:
                 if obj.lane is lane:
-                    long = lane.local_coordinates(obj.position)[0] - current_long[i]
+                    long = lane.local_coordinates(
+                        obj.position)[0] - current_long[i]
                     if min_front_long[i] > long > 0:
                         min_front_long[i] = long
                         front_ret[i] = obj
@@ -119,13 +139,17 @@ class FrontBackObjects:
                         back_ret[i] = obj
                         find_back_in_current_lane[i] = True
 
-                elif not find_front_in_current_lane[i] and lane.is_previous_lane_of(obj.lane):
-                    long = obj.lane.local_coordinates(obj.position)[0] + left_long[i]
+                elif not find_front_in_current_lane[
+                        i] and lane.is_previous_lane_of(obj.lane):
+                    long = obj.lane.local_coordinates(
+                        obj.position)[0] + left_long[i]
                     if min_front_long[i] > long > 0:
                         min_front_long[i] = long
                         front_ret[i] = obj
-                elif not find_back_in_current_lane[i] and obj.lane.is_previous_lane_of(lane):
-                    long = obj.lane.length - obj.lane.local_coordinates(obj.position)[0] + current_long[i]
+                elif not find_back_in_current_lane[
+                        i] and obj.lane.is_previous_lane_of(lane):
+                    long = obj.lane.length - obj.lane.local_coordinates(
+                        obj.position)[0] + current_long[i]
                     if min_back_long[i] > long:
                         min_back_long[i] = long
                         back_ret[i] = obj
@@ -133,15 +157,20 @@ class FrontBackObjects:
         return cls(front_ret, back_ret, min_front_long, min_back_long)
 
     @classmethod
-    def get_find_front_back_objs_single_lane(cls, objs, lane, position, max_distance):
+    def get_find_front_back_objs_single_lane(cls, objs, lane, position,
+                                             max_distance):
         """
         Find objects in front of/behind the lane and its left lanes/right lanes, return objs, dist.
         If ref_lanes is None, return filter results of this lane
         """
         lanes = [None, lane, None]
 
-        min_front_long = [max_distance if lane is not None else None for lane in lanes]
-        min_back_long = [max_distance if lane is not None else None for lane in lanes]
+        min_front_long = [
+            max_distance if lane is not None else None for lane in lanes
+        ]
+        min_back_long = [
+            max_distance if lane is not None else None for lane in lanes
+        ]
 
         front_ret = [None, None, None]
         back_ret = [None, None, None]
@@ -149,7 +178,10 @@ class FrontBackObjects:
         find_front_in_current_lane = [False, False, False]
         # find_back_in_current_lane = [False, False, False]
 
-        current_long = [lane.local_coordinates(position)[0] if lane is not None else None for lane in lanes]
+        current_long = [
+            lane.local_coordinates(position)[0] if lane is not None else None
+            for lane in lanes
+        ]
 
         for i, lane in enumerate(lanes):
             if lane is None:
@@ -158,9 +190,12 @@ class FrontBackObjects:
                 _d = obj.position - position
                 if norm(_d[0], _d[1]) > max_distance:
                     continue
-                if hasattr(obj, "bounding_box") and all([not lane.point_on_lane(p) for p in obj.bounding_box]):
+                if hasattr(obj, "bounding_box") and all(
+                    [not lane.point_on_lane(p) for p in obj.bounding_box]):
                     continue
-                elif not hasattr(obj, "bounding_box") and not lane.point_on_lane(obj.position):
+                elif not hasattr(obj,
+                                 "bounding_box") and not lane.point_on_lane(
+                                     obj.position):
                     continue
 
                 long, _ = lane.local_coordinates(obj.position)
@@ -223,32 +258,36 @@ class IDMPolicy(BasePolicy):
     DEACC_FACTOR = -5
 
     def __init__(self, control_object, random_seed):
-        super(IDMPolicy, self).__init__(control_object=control_object, random_seed=random_seed)
+        super(IDMPolicy, self).__init__(control_object=control_object,
+                                        random_seed=random_seed)
         self.target_speed = self.NORMAL_SPEED
         self.routing_target_lane = None
         self.available_routing_index_range = None
         self.overtake_timer = self.np_random.randint(0, self.LANE_CHANGE_FREQ)
-        self.enable_lane_change = self.engine.global_config.get("enable_idm_lane_change", True)
-        self.disable_idm_deceleration = self.engine.global_config.get("disable_idm_deceleration", False)
+        self.enable_lane_change = self.engine.global_config.get(
+            "enable_idm_lane_change", True)
+        self.disable_idm_deceleration = self.engine.global_config.get(
+            "disable_idm_deceleration", False)
         self.heading_pid = PIDController(1.7, 0.01, 3.5)
         self.lateral_pid = PIDController(0.3, .002, 0.05)
 
     def act(self, *args, **kwargs):
         # concat lane
         success = self.move_to_next_road()
-        all_objects = self.control_object.lidar.get_surrounding_objects(self.control_object)
+        all_objects = self.control_object.lidar.get_surrounding_objects(
+            self.control_object)
         try:
             if success and self.enable_lane_change:
                 # perform lane change due to routing
-                acc_front_obj, acc_front_dist, steering_target_lane = self.lane_change_policy(all_objects)
+                acc_front_obj, acc_front_dist, steering_target_lane = self.lane_change_policy(
+                    all_objects)
             else:
                 # can not find routing target lane
                 surrounding_objects = FrontBackObjects.get_find_front_back_objs(
                     all_objects,
                     self.routing_target_lane,
                     self.control_object.position,
-                    max_distance=self.MAX_LONG_DIST
-                )
+                    max_distance=self.MAX_LONG_DIST)
                 acc_front_obj = surrounding_objects.front_object()
                 acc_front_dist = surrounding_objects.front_min_distance()
                 steering_target_lane = self.routing_target_lane
@@ -286,7 +325,8 @@ class IDMPolicy(BasePolicy):
         elif self.control_object.lane in current_lanes and self.routing_target_lane is not self.control_object.lane:
             # lateral routing lane change
             self.routing_target_lane = self.control_object.lane
-            self.overtake_timer = self.np_random.randint(0, int(self.LANE_CHANGE_FREQ / 2))
+            self.overtake_timer = self.np_random.randint(
+                0, int(self.LANE_CHANGE_FREQ / 2))
             return True
         else:
             return True
@@ -297,27 +337,33 @@ class IDMPolicy(BasePolicy):
         long, lat = target_lane.local_coordinates(ego_vehicle.position)
         lane_heading = target_lane.heading_theta_at(long + 1)
         v_heading = ego_vehicle.heading_theta
-        steering = self.heading_pid.get_result(-wrap_to_pi(lane_heading - v_heading))
+        steering = self.heading_pid.get_result(-wrap_to_pi(lane_heading -
+                                                           v_heading))
         steering += self.lateral_pid.get_result(-lat)
         return float(steering)
 
     def acceleration(self, front_obj, dist_to_front) -> float:
         ego_vehicle = self.control_object
         ego_target_speed = not_zero(self.target_speed, 0)
-        acceleration = self.ACC_FACTOR * (1 - np.power(max(ego_vehicle.speed_km_h, 0) / ego_target_speed, self.DELTA))
+        acceleration = self.ACC_FACTOR * (1 - np.power(
+            max(ego_vehicle.speed_km_h, 0) / ego_target_speed, self.DELTA))
         if front_obj and (not self.disable_idm_deceleration):
             d = dist_to_front
             speed_diff = self.desired_gap(ego_vehicle, front_obj) / not_zero(d)
             acceleration -= self.ACC_FACTOR * (speed_diff**2)
         return acceleration
 
-    def desired_gap(self, ego_vehicle, front_obj, projected: bool = True) -> float:
+    def desired_gap(self,
+                    ego_vehicle,
+                    front_obj,
+                    projected: bool = True) -> float:
         d0 = self.DISTANCE_WANTED
         tau = self.TIME_WANTED
         ab = -self.ACC_FACTOR * self.DEACC_FACTOR
         dv = np.dot(ego_vehicle.velocity_km_h - front_obj.velocity_km_h, ego_vehicle.heading) if projected \
             else ego_vehicle.speed_km_h - front_obj.speed_km_h
-        d_star = d0 + ego_vehicle.speed_km_h * tau + ego_vehicle.speed_km_h * dv / (2 * np.sqrt(ab))
+        d_star = d0 + ego_vehicle.speed_km_h * tau + ego_vehicle.speed_km_h * dv / (
+            2 * np.sqrt(ab))
         return d_star
 
     def reset(self):
@@ -331,17 +377,21 @@ class IDMPolicy(BasePolicy):
     def lane_change_policy(self, all_objects):
         current_lanes = self.control_object.navigation.current_ref_lanes
         surrounding_objects = FrontBackObjects.get_find_front_back_objs(
-            all_objects, self.routing_target_lane, self.control_object.position, self.MAX_LONG_DIST, current_lanes
-        )
-        self.available_routing_index_range = [i for i in range(len(current_lanes))]
+            all_objects, self.routing_target_lane, self.control_object.position,
+            self.MAX_LONG_DIST, current_lanes)
+        self.available_routing_index_range = [
+            i for i in range(len(current_lanes))
+        ]
         next_lanes = self.control_object.navigation.next_ref_lanes
-        lane_num_diff = len(current_lanes) - len(next_lanes) if next_lanes is not None else 0
+        lane_num_diff = len(current_lanes) - len(
+            next_lanes) if next_lanes is not None else 0
 
         def lane_follow():
             # fall back to lane follow
             self.target_speed = self.NORMAL_SPEED
             self.overtake_timer += 1
-            return surrounding_objects.front_object(), surrounding_objects.front_min_distance(
+            return surrounding_objects.front_object(
+            ), surrounding_objects.front_min_distance(
             ), self.routing_target_lane
 
         if isinstance(surrounding_objects.front_object(), BaseTrafficLight):
@@ -354,17 +404,21 @@ class IDMPolicy(BasePolicy):
             if current_lanes[0].is_previous_lane_of(next_lanes[0]):
                 index_range = [i for i in range(len(next_lanes))]
             else:
-                index_range = [i for i in range(lane_num_diff, len(current_lanes))]
+                index_range = [
+                    i for i in range(lane_num_diff, len(current_lanes))
+                ]
             self.available_routing_index_range = index_range
             if self.routing_target_lane.index[-1] not in index_range:
                 # not on suitable lane do lane change !!!
                 if self.routing_target_lane.index[-1] > index_range[-1]:
                     # change to left
                     if surrounding_objects.left_back_min_distance(
-                    ) < self.SAFE_LANE_CHANGE_DISTANCE or surrounding_objects.left_front_min_distance() < 5:
+                    ) < self.SAFE_LANE_CHANGE_DISTANCE or surrounding_objects.left_front_min_distance(
+                    ) < 5:
                         # creep to wait
                         self.target_speed = self.CREEP_SPEED
-                        return surrounding_objects.front_object(), surrounding_objects.front_min_distance(
+                        return surrounding_objects.front_object(
+                        ), surrounding_objects.front_min_distance(
                         ), self.routing_target_lane
                     else:
                         # it is time to change lane!
@@ -374,10 +428,12 @@ class IDMPolicy(BasePolicy):
                 else:
                     # change to right
                     if surrounding_objects.right_back_min_distance(
-                    ) < self.SAFE_LANE_CHANGE_DISTANCE or surrounding_objects.right_front_min_distance() < 5:
+                    ) < self.SAFE_LANE_CHANGE_DISTANCE or surrounding_objects.right_front_min_distance(
+                    ) < 5:
                         # unsafe, creep and wait
                         self.target_speed = self.CREEP_SPEED
-                        return surrounding_objects.front_object(), surrounding_objects.front_min_distance(
+                        return surrounding_objects.front_object(
+                        ), surrounding_objects.front_min_distance(
                         ), self.routing_target_lane,
                     else:
                         # change lane
@@ -386,24 +442,29 @@ class IDMPolicy(BasePolicy):
                                current_lanes[self.routing_target_lane.index[-1] + 1]
 
         # lane follow or active change lane/overtake for high driving speed
-        if abs(self.control_object.speed_km_h - self.NORMAL_SPEED) > 3 and surrounding_objects.has_front_object(
-        ) and abs(surrounding_objects.front_object().speed_km_h -
-                  self.NORMAL_SPEED) > 3 and self.overtake_timer > self.LANE_CHANGE_FREQ:
+        if abs(self.control_object.speed_km_h -
+               self.NORMAL_SPEED) > 3 and surrounding_objects.has_front_object(
+               ) and abs(surrounding_objects.front_object().speed_km_h -
+                         self.NORMAL_SPEED
+                        ) > 3 and self.overtake_timer > self.LANE_CHANGE_FREQ:
             # may lane change
             right_front_speed = surrounding_objects.right_front_object().speed_km_h if surrounding_objects.has_right_front_object() else self.MAX_SPEED \
                 if surrounding_objects.right_lane_exist() and surrounding_objects.right_front_min_distance() > self.SAFE_LANE_CHANGE_DISTANCE and surrounding_objects.right_back_min_distance() > self.SAFE_LANE_CHANGE_DISTANCE else None
-            front_speed = surrounding_objects.front_object().speed_km_h if surrounding_objects.has_front_object(
+            front_speed = surrounding_objects.front_object(
+            ).speed_km_h if surrounding_objects.has_front_object(
             ) else self.MAX_SPEED
             left_front_speed = surrounding_objects.left_front_object().speed_km_h if surrounding_objects.has_left_front_object() else self.MAX_SPEED \
                 if surrounding_objects.left_lane_exist() and surrounding_objects.left_front_min_distance() > self.SAFE_LANE_CHANGE_DISTANCE and surrounding_objects.left_back_min_distance() > self.SAFE_LANE_CHANGE_DISTANCE else None
             if left_front_speed is not None and left_front_speed - front_speed > self.LANE_CHANGE_SPEED_INCREASE:
                 # left overtake has a high priority
-                expect_lane_idx = current_lanes.index(self.routing_target_lane) - 1
+                expect_lane_idx = current_lanes.index(
+                    self.routing_target_lane) - 1
                 if expect_lane_idx in self.available_routing_index_range:
                     return surrounding_objects.left_front_object(), surrounding_objects.left_front_min_distance(), \
                            current_lanes[expect_lane_idx]
             if right_front_speed is not None and right_front_speed - front_speed > self.LANE_CHANGE_SPEED_INCREASE:
-                expect_lane_idx = current_lanes.index(self.routing_target_lane) + 1
+                expect_lane_idx = current_lanes.index(
+                    self.routing_target_lane) + 1
                 if expect_lane_idx in self.available_routing_index_range:
                     return surrounding_objects.right_front_object(), surrounding_objects.right_front_min_distance(), \
                            current_lanes[expect_lane_idx]
@@ -414,10 +475,13 @@ class IDMPolicy(BasePolicy):
 
 class ManualControllableIDMPolicy(IDMPolicy):
     """If human is not taking over, then use IDM policy."""
+
     def __init__(self, *args, **kwargs):
         super(ManualControllableIDMPolicy, self).__init__(*args, **kwargs)
         self.engine.global_config["manual_control"] = True  # hack
-        self.manual_control_policy = ManualControlPolicy(*args, **kwargs, enable_expert=False)
+        self.manual_control_policy = ManualControlPolicy(*args,
+                                                         **kwargs,
+                                                         enable_expert=False)
         self.engine.global_config["manual_control"] = False  # hack
 
     def act(self, agent_id):
@@ -439,10 +503,17 @@ class TrajectoryIDMPolicy(IDMPolicy):
     IDM_MAX_DIST = 20
     DEST_REGION_RADIUS = 2  # m
 
-    def __init__(self, control_object, random_seed, traj_to_follow, policy_index=None):
-        super(TrajectoryIDMPolicy, self).__init__(control_object=control_object, random_seed=random_seed)
+    def __init__(self,
+                 control_object,
+                 random_seed,
+                 traj_to_follow,
+                 policy_index=None):
+        super(TrajectoryIDMPolicy, self).__init__(control_object=control_object,
+                                                  random_seed=random_seed)
         self.policy_index = policy_index
-        assert isinstance(traj_to_follow, PointLane), "Trajectory of IDM policy should be in PointLane Class"
+        assert isinstance(
+            traj_to_follow,
+            PointLane), "Trajectory of IDM policy should be in PointLane Class"
         self.traj_to_follow = traj_to_follow
         self.target_speed = self.NORMAL_SPEED
         self.routing_target_lane = self.traj_to_follow
@@ -458,9 +529,9 @@ class TrajectoryIDMPolicy(IDMPolicy):
 
     @property
     def arrive_destination(self):
-        return norm(
-            self.control_object.position[0] - self.destination[0], self.control_object.position[1] - self.destination[1]
-        ) < self.DEST_REGION_RADIUS
+        return norm(self.control_object.position[0] - self.destination[0],
+                    self.control_object.position[1] -
+                    self.destination[1]) < self.DEST_REGION_RADIUS
 
     def steering_control(self, target_lane) -> float:
         # heading control following a lateral distance control
@@ -468,7 +539,8 @@ class TrajectoryIDMPolicy(IDMPolicy):
         long, lat = target_lane.local_coordinates(ego_vehicle.position)
         lane_heading = target_lane.heading_theta_at(long + 1)
         v_heading = ego_vehicle.heading_theta
-        steering = self.heading_pid.get_result(-wrap_to_pi(lane_heading - v_heading))
+        steering = self.heading_pid.get_result(-wrap_to_pi(lane_heading -
+                                                           v_heading))
         steering += self.lateral_pid.get_result(-lat)
         return float(steering)
 
@@ -476,11 +548,14 @@ class TrajectoryIDMPolicy(IDMPolicy):
         # concat lane
         try:
             if do_speed_control:
-                all_objects = self.control_object.lidar.get_surrounding_objects(self.control_object)
+                all_objects = self.control_object.lidar.get_surrounding_objects(
+                    self.control_object)
                 # can not find routing target lane
                 surrounding_objects = FrontBackObjects.get_find_front_back_objs_single_lane(
-                    all_objects, self.routing_target_lane, self.control_object.position, max_distance=self.IDM_MAX_DIST
-                )
+                    all_objects,
+                    self.routing_target_lane,
+                    self.control_object.position,
+                    max_distance=self.IDM_MAX_DIST)
                 acc_front_obj = surrounding_objects.front_object()
                 acc_front_dist = surrounding_objects.front_min_distance()
 
@@ -489,7 +564,9 @@ class TrajectoryIDMPolicy(IDMPolicy):
                 acc = self.last_action[-1]
         except:
             acc = 0
-            print("TrajectoryIDM Policy longitudinal planning failed, acceleration fall back to 0")
+            print(
+                "TrajectoryIDM Policy longitudinal planning failed, acceleration fall back to 0"
+            )
 
         # if self.policy_index % 2 == 0:
         steering_target_lane = self.routing_target_lane

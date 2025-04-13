@@ -94,7 +94,8 @@ class LightManager(RPObject):
 
     def update(self):
         """ Main update method to process the GPU commands """
-        self.internal_mgr.set_camera_pos(Globals.base.camera.get_pos(Globals.base.render))
+        self.internal_mgr.set_camera_pos(
+            Globals.base.camera.get_pos(Globals.base.render))
         self.internal_mgr.update()
         self.shadow_manager.update()
         self.cmd_queue.process_queue()
@@ -107,13 +108,13 @@ class LightManager(RPObject):
         """ Computes how many tiles there are on screen """
         self.tile_size = LVecBase2i(
             self.pipeline.settings["lighting.culling_grid_size_x"],
-            self.pipeline.settings["lighting.culling_grid_size_y"]
-        )
-        num_tiles_x = int(math.ceil(Globals.resolution.x / float(self.tile_size.x)))
-        num_tiles_y = int(math.ceil(Globals.resolution.y / float(self.tile_size.y)))
-        self.debug(
-            "Tile size =", self.tile_size.x, "x", self.tile_size.y, ", Num tiles =", num_tiles_x, "x", num_tiles_y
-        )
+            self.pipeline.settings["lighting.culling_grid_size_y"])
+        num_tiles_x = int(
+            math.ceil(Globals.resolution.x / float(self.tile_size.x)))
+        num_tiles_y = int(
+            math.ceil(Globals.resolution.y / float(self.tile_size.y)))
+        self.debug("Tile size =", self.tile_size.x, "x", self.tile_size.y,
+                   ", Num tiles =", num_tiles_x, "x", num_tiles_y)
         self.num_tiles = LVecBase2i(num_tiles_x, num_tiles_y)
 
     def init_command_queue(self):
@@ -126,27 +127,32 @@ class LightManager(RPObject):
     def init_shadow_manager(self):
         """ Inits the shadow manager """
         self.shadow_manager = ShadowManager()
-        self.shadow_manager.set_max_updates(self.pipeline.settings["shadows.max_updates"])
+        self.shadow_manager.set_max_updates(
+            self.pipeline.settings["shadows.max_updates"])
         self.shadow_manager.set_scene(Globals.base.render)
         self.shadow_manager.set_tag_state_manager(self.pipeline.tag_mgr)
-        self.shadow_manager.atlas_size = self.pipeline.settings["shadows.atlas_size"]
+        self.shadow_manager.atlas_size = self.pipeline.settings[
+            "shadows.atlas_size"]
         self.internal_mgr.shadow_manager = self.shadow_manager
 
     def init_shadows(self):
         """ Inits the shadows, this has to get called after the stages were
         created, because we need the GraphicsOutput of the shadow atlas, which
         is not available earlier """
-        self.shadow_manager.set_atlas_graphics_output(self.shadow_stage.atlas_buffer)
+        self.shadow_manager.set_atlas_graphics_output(
+            self.shadow_stage.atlas_buffer)
         self.shadow_manager.init()
 
     def init_internal_manager(self):
         """ Creates the light storage manager and the buffer to store the light data """
         self.internal_mgr = InternalLightManager()
-        self.internal_mgr.set_shadow_update_distance(self.pipeline.settings["shadows.max_update_distance"])
+        self.internal_mgr.set_shadow_update_distance(
+            self.pipeline.settings["shadows.max_update_distance"])
 
         # Storage for the Lights
         per_light_vec4s = 4
-        self.img_light_data = Image.create_buffer("LightData", self.MAX_LIGHTS * per_light_vec4s, "RGBA16")
+        self.img_light_data = Image.create_buffer(
+            "LightData", self.MAX_LIGHTS * per_light_vec4s, "RGBA16")
         self.img_light_data.clear_image()
 
         self.pta_max_light_index = PTAInt.empty_array(1)
@@ -157,7 +163,8 @@ class LightManager(RPObject):
 
         # IMPORTANT: RGBA32 is really required here. Otherwise artifacts and bad
         # shadow filtering occur due to precision issues
-        self.img_source_data = Image.create_buffer("ShadowSourceData", self.MAX_SOURCES * per_source_vec4s, "RGBA32")
+        self.img_source_data = Image.create_buffer(
+            "ShadowSourceData", self.MAX_SOURCES * per_source_vec4s, "RGBA32")
         self.img_light_data.clear_image()
 
         # Register the buffer
@@ -192,11 +199,16 @@ class LightManager(RPObject):
         defines = self.pipeline.stage_mgr.defines
         defines["LC_TILE_SIZE_X"] = self.tile_size.x
         defines["LC_TILE_SIZE_Y"] = self.tile_size.y
-        defines["LC_TILE_SLICES"] = self.pipeline.settings["lighting.culling_grid_slices"]
-        defines["LC_MAX_DISTANCE"] = self.pipeline.settings["lighting.culling_max_distance"]
-        defines["LC_CULLING_SLICE_WIDTH"] = self.pipeline.settings["lighting.culling_slice_width"]
-        defines["LC_MAX_LIGHTS_PER_CELL"] = self.pipeline.settings["lighting.max_lights_per_cell"]
-        defines["SHADOW_ATLAS_SIZE"] = self.pipeline.settings["shadows.atlas_size"]
+        defines["LC_TILE_SLICES"] = self.pipeline.settings[
+            "lighting.culling_grid_slices"]
+        defines["LC_MAX_DISTANCE"] = self.pipeline.settings[
+            "lighting.culling_max_distance"]
+        defines["LC_CULLING_SLICE_WIDTH"] = self.pipeline.settings[
+            "lighting.culling_slice_width"]
+        defines["LC_MAX_LIGHTS_PER_CELL"] = self.pipeline.settings[
+            "lighting.max_lights_per_cell"]
+        defines["SHADOW_ATLAS_SIZE"] = self.pipeline.settings[
+            "shadows.atlas_size"]
 
         # Register all light types as defines
         for attr in dir(PointLight):

@@ -37,6 +37,7 @@ from metadrive.render_pipeline.rpcore.pluginbase.day_setting_types import ColorT
 class DayTimeManager(RPObject):
     """ This manager handles all time of day settings, provides them as
     a input to all shaders, and stores which time it currently is """
+
     def __init__(self, pipeline):
         RPObject.__init__(self)
         self._pipeline = pipeline
@@ -73,7 +74,8 @@ class DayTimeManager(RPObject):
     def load_settings(self):
         """ Loads all day time settings from the plugin manager and registers
         them to the used input buffer """
-        for plugin_id, settings in iteritems(self._pipeline.plugin_mgr.day_settings):
+        for plugin_id, settings in iteritems(
+                self._pipeline.plugin_mgr.day_settings):
             for setting, handle in iteritems(settings):
                 setting_id = "{}.{}".format(plugin_id, setting)
                 self._input_ubo.register_pta(setting_id, handle.glsl_type)

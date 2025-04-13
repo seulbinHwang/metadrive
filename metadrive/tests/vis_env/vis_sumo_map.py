@@ -18,6 +18,7 @@ class SimpleTrafficManager(BaseManager):
     """
     A simple traffic creator, which creates one vehicle to follow a specified route with IDM policy.
     """
+
     def __init__(self):
         super(SimpleTrafficManager, self).__init__()
         self.generated_v = None
@@ -30,20 +31,21 @@ class SimpleTrafficManager(BaseManager):
         self.arrive_dest = False
         path_to_follow = []
         for lane_index in ["lane_4_0", "lane_:306_0_0", "lane_22_0"]:
-            path_to_follow.append(self.engine.current_map.road_network.get_lane(lane_index).get_polyline())
+            path_to_follow.append(
+                self.engine.current_map.road_network.get_lane(
+                    lane_index).get_polyline())
         path_to_follow = np.concatenate(path_to_follow, axis=0)
 
-        self.generated_v = self.spawn_object(
-            SVehicle, vehicle_config=dict(), position=path_to_follow[60], heading=-np.pi
-        )
+        self.generated_v = self.spawn_object(SVehicle,
+                                             vehicle_config=dict(),
+                                             position=path_to_follow[60],
+                                             heading=-np.pi)
         TrajectoryIDMPolicy.NORMAL_SPEED = 20
-        self.add_policy(
-            self.generated_v.id,
-            TrajectoryIDMPolicy,
-            control_object=self.generated_v,
-            random_seed=0,
-            traj_to_follow=PointLane(path_to_follow, 2)
-        )
+        self.add_policy(self.generated_v.id,
+                        TrajectoryIDMPolicy,
+                        control_object=self.generated_v,
+                        random_seed=0,
+                        traj_to_follow=PointLane(path_to_follow, 2))
 
     def before_step(self):
         """
@@ -61,6 +63,7 @@ class SimpleTrafficManager(BaseManager):
 
 
 class MyEnv(BaseEnv):
+
     def reward_function(self, agent):
         """Dummy reward function."""
         return 0, {}
@@ -80,7 +83,9 @@ class MyEnv(BaseEnv):
     def setup_engine(self):
         """Register the map manager"""
         super().setup_engine()
-        map_path = AssetLoader.file_path("carla", "CARLA_town01.net.xml", unix_style=False)
+        map_path = AssetLoader.file_path("carla",
+                                         "CARLA_town01.net.xml",
+                                         unix_style=False)
         self.engine.register_manager("map_manager", SumoMapManager(map_path))
         self.engine.register_manager("traffic_manager", SimpleTrafficManager())
 
@@ -91,18 +96,20 @@ if __name__ == "__main__":
         dict(
             use_render=True,
             vehicle_config={"spawn_position_heading": [(0, 0), np.pi / 2]},
-            manual_control=True,  # we usually manually control the car to test environment
+            manual_control=
+            True,  # we usually manually control the car to test environment
             use_mesh_terrain=True,
-            log_level=logging.CRITICAL
-        )
-    )  # suppress logging message
+            log_level=logging.CRITICAL))  # suppress logging message
     env.reset()
     for i in range(10000):
         # step
-        obs, reward, termination, truncate, info, = env.step(env.action_space.sample())
+        obs, reward, termination, truncate, info, = env.step(
+            env.action_space.sample())
         current_lane_indices = [
-            info[1] for info in
-            ray_localization(env.vehicle.heading, env.vehicle.position, env.engine, use_heading_filter=True)
+            info[1] for info in ray_localization(env.vehicle.heading,
+                                                 env.vehicle.position,
+                                                 env.engine,
+                                                 use_heading_filter=True)
         ]
 
         env.render(text={"current_lane_indices": current_lane_indices})

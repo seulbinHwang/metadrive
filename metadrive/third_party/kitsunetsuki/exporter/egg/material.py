@@ -27,6 +27,7 @@ SHADING_MODEL_TRANSPARENT_EMISSIVE = 6
 
 
 class MaterialMixin(object):
+
     def make_material(self, material):
         egg_material = EggMaterial(material.name)
 
@@ -35,13 +36,11 @@ class MaterialMixin(object):
             output = get_root_node(material.node_tree, 'OUTPUT_MATERIAL')
             shader = None
             if output:
-                shader = get_from_node(
-                    material.node_tree,
-                    'BSDF_PRINCIPLED',
-                    to_node=output,
-                    from_socket_name='BSDF',
-                    to_socket_name='Surface'
-                )
+                shader = get_from_node(material.node_tree,
+                                       'BSDF_PRINCIPLED',
+                                       to_node=output,
+                                       from_socket_name='BSDF',
+                                       to_socket_name='Surface')
 
         if not shader:
             return egg_material
@@ -55,13 +54,16 @@ class MaterialMixin(object):
             normal_strength = self.get_normal_strength(material, shader)
 
             if sum(emission) > 0:  # emission
-                egg_material.set_base(emission + (1, ))
+                egg_material.set_base(emission + (1,))
                 egg_material.set_metallic(0)
                 egg_material.set_roughness(1)
                 egg_material.set_ior(1.51)
 
                 if alpha < 1:
-                    emit = [SHADING_MODEL_TRANSPARENT_EMISSIVE, normal_strength, alpha, 0]
+                    emit = [
+                        SHADING_MODEL_TRANSPARENT_EMISSIVE, normal_strength,
+                        alpha, 0
+                    ]
                 else:
                     emit = [SHADING_MODEL_EMISSIVE, normal_strength, 0, 0]
                 egg_material.set_emit(tuple(emit))
@@ -73,7 +75,10 @@ class MaterialMixin(object):
                 egg_material.set_ior(shader.inputs['IOR'].default_value)
 
                 if alpha < 1:
-                    emit = [SHADING_MODEL_TRANSPARENT_GLASS, normal_strength, alpha, 0]
+                    emit = [
+                        SHADING_MODEL_TRANSPARENT_GLASS, normal_strength, alpha,
+                        0
+                    ]
                 elif clearcoat:
                     emit = [SHADING_MODEL_CLEARCOAT, normal_strength, 0, 0]
                 else:

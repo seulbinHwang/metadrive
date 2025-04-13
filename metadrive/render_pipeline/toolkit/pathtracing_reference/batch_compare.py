@@ -110,14 +110,12 @@ GOLD_F0 = (1, 0.867136, 0.358654)
 for i in range(11):
     roughness = i / 10.0
 
-    materials_to_test.append(
-        {
-            "name": "Plastic-R" + str(roughness),
-            "basecolor": (1, 0, 0),
-            "ior": 1.51,
-            "roughness": roughness
-        }
-    )
+    materials_to_test.append({
+        "name": "Plastic-R" + str(roughness),
+        "basecolor": (1, 0, 0),
+        "ior": 1.51,
+        "roughness": roughness
+    })
 
     # materials_to_test.append({
     #         "name": "Gold-R" + str(roughness),
@@ -154,11 +152,13 @@ for material in materials_to_test:
         handle.write("roughness = {}".format(material["roughness"]) + "\n")
         handle.write("ior = {}".format(material.get("ior", 1.51)) + "\n")
         handle.write("basecolor = {}".format(material["basecolor"]) + "\n")
-        handle.write("mat_type = '{}'".format(material.get("type", "default")) + "\n")
+        handle.write("mat_type = '{}'".format(material.get("type", "default")) +
+                     "\n")
 
     # run rp
     print("  Running RP ..")
-    cmd = '"{}"'.format(sys.executable) + " -B run_renderpipeline.py silent > nul"
+    cmd = '"{}"'.format(
+        sys.executable) + " -B run_renderpipeline.py silent > nul"
     os.system(cmd)
 
     print("  Running mitsuba ..")
@@ -180,10 +180,13 @@ for material in materials_to_test:
             content = content.replace("%IF_" + def_name + "%", "<!--")
             content = content.replace("%ENDIF_" + def_name + "%", "-->")
 
-    content = content.replace("%ALPHA%", str(material["roughness"] * material["roughness"]))
+    content = content.replace(
+        "%ALPHA%", str(material["roughness"] * material["roughness"]))
     content = content.replace("%IOR%", str(material.get("ior", 1.51)))
-    content = content.replace("%BASECOLOR%", str(material["basecolor"]).strip("()"))
-    content = content.replace("%MATERIAL_SRC%", material.get("material_src", "").strip("()"))
+    content = content.replace("%BASECOLOR%",
+                              str(material["basecolor"]).strip("()"))
+    content = content.replace("%MATERIAL_SRC%",
+                              material.get("material_src", "").strip("()"))
 
     with open("res/scene.xml", "w") as handle:
         handle.write(content)

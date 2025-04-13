@@ -39,6 +39,7 @@ from metadrive.render_pipeline.rpcore.loader import RPLoader
 
 class ExposureWidget(RPObject):
     """ Widget to show the current exposure """
+
     def __init__(self, pipeline, parent):
         """ Inits the widget """
         RPObject.__init__(self)
@@ -57,15 +58,25 @@ class ExposureWidget(RPObject):
         self._storage_tex.set_clear_color(Vec4(0.2, 0.6, 1.0, 1.0))
         self._storage_tex.clear_image()
 
-        self._bg_frame = DirectFrame(
-            parent=self._node, frameColor=(0.1, 0.1, 0.1, 1.0), frameSize=(200, 0, -10, -85), pos=(0, 0, 0)
-        )
+        self._bg_frame = DirectFrame(parent=self._node,
+                                     frameColor=(0.1, 0.1, 0.1, 1.0),
+                                     frameSize=(200, 0, -10, -85),
+                                     pos=(0, 0, 0))
 
-        self._display_img = Sprite(image=self._storage_tex, parent=self._node, w=140, h=20, x=20, y=50)
+        self._display_img = Sprite(image=self._storage_tex,
+                                   parent=self._node,
+                                   w=140,
+                                   h=20,
+                                   x=20,
+                                   y=50)
 
-        self._display_txt = Text(
-            text="Current Exposure".upper(), parent=self._node, x=160, y=40, size=13, color=Vec3(0.8), align="right"
-        )
+        self._display_txt = Text(text="Current Exposure".upper(),
+                                 parent=self._node,
+                                 x=160,
+                                 y=40,
+                                 size=13,
+                                 color=Vec3(0.8),
+                                 align="right")
 
         # Create the shader which generates the visualization texture
         self._cshader_node = ComputeNode("ExposureWidget")
@@ -74,7 +85,8 @@ class ExposureWidget(RPObject):
         self._cshader_np = self._node.attach_new_node(self._cshader_node)
 
         # Defer the further loading
-        Globals.base.taskMgr.doMethodLater(1.0, self._late_init, "ExposureLateInit")
+        Globals.base.taskMgr.doMethodLater(1.0, self._late_init,
+                                           "ExposureLateInit")
 
     def _late_init(self, task):
         """ Gets called after the pipeline initialized, this extracts the
@@ -82,15 +94,18 @@ class ExposureWidget(RPObject):
         stage_mgr = self._pipeline.stage_mgr
 
         if "Exposure" not in stage_mgr.pipes:
-            self.debug("Disabling exposure widget, could not find the exposure data.")
+            self.debug(
+                "Disabling exposure widget, could not find the exposure data.")
             self._node.remove_node()
             return
 
         self._node.show()
 
         exposure_tex = stage_mgr.pipes["Exposure"]
-        self._cshader = RPLoader.load_shader("/$$rp/shader/visualize_exposure.compute.glsl")
+        self._cshader = RPLoader.load_shader(
+            "/$$rp/shader/visualize_exposure.compute.glsl")
         self._cshader_np.set_shader(self._cshader)
-        self._cshader_np.set_shader_inputs(DestTex=self._storage_tex, ExposureTex=exposure_tex)
+        self._cshader_np.set_shader_inputs(DestTex=self._storage_tex,
+                                           ExposureTex=exposure_tex)
 
         return task.done

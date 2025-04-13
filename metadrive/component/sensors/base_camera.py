@@ -38,9 +38,12 @@ class BaseCamera(ImageBuffer, BaseSensor):
 
     def __init__(self, engine, need_cuda=False, frame_buffer_property=None):
         self._enable_cuda = need_cuda
-        super(BaseCamera, self).__init__(
-            self.BUFFER_W, self.BUFFER_H, self.BKG_COLOR, engine=engine, frame_buffer_property=frame_buffer_property
-        )
+        super(BaseCamera,
+              self).__init__(self.BUFFER_W,
+                             self.BUFFER_H,
+                             self.BKG_COLOR,
+                             engine=engine,
+                             frame_buffer_property=frame_buffer_property)
 
         width = self.BUFFER_W
         height = self.BUFFER_H
@@ -49,8 +52,7 @@ class BaseCamera(ImageBuffer, BaseSensor):
             self.logger.warning(
                 "You are using too large buffer! The height is {}, and width is {}. "
                 "It may lower the sample efficiency! Consider reducing buffer size or use cuda image by"
-                " set [image_on_cuda=True].".format(height, width)
-            )
+                " set [image_on_cuda=True].".format(height, width))
         self.cuda_graphics_resource = None
         if self.enable_cuda:
             assert _cuda_enable, "Can not enable cuda rendering pipeline, if you are on Windows, try 'pip install pypiwin32'"
@@ -81,7 +83,8 @@ class BaseCamera(ImageBuffer, BaseSensor):
             self.cam.node().getDisplayRegion(0).setDrawCallback(_callback_func)
 
             self.gsg = GraphicsStateGuardianBase.getDefaultGsg()
-            self.texture_context_future = self.cuda_texture.prepare(self.gsg.prepared_objects)
+            self.texture_context_future = self.cuda_texture.prepare(
+                self.gsg.prepared_objects)
             self.cuda_texture_identifier = None
             self.new_cuda_mem_ptr = None
             self.cuda_rendered_result = None
@@ -91,7 +94,8 @@ class BaseCamera(ImageBuffer, BaseSensor):
         Make a texture for cuda access
         """
         self.cuda_texture = Texture()
-        self.buffer.addRenderTexture(self.cuda_texture, GraphicsOutput.RTMBindOrCopy)
+        self.buffer.addRenderTexture(self.cuda_texture,
+                                     GraphicsOutput.RTMBindOrCopy)
 
     @property
     def enable_cuda(self):
@@ -129,9 +133,11 @@ class BaseCamera(ImageBuffer, BaseSensor):
         self.cam.setPos(*position)
         self.cam.setHpr(*hpr)
 
-    def perceive(
-        self, to_float=True, new_parent_node: Union[NodePath, None] = None, position=None, hpr=None
-    ) -> np.ndarray:
+    def perceive(self,
+                 to_float=True,
+                 new_parent_node: Union[NodePath, None] = None,
+                 position=None,
+                 hpr=None) -> np.ndarray:
         """
         When to_float is set to False, the image will be represented by unit8 with component value ranging from [0-255].
         Otherwise, it will be float type with component value ranging from [0.-1.]. By default, the reset parameters are
@@ -183,7 +189,8 @@ class BaseCamera(ImageBuffer, BaseSensor):
                                   "the heading/pitch/roll."
             self.cam.setHpr(Vec3(*hpr))
 
-            different_pos_hpr = (original_hpr != Vec3(*hpr)) or (original_position != Vec3(*position))
+            different_pos_hpr = (original_hpr != Vec3(
+                *hpr)) or (original_position != Vec3(*position))
 
             self.engine.taskMgr.step()
 
@@ -194,7 +201,8 @@ class BaseCamera(ImageBuffer, BaseSensor):
 
         if self.enable_cuda:
             assert self.cuda_rendered_result is not None
-            ret = self.cuda_rendered_result[..., :self.num_channels][..., ::-1][::-1]
+            ret = self.cuda_rendered_result[..., :self.num_channels][
+                ..., ::-1][::-1]
         else:
             ret = self.get_rgb_array_cpu()
 
@@ -244,13 +252,11 @@ class BaseCamera(ImageBuffer, BaseSensor):
     @property
     def cuda_array(self):
         assert self.mapped
-        return cp.ndarray(
-            shape=(self.cuda_shape[1], self.cuda_shape[0], 4),
-            dtype=self.cuda_dtype,
-            strides=self.cuda_strides,
-            order=self.cuda_order,
-            memptr=self._cuda_buffer
-        )
+        return cp.ndarray(shape=(self.cuda_shape[1], self.cuda_shape[0], 4),
+                          dtype=self.cuda_dtype,
+                          strides=self.cuda_strides,
+                          order=self.cuda_order,
+                          memptr=self._cuda_buffer)
 
     @property
     def cuda_buffer(self):
@@ -278,23 +284,23 @@ class BaseCamera(ImageBuffer, BaseSensor):
         return False
 
     def register(self):
-        self.cuda_texture_identifier = self.texture_context_future.result().getNativeId()
+        self.cuda_texture_identifier = self.texture_context_future.result(
+        ).getNativeId()
         assert self.cuda_texture_identifier is not None
         if self.registered:
             return self.cuda_graphics_resource
         self.cuda_graphics_resource = check_cudart_err(
             cudart.cudaGraphicsGLRegisterImage(
-                self.cuda_texture_identifier, GL_TEXTURE_2D, cudaGraphicsRegisterFlags.cudaGraphicsRegisterFlagsReadOnly
-            )
-        )
+                self.cuda_texture_identifier, GL_TEXTURE_2D,
+                cudaGraphicsRegisterFlags.cudaGraphicsRegisterFlagsReadOnly))
         return self.cuda_graphics_resource
 
     def unregister(self):
         if self.registered:
             self.unmap()
             self.cuda_graphics_resource = check_cudart_err(
-                cudart.cudaGraphicsUnregisterResource(self.cuda_graphics_resource)
-            )
+                cudart.cudaGraphicsUnregisterResource(
+                    self.cuda_graphics_resource))
             self.cam.node().getDisplayRegion(0).clearDrawCallback()
 
     def map(self, stream=0):
@@ -302,25 +308,31 @@ class BaseCamera(ImageBuffer, BaseSensor):
             raise RuntimeError("Cannot map an unregistered buffer.")
         if self.mapped:
             return self._cuda_buffer
-        check_cudart_err(cudart.cudaGraphicsMapResources(1, self.cuda_graphics_resource, stream))
-        array = check_cudart_err(cudart.cudaGraphicsSubResourceGetMappedArray(self.graphics_resource, 0, 0))
-        channelformat, cudaextent, flag = check_cudart_err(cudart.cudaArrayGetInfo(array))
+        check_cudart_err(
+            cudart.cudaGraphicsMapResources(1, self.cuda_graphics_resource,
+                                            stream))
+        array = check_cudart_err(
+            cudart.cudaGraphicsSubResourceGetMappedArray(
+                self.graphics_resource, 0, 0))
+        channelformat, cudaextent, flag = check_cudart_err(
+            cudart.cudaArrayGetInfo(array))
 
         depth = 1
         byte = 4  # four channel
         if self.new_cuda_mem_ptr is None:
-            success, self.new_cuda_mem_ptr = cudart.cudaMalloc(cudaextent.height * cudaextent.width * byte * depth)
+            success, self.new_cuda_mem_ptr = cudart.cudaMalloc(
+                cudaextent.height * cudaextent.width * byte * depth)
         check_cudart_err(
             cudart.cudaMemcpy2DFromArray(
-                self.new_cuda_mem_ptr, cudaextent.width * byte * depth, array, 0, 0, cudaextent.width * byte * depth,
-                cudaextent.height, cudart.cudaMemcpyKind.cudaMemcpyDeviceToDevice
-            )
-        )
+                self.new_cuda_mem_ptr, cudaextent.width * byte * depth, array,
+                0, 0, cudaextent.width * byte * depth, cudaextent.height,
+                cudart.cudaMemcpyKind.cudaMemcpyDeviceToDevice))
         if self._cuda_buffer is None:
             self._cuda_buffer = cp.cuda.MemoryPointer(
-                cp.cuda.UnownedMemory(self.new_cuda_mem_ptr, cudaextent.width * depth * byte * cudaextent.height, self),
-                0
-            )
+                cp.cuda.UnownedMemory(
+                    self.new_cuda_mem_ptr,
+                    cudaextent.width * depth * byte * cudaextent.height, self),
+                0)
         return self.cuda_array
 
     def unmap(self, stream=None):
@@ -328,5 +340,7 @@ class BaseCamera(ImageBuffer, BaseSensor):
             raise RuntimeError("Cannot unmap an unregistered buffer.")
         if not self.mapped:
             return self
-        self._cuda_buffer = check_cudart_err(cudart.cudaGraphicsUnmapResources(1, self.cuda_graphics_resource, stream))
+        self._cuda_buffer = check_cudart_err(
+            cudart.cudaGraphicsUnmapResources(1, self.cuda_graphics_resource,
+                                              stream))
         return self

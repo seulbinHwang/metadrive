@@ -29,18 +29,17 @@ matplotlib.rcParams['ps.fonttype'] = 42
 
 
 class DrivingCallbacks(DefaultCallbacks):
-    def on_episode_start(
-        self, *, worker: RolloutWorker, base_env: BaseEnv, policies: Dict[str, Policy], episode: MultiAgentEpisode,
-        env_index: int, **kwargs
-    ):
+
+    def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
+                         policies: Dict[str, Policy],
+                         episode: MultiAgentEpisode, env_index: int, **kwargs):
         episode.user_data["velocity"] = []
         episode.user_data["steering"] = []
         episode.user_data["step_reward"] = []
         episode.user_data["acceleration"] = []
 
-    def on_episode_step(
-        self, *, worker: RolloutWorker, base_env: BaseEnv, episode: MultiAgentEpisode, env_index: int, **kwargs
-    ):
+    def on_episode_step(self, *, worker: RolloutWorker, base_env: BaseEnv,
+                        episode: MultiAgentEpisode, env_index: int, **kwargs):
         info = episode.last_info_for()
         if info is not None:
             episode.user_data["velocity"].append(info["velocity"])
@@ -48,10 +47,9 @@ class DrivingCallbacks(DefaultCallbacks):
             episode.user_data["step_reward"].append(info["step_reward"])
             episode.user_data["acceleration"].append(info["acceleration"])
 
-    def on_episode_end(
-        self, worker: RolloutWorker, base_env: BaseEnv, policies: Dict[str, Policy], episode: MultiAgentEpisode,
-        **kwargs
-    ):
+    def on_episode_end(self, worker: RolloutWorker, base_env: BaseEnv,
+                       policies: Dict[str, Policy], episode: MultiAgentEpisode,
+                       **kwargs):
         arrive_dest = episode.last_info_for()[TerminationState.SUCCESS]
         crash_vehicle = episode.last_info_for()[TerminationState.CRASH_VEHICLE]
         out_of_road = episode.last_info_for()[TerminationState.OUT_OF_ROAD]
@@ -60,18 +58,30 @@ class DrivingCallbacks(DefaultCallbacks):
         episode.custom_metrics["crash_vehicle_rate"] = float(crash_vehicle)
         episode.custom_metrics["out_of_road_rate"] = float(out_of_road)
         episode.custom_metrics["max_step_rate"] = float(max_step_rate)
-        episode.custom_metrics["velocity_max"] = float(np.max(episode.user_data["velocity"]))
-        episode.custom_metrics["velocity_mean"] = float(np.mean(episode.user_data["velocity"]))
-        episode.custom_metrics["velocity_min"] = float(np.min(episode.user_data["velocity"]))
-        episode.custom_metrics["steering_max"] = float(np.max(episode.user_data["steering"]))
-        episode.custom_metrics["steering_mean"] = float(np.mean(episode.user_data["steering"]))
-        episode.custom_metrics["steering_min"] = float(np.min(episode.user_data["steering"]))
-        episode.custom_metrics["acceleration_min"] = float(np.min(episode.user_data["acceleration"]))
-        episode.custom_metrics["acceleration_mean"] = float(np.mean(episode.user_data["acceleration"]))
-        episode.custom_metrics["acceleration_max"] = float(np.max(episode.user_data["acceleration"]))
-        episode.custom_metrics["step_reward_max"] = float(np.max(episode.user_data["step_reward"]))
-        episode.custom_metrics["step_reward_mean"] = float(np.mean(episode.user_data["step_reward"]))
-        episode.custom_metrics["step_reward_min"] = float(np.min(episode.user_data["step_reward"]))
+        episode.custom_metrics["velocity_max"] = float(
+            np.max(episode.user_data["velocity"]))
+        episode.custom_metrics["velocity_mean"] = float(
+            np.mean(episode.user_data["velocity"]))
+        episode.custom_metrics["velocity_min"] = float(
+            np.min(episode.user_data["velocity"]))
+        episode.custom_metrics["steering_max"] = float(
+            np.max(episode.user_data["steering"]))
+        episode.custom_metrics["steering_mean"] = float(
+            np.mean(episode.user_data["steering"]))
+        episode.custom_metrics["steering_min"] = float(
+            np.min(episode.user_data["steering"]))
+        episode.custom_metrics["acceleration_min"] = float(
+            np.min(episode.user_data["acceleration"]))
+        episode.custom_metrics["acceleration_mean"] = float(
+            np.mean(episode.user_data["acceleration"]))
+        episode.custom_metrics["acceleration_max"] = float(
+            np.max(episode.user_data["acceleration"]))
+        episode.custom_metrics["step_reward_max"] = float(
+            np.max(episode.user_data["step_reward"]))
+        episode.custom_metrics["step_reward_mean"] = float(
+            np.mean(episode.user_data["step_reward"]))
+        episode.custom_metrics["step_reward_min"] = float(
+            np.min(episode.user_data["step_reward"]))
 
     def on_train_result(self, *, trainer, result: dict, **kwargs):
         result["success"] = np.nan
@@ -81,9 +91,11 @@ class DrivingCallbacks(DefaultCallbacks):
         result["length"] = result["episode_len_mean"]
         if "success_rate_mean" in result["custom_metrics"]:
             result["success"] = result["custom_metrics"]["success_rate_mean"]
-            result[TerminationState.CRASH_VEHICLE] = result["custom_metrics"]["crash_vehicle_rate_mean"]
+            result[TerminationState.CRASH_VEHICLE] = result["custom_metrics"][
+                "crash_vehicle_rate_mean"]
             result["out"] = result["custom_metrics"]["out_of_road_rate_mean"]
-            result[TerminationState.MAX_STEP] = result["custom_metrics"]["max_step_rate_mean"]
+            result[TerminationState.
+                   MAX_STEP] = result["custom_metrics"]["max_step_rate_mean"]
 
 
 def initialize_ray(local_mode=False, num_gpus=None, test_mode=False, **kwargs):
@@ -94,14 +106,12 @@ def initialize_ray(local_mode=False, num_gpus=None, test_mode=False, **kwargs):
             redis_password = kwargs.pop("redis_password")
             kwargs["_redis_password"] = redis_password
 
-    ray.init(
-        logging_level=logging.ERROR if not test_mode else logging.DEBUG,
-        log_to_driver=test_mode,
-        local_mode=local_mode,
-        num_gpus=num_gpus,
-        ignore_reinit_error=True,
-        **kwargs
-    )
+    ray.init(logging_level=logging.ERROR if not test_mode else logging.DEBUG,
+             log_to_driver=test_mode,
+             local_mode=local_mode,
+             num_gpus=num_gpus,
+             ignore_reinit_error=True,
+             **kwargs)
     print("Successfully initialize Ray!")
     try:
         print("Available resources: ", ray.available_resources())
@@ -122,8 +132,7 @@ def get_trainer(checkpoint_path=None, extra_config=None, num_workers=10):
 
         # Setup the correct environment
         env=GeneralizationRacing,
-        env_config=dict(num_scenarios=10000)
-    )
+        env_config=dict(num_scenarios=10000))
     if extra_config:
         config.update(extra_config)
     trainer = PPOTrainer(config=config)
@@ -147,9 +156,12 @@ def evaluate(trainer, num_episodes=20):
 
         ret_reward.extend([e["rewards"].sum() for e in episodes])
         ret_length.extend([e.count for e in episodes])
-        ret_success_rate.extend([e["infos"][-1][TerminationState.SUCCESS] for e in episodes])
-        ret_out_rate.extend([e["infos"][-1][TerminationState.OUT_OF_ROAD] for e in episodes])
-        ret_crash_vehicle_rate.extend([e["infos"][-1][TerminationState.CRASH_VEHICLE] for e in episodes])
+        ret_success_rate.extend(
+            [e["infos"][-1][TerminationState.SUCCESS] for e in episodes])
+        ret_out_rate.extend(
+            [e["infos"][-1][TerminationState.OUT_OF_ROAD] for e in episodes])
+        ret_crash_vehicle_rate.extend(
+            [e["infos"][-1][TerminationState.CRASH_VEHICLE] for e in episodes])
 
         episode_count += len(episodes)
         print("Finish {} episodes".format(episode_count))
@@ -163,13 +175,11 @@ def evaluate(trainer, num_episodes=20):
         episode_count=episode_count,
         time=time.time() - start,
     )
-    print(
-        "We collected {} episodes. Spent: {:.3f} s.\nResult: {}".format(
-            episode_count,
-            time.time() - start, {k: round(v, 3)
-                                  for k, v in ret.items()}
-        )
-    )
+    print("We collected {} episodes. Spent: {:.3f} s.\nResult: {}".format(
+        episode_count,
+        time.time() - start, {
+            k: round(v, 3) for k, v in ret.items()
+        }))
     return ret
 
 

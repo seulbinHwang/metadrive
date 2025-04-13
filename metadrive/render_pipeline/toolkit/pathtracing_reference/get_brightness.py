@@ -26,7 +26,8 @@ for i in range(11):
     ref_r, apprx_r = color.x, approx(r) * (0.5 + 0.5 * basecolor.x)
     ref_g, apprx_g = color.y, approx(r) * (0.5 + 0.5 * basecolor.y)
     ref_b, apprx_b = color.z, approx(r) * (0.5 + 0.5 * basecolor.z)
-    print("Roughness:", r, ", color = ", ref_r, ref_g, ref_b, "vs", apprx_r, apprx_g, apprx_b)
+    print("Roughness:", r, ", color = ", ref_r, ref_g, ref_b, "vs", apprx_r,
+          apprx_g, apprx_b)
     l = abs(ref_r - apprx_r) + abs(ref_g - apprx_g) + abs(ref_b - apprx_b)
     print("  --> ", l)
     # print("Roughness:", r, ", color = ", ref, "vs", apprx, " =\t", abs(ref - apprx) * 100.0)

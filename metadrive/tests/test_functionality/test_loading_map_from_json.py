@@ -11,7 +11,9 @@ def _test_loaded_map_alignment():
     # for seed in [0, 1, 2, 100, 200, 300, 9999]:
     for seed in [0, 1, 2, 99]:
         env_config = {"start_seed": seed, "num_scenarios": 1}
-        generate_maps(MetaDriveEnv, env_config.copy(), json_file_path="seed{}_v1.json".format(seed))
+        generate_maps(MetaDriveEnv,
+                      env_config.copy(),
+                      json_file_path="seed{}_v1.json".format(seed))
         # generate_maps(MetaDriveEnv, env_config.copy(), json_file_path="seed{}_v2.json".format(seed))
         with open("seed{}_v1.json".format(seed), "r") as f:
             saved_v1 = json.load(f)
@@ -31,7 +33,8 @@ def _test_loaded_map_alignment():
 
         e = MetaDriveEnv({"start_seed": seed, "num_scenarios": 10})
         e.reset(seed=seed)
-        map_data_realtime_generate_in_multiple_maps = e.current_map.get_meta_data()
+        map_data_realtime_generate_in_multiple_maps = e.current_map.get_meta_data(
+        )
         e.close()
 
         # Assert v1 and v2 have same maps
@@ -44,7 +47,8 @@ def _test_loaded_map_alignment():
         recursive_equal(map_data_in_json, map_data_realtime_generate, True)
 
         # Assert json and generated maps in
-        recursive_equal(map_data_in_json, map_data_realtime_generate_in_multiple_maps, True)
+        recursive_equal(map_data_in_json,
+                        map_data_realtime_generate_in_multiple_maps, True)
 
     # print(saved_v1)
 

@@ -50,8 +50,10 @@ class SkyAOStage(RenderStage):
         self.target_upscale.add_color_attachment(bits=(16, 0, 0, 0))
         self.target_upscale.prepare_buffer()
 
-        self.target_upscale.set_shader_inputs(SourceTex=self.target.color_tex, upscaleWeights=Vec2(0.001, 0.001))
+        self.target_upscale.set_shader_inputs(SourceTex=self.target.color_tex,
+                                              upscaleWeights=Vec2(0.001, 0.001))
 
     def reload_shaders(self):
         self.target.shader = self.load_plugin_shader("compute_sky_ao.frag.glsl")
-        self.target_upscale.shader = self.load_plugin_shader("/$$rp/shader/bilateral_upscale.frag.glsl")
+        self.target_upscale.shader = self.load_plugin_shader(
+            "/$$rp/shader/bilateral_upscale.frag.glsl")

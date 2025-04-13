@@ -32,7 +32,8 @@ def _check_shape(env):
     c = set(env.action_space.spaces.keys())
     d = set(env.agents.keys())
     e = set(env.engine.agents.keys())
-    f = set([k for k in env.observation_space.spaces.keys() if not env.dones[k]])
+    f = set(
+        [k for k in env.observation_space.spaces.keys() if not env.dones[k]])
     assert d == e == f, (b, c, d, e, f)
     assert c.issuperset(d)
     _check_space(env)
@@ -61,7 +62,8 @@ def _act(env, action):
     _check_shape(env)
     if not terminated["__all__"]:
         assert len(env.agents) > 0
-    if not (set(obs.keys()) == set(reward.keys()) == set(env.observation_space.spaces.keys())):
+    if not (set(obs.keys()) == set(reward.keys()) == set(
+            env.observation_space.spaces.keys())):
         raise ValueError
     assert env.observation_space.contains(obs)
     assert isinstance(reward, dict)
@@ -79,8 +81,7 @@ def test_ma_racing_env_with_IDM(num_agents):
         agent_policy=IDMPolicy,
         # use_render=True,
         # prefer_track_agent="agent11",
-        debug=True
-    )
+        debug=True)
 
     if num_agents > 2:
         config["map_config"] = {"exit_length": 60}
@@ -133,8 +134,7 @@ def test_guardrail_collision_detection(num_agents, render=False):
         # agent_policy=IDMPolicy,
         use_render=render,
         # prefer_track_agent="agent11",
-        debug=True
-    )
+        debug=True)
 
     if num_agents > 2:
         config["map_config"] = {"exit_length": 60}
@@ -170,8 +170,10 @@ def test_guardrail_collision_detection(num_agents, render=False):
                 if i[k][TerminationState.CRASH_VEHICLE]:
                     crash_v = True
                     if not i[k][TerminationState.CRASH_SIDEWALK]:
-                        assert not tm[k], "only crash should not terminate the env!"
-                assert int(i[k][TerminationState.CRASH_SIDEWALK] + i[k][TerminationState.CRASH_VEHICLE]) >= 1
+                        assert not tm[
+                            k], "only crash should not terminate the env!"
+                assert int(i[k][TerminationState.CRASH_SIDEWALK] +
+                           i[k][TerminationState.CRASH_VEHICLE]) >= 1
                 assert not i[k][TerminationState.SUCCESS]
                 assert not i[k][TerminationState.MAX_STEP]
                 # assert not i[k][TerminationState.CRASH] # crash sidewalk will be counted as crash as well

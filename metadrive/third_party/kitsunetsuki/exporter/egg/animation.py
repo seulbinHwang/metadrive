@@ -29,6 +29,7 @@ from panda3d.egg import EggTable, EggXfmSAnim
 
 
 class AnimationMixin(object):
+
     def make_action(self, node, armature, action):
         # <-- root table
         egg_root_table = EggTable('')
@@ -54,7 +55,8 @@ class AnimationMixin(object):
             # h, p, r - rotation
             # x, y, z - location -> ?
             # egg_xfm_anim_s.set_order('shprxyz')
-            egg_xfm_anim_s.set_fps(bpy.context.scene.render.fps / bpy.context.scene.render.fps_base)
+            egg_xfm_anim_s.set_fps(bpy.context.scene.render.fps /
+                                   bpy.context.scene.render.fps_base)
             egg_joint.add_child(egg_xfm_anim_s)
             egg_joints_anims[bone_name] = egg_xfm_anim_s
             # xfm_anim_s -->

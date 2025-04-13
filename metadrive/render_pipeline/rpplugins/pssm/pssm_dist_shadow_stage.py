@@ -79,11 +79,13 @@ class PSSMDistShadowStage(RenderStage):
 
             snap_shadow_map(self.mvp, self.cam_node, self.resolution)
 
-        if self._pipeline.task_scheduler.is_scheduled("pssm_convert_distant_to_esm"):
+        if self._pipeline.task_scheduler.is_scheduled(
+                "pssm_convert_distant_to_esm"):
             self.target_convert.active = True
         if self._pipeline.task_scheduler.is_scheduled("pssm_blur_distant_vert"):
             self.target_blur_v.active = True
-        if self._pipeline.task_scheduler.is_scheduled("pssm_blur_distant_horiz"):
+        if self._pipeline.task_scheduler.is_scheduled(
+                "pssm_blur_distant_horiz"):
             self.target_blur_h.active = True
 
             # Only update the MVP as soon as the shadow map is available
@@ -112,21 +114,26 @@ class PSSMDistShadowStage(RenderStage):
         self.target_blur_v.size = self.resolution
         self.target_blur_v.add_color_attachment(bits=(32, 0, 0, 0))
         self.target_blur_v.prepare_buffer()
-        self.target_blur_v.set_shader_inputs(SourceTex=self.target_convert.color_tex, direction=LVecBase2i(1, 0))
+        self.target_blur_v.set_shader_inputs(
+            SourceTex=self.target_convert.color_tex, direction=LVecBase2i(1, 0))
 
         self.target_blur_h = self.create_target("BlurHoriz")
         self.target_blur_h.size = self.resolution
         self.target_blur_h.add_color_attachment(bits=(32, 0, 0, 0))
         self.target_blur_h.prepare_buffer()
-        self.target_blur_h.set_shader_inputs(SourceTex=self.target_blur_v.color_tex, direction=LVecBase2i(0, 1))
+        self.target_blur_h.set_shader_inputs(
+            SourceTex=self.target_blur_v.color_tex, direction=LVecBase2i(0, 1))
 
         # Register shadow camera
         self._pipeline.tag_mgr.register_camera("shadow", self.camera)
 
     def reload_shaders(self):
-        self.target_convert.shader = self.load_plugin_shader("convert_to_esm.frag.glsl")
-        self.target_blur_v.shader = self.load_plugin_shader("blur_esm.frag.glsl")
-        self.target_blur_h.shader = self.load_plugin_shader("blur_esm.frag.glsl")
+        self.target_convert.shader = self.load_plugin_shader(
+            "convert_to_esm.frag.glsl")
+        self.target_blur_v.shader = self.load_plugin_shader(
+            "blur_esm.frag.glsl")
+        self.target_blur_h.shader = self.load_plugin_shader(
+            "blur_esm.frag.glsl")
 
     def set_shader_input(self, *args):
         Globals.render.set_shader_input(*args)

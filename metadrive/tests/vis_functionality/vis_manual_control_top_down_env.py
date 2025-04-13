@@ -14,8 +14,7 @@ if __name__ == '__main__':
             start_seed=5000,
             # frame_stack=tune.grid_search([1, 3, 5, 7]),
             # frame_stack=tune.grid_search([1, 3, 5]),
-        )
-    )
+        ))
     env.reset()
     try:
         ep_reward = 0

@@ -33,6 +33,7 @@ class TaskScheduler(RPObject):
     frames. Plugins can query whether their subtasks should be executed
     or queued for later frames. Also performs analysis on the task configuration
     to figure if tasks are distributed uniformly. """
+
     def __init__(self, pipeline):
         RPObject.__init__(self)
         self._pipeline = pipeline
@@ -42,7 +43,8 @@ class TaskScheduler(RPObject):
 
     def _load_config(self):
         """ Loads the tasks distribution configuration """
-        config = load_yaml_file("/$$rpconfig/task-scheduler.yaml")["frame_cycles"]
+        config = load_yaml_file(
+            "/$$rpconfig/task-scheduler.yaml")["frame_cycles"]
         for frame_name, tasks in config:  # pylint: disable=unused-variable
             self._tasks.append(tasks)
 
@@ -53,7 +55,8 @@ class TaskScheduler(RPObject):
             if task_name in tasks:
                 break
         else:
-            self.error("Task '" + task_name + "' is never scheduled and thus will never run!")
+            self.error("Task '" + task_name +
+                       "' is never scheduled and thus will never run!")
 
     def is_scheduled(self, task_name):
         """ Returns whether a given task is supposed to run this frame """

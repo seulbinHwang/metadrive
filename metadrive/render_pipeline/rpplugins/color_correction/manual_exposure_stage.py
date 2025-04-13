@@ -44,4 +44,5 @@ class ManualExposureStage(RenderStage):
         self.target.prepare_buffer()
 
     def reload_shaders(self):
-        self.target.shader = self.load_plugin_shader("manual_exposure.frag.glsl")
+        self.target.shader = self.load_plugin_shader(
+            "manual_exposure.frag.glsl")

@@ -21,11 +21,9 @@ def euler_to_rotation_matrix(hpr):
     cx, sx = np.cos(hpr[2]), np.sin(hpr[2])  # Roll (X)
 
     rotation_matrix = np.array(
-        [
-            [cz * cy, cz * sy * sx - sz * cx, cz * sy * cx + sz * sx],
-            [sz * cy, sz * sy * sx + cz * cx, sz * sy * cx - cz * sx], [-sy, cy * sx, cy * cx]
-        ]
-    )
+        [[cz * cy, cz * sy * sx - sz * cx, cz * sy * cx + sz * sx],
+         [sz * cy, sz * sy * sx + cz * cx, sz * sy * cx - cz * sx],
+         [-sy, cy * sx, cy * cx]])
 
     return rotation_matrix
 
@@ -42,7 +40,9 @@ class PointCloudLidar(DepthCamera):
         If ego_centric is True, the point cloud will be in the camera's ego coordinate system.
         """
         if cuda:
-            raise ValueError("LiDAR does not support CUDA acceleration for now. Ask for support if you need it.")
+            raise ValueError(
+                "LiDAR does not support CUDA acceleration for now. Ask for support if you need it."
+            )
         super(PointCloudLidar, self).__init__(width, height, engine, cuda=False)
         self.ego_centric = ego_centric
 
@@ -56,7 +56,8 @@ class PointCloudLidar(DepthCamera):
         fov = lens.getFov()
         f_x = self.BUFFER_W / 2 / (np.tan(fov[0] / 2 / 180 * np.pi))
         f_y = self.BUFFER_H / 2 / (np.tan(fov[1] / 2 / 180 * np.pi))
-        intrinsics = np.asarray([[f_x, 0, (self.BUFFER_H - 1) / 2], [0, f_y, (self.BUFFER_W - 1) / 2], [0, 0, 1]])
+        intrinsics = np.asarray([[f_x, 0, (self.BUFFER_H - 1) / 2],
+                                 [0, f_y, (self.BUFFER_W - 1) / 2], [0, 0, 1]])
         f = lens.getFar()
         n = lens.getNear()
 
@@ -68,13 +69,17 @@ class PointCloudLidar(DepthCamera):
         rotation_matrix = euler_to_rotation_matrix(hpr)
         translation = Point3(0, 0, 0)
         if not self.ego_centric:
-            translation = np.asarray(self.engine.render.get_relative_point(self.cam, Point3(0, 0, 0)))
+            translation = np.asarray(
+                self.engine.render.get_relative_point(self.cam, Point3(0, 0,
+                                                                       0)))
         z_eye = 2 * n * f / ((f + n) - (2 * depth - 1) * (f - n))
-        points = self.simulate_lidar_from_depth(z_eye.squeeze(-1), intrinsics, translation, rotation_matrix)
+        points = self.simulate_lidar_from_depth(z_eye.squeeze(-1), intrinsics,
+                                                translation, rotation_matrix)
         return points
 
     @staticmethod
-    def simulate_lidar_from_depth(depth_img, camera_intrinsics, camera_translation, camera_rotation):
+    def simulate_lidar_from_depth(depth_img, camera_intrinsics,
+                                  camera_translation, camera_rotation):
         """
         Simulate LiDAR points in the world coordinate system from a depth image.
 
@@ -95,7 +100,8 @@ class PointCloudLidar(DepthCamera):
 
         # Create a grid of pixel coordinates (u, v)
         u, v = np.meshgrid(np.arange(width), np.arange(height))
-        uv_coords = np.stack([u, v, np.ones_like(u)], axis=-1)  # Shape: (H, W, 3)
+        uv_coords = np.stack([u, v, np.ones_like(u)],
+                             axis=-1)  # Shape: (H, W, 3)
 
         # Reshape to (H*W, 3) for easier matrix multiplication
         uv_coords = uv_coords.reshape(-1, 3)

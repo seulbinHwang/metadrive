@@ -21,6 +21,7 @@ from . import spec
 
 
 class GLTFBuffer(object):
+
     def __init__(self, filepath):
         self._filepath = filepath
         self._channels = []
@@ -53,12 +54,14 @@ class GLTFBuffer(object):
             if self._metadata[channel_id]['min'][i] is None:
                 self._metadata[channel_id]['min'][i] = value
             else:
-                self._metadata[channel_id]['min'][i] = min(self._metadata[channel_id]['min'][i], value)
+                self._metadata[channel_id]['min'][i] = min(
+                    self._metadata[channel_id]['min'][i], value)
 
             if self._metadata[channel_id]['max'][i] is None:
                 self._metadata[channel_id]['max'][i] = value
             else:
-                self._metadata[channel_id]['max'][i] = max(self._metadata[channel_id]['max'][i], value)
+                self._metadata[channel_id]['max'][i] = max(
+                    self._metadata[channel_id]['max'][i], value)
 
         type_ = {
             spec.TYPE_UNSIGNED_BYTE: 'B',
@@ -110,7 +113,8 @@ class GLTFBuffer(object):
             part = None
 
             if 'uri' in extras:
-                tfilepath = os.path.join(os.path.dirname(self._filepath), extras['uri'])
+                tfilepath = os.path.join(os.path.dirname(self._filepath),
+                                         extras['uri'])
                 with open(tfilepath, 'rb') as f:
                     part = f.read()
 

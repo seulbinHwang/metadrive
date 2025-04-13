@@ -44,14 +44,14 @@ class Plugin(BasePlugin):
     description = (
         "This plugin adds support for environment probes, containing "
         "diffuse and specular information. This enables accurate "
-        "reflections, and can also be used to simulate GI."
-    )
+        "reflections, and can also be used to simulate GI.")
     version = "beta (!)"
 
     def on_stage_setup(self):
         self.probe_mgr = ProbeManager()
         self.probe_mgr.resolution = self.get_setting("probe_resolution")
-        self.probe_mgr.diffuse_resolution = self.get_setting("diffuse_probe_resolution")
+        self.probe_mgr.diffuse_resolution = self.get_setting(
+            "diffuse_probe_resolution")
         self.probe_mgr.max_probes = self.get_setting("max_probes")
         self.probe_mgr.init()
         self._setup_stages()
@@ -72,7 +72,9 @@ class Plugin(BasePlugin):
         self.apply_stage = self.create_stage(ApplyEnvprobesStage)
 
         if self.is_plugin_enabled("scattering"):
-            self.capture_stage.required_pipes += ["ScatteringIBLSpecular", "ScatteringIBLDiffuse"]
+            self.capture_stage.required_pipes += [
+                "ScatteringIBLSpecular", "ScatteringIBLDiffuse"
+            ]
 
         if self.is_plugin_enabled("pssm"):
             self.capture_stage.required_pipes += ["PSSMSceneSunShadowMapPCF"]
@@ -88,7 +90,8 @@ class Plugin(BasePlugin):
         self.data_ubo = SimpleInputBlock("EnvProbes")
         self.data_ubo.add_input("num_probes", self.pta_probes)
         self.data_ubo.add_input("cubemaps", self.probe_mgr.cubemap_storage)
-        self.data_ubo.add_input("diffuse_cubemaps", self.probe_mgr.diffuse_storage)
+        self.data_ubo.add_input("diffuse_cubemaps",
+                                self.probe_mgr.diffuse_storage)
         self.data_ubo.add_input("dataset", self.probe_mgr.dataset_storage)
         self._pipeline.stage_mgr.input_blocks.append(self.data_ubo)
 
@@ -96,7 +99,8 @@ class Plugin(BasePlugin):
         CullLightsStage.required_inputs.append("EnvProbes")
 
     def on_pre_render_update(self):
-        if self._pipeline.task_scheduler.is_scheduled("envprobes_select_and_cull"):
+        if self._pipeline.task_scheduler.is_scheduled(
+                "envprobes_select_and_cull"):
             self.probe_mgr.update()
             self.pta_probes[0] = self.probe_mgr.num_probes
             probe = self.probe_mgr.find_probe_to_update()
@@ -106,8 +110,9 @@ class Plugin(BasePlugin):
                 self.capture_stage.set_probe(probe)
 
                 if self.is_plugin_enabled("pssm"):
-                    self.get_plugin_instance("pssm").scene_shadow_stage.request_focus(
-                        probe.bounds.get_center(), probe.bounds.get_radius()
-                    )
+                    self.get_plugin_instance(
+                        "pssm").scene_shadow_stage.request_focus(
+                            probe.bounds.get_center(),
+                            probe.bounds.get_radius())
             else:
                 self.capture_stage.active = False

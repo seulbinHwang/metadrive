@@ -36,6 +36,7 @@ import sys
 # Load and init colorama, used to color the output
 from metadrive.render_pipeline.rplibs.colorama import init as init_colorama
 from metadrive.render_pipeline.rplibs.colorama import Fore, Style
+
 init_colorama()
 
 
@@ -64,9 +65,9 @@ class RPObject(object):
         if RPObject._OUTPUT_LEVEL > 0:
             return
         print(
-            kwargs.get("color", Fore.GREEN) + "[>] " + context.ljust(25) + " " + Style.RESET_ALL + Fore.WHITE +
-            ' '.join([str(i) for i in args]), Fore.RESET + Style.RESET_ALL
-        )
+            kwargs.get("color", Fore.GREEN) + "[>] " + context.ljust(25) + " " +
+            Style.RESET_ALL + Fore.WHITE + ' '.join([str(i) for i in args]),
+            Fore.RESET + Style.RESET_ALL)
 
     @staticmethod
     def global_warn(context, *args):
@@ -75,10 +76,9 @@ class RPObject(object):
         other arguments should be the message. """
         if RPObject._OUTPUT_LEVEL > 1:
             return
-        print(
-            Fore.YELLOW + Style.BRIGHT + "[!] " + context.ljust(25) + Fore.YELLOW + Style.BRIGHT + " " +
-            ' '.join([str(i) for i in args]) + Fore.RESET + Style.RESET_ALL
-        )
+        print(Fore.YELLOW + Style.BRIGHT + "[!] " + context.ljust(25) +
+              Fore.YELLOW + Style.BRIGHT + " " +
+              ' '.join([str(i) for i in args]) + Fore.RESET + Style.RESET_ALL)
 
     @staticmethod
     def global_error(context, *args):
@@ -87,10 +87,9 @@ class RPObject(object):
         other arguments should be the message. """
         if RPObject._OUTPUT_LEVEL > 2:
             return
-        print(
-            Fore.RED + Style.BRIGHT + "\n[!!!] " + context.ljust(23) + " " + ' '.join([str(i) for i in args]) + "\n" +
-            Fore.RESET + Style.RESET_ALL
-        )
+        print(Fore.RED + Style.BRIGHT + "\n[!!!] " + context.ljust(23) + " " +
+              ' '.join([str(i) for i in args]) + "\n" + Fore.RESET +
+              Style.RESET_ALL)
 
     def __init__(self, name=None):
         """ Initiates the RPObject with a given name. The name should be

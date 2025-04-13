@@ -41,8 +41,7 @@ class Plugin(BasePlugin):
     author = "tobspr <tobias.springer1@gmail.com>"
     description = (
         "Provides Global Illumination using Voxel Cone Tracing. This "
-        "technique is still very unoptimized and experimental!"
-    )
+        "technique is still very unoptimized and experimental!")
     version = "alpha (!)"
 
     def on_stage_setup(self):
@@ -64,7 +63,8 @@ class Plugin(BasePlugin):
 
     def on_pipeline_created(self):
         self._queue = collections.deque()
-        self._queue.extend([self._voxelize_x, self._voxelize_y, self._voxelize_z])
+        self._queue.extend(
+            [self._voxelize_x, self._voxelize_y, self._voxelize_z])
         self._queue.extend([self._generate_mipmaps])
 
     def _set_grid_pos(self):
@@ -72,7 +72,8 @@ class Plugin(BasePlugin):
         grid_pos = Globals.base.camera.get_pos(Globals.base.render)
 
         # Snap the voxel grid
-        voxel_size = 2.0 * self.get_setting("grid_ws_size") / self.get_setting("grid_resolution")
+        voxel_size = 2.0 * self.get_setting("grid_ws_size") / self.get_setting(
+            "grid_resolution")
         snap_size = voxel_size * 2**4
 
         for dimension in range(3):

@@ -14,9 +14,7 @@ if __name__ == '__main__':
             env.reset()
         if (s + 1) % 100 == 0:
             print(
-                "(TopDownEnv) Finish {}/10000 simulation steps. Time elapse: {:.4f}. Average FPS: {:.4f}".format(
-                    s + 1,
-                    time.time() - start, (s + 1) / (time.time() - start)
-                )
-            )
+                "(TopDownEnv) Finish {}/10000 simulation steps. Time elapse: {:.4f}. Average FPS: {:.4f}"
+                .format(s + 1,
+                        time.time() - start, (s + 1) / (time.time() - start)))
     # print(f"(TopDownEnv) Total Time Elapse: {time.time() - start}")

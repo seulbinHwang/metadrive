@@ -13,10 +13,13 @@ from collections import namedtuple
 PositionType = Union[Tuple[float, float], np.ndarray]
 pygame = import_pygame()
 COLOR_BLACK = pygame.Color("black")
-history_object = namedtuple("history_object", "name position heading_theta WIDTH LENGTH color done type")
+history_object = namedtuple(
+    "history_object",
+    "name position heading_theta WIDTH LENGTH color done type")
 
 
 class ObservationWindow:
+
     def __init__(self, max_range, resolution):
         self.max_range = max_range
         self.resolution = resolution
@@ -25,8 +28,8 @@ class ObservationWindow:
 
         self.canvas_rotate = None
         self.canvas_uncropped = pygame.Surface(
-            (int(self.resolution[0] * np.sqrt(2)) + 1, int(self.resolution[1] * np.sqrt(2)) + 1)
-        )
+            (int(self.resolution[0] * np.sqrt(2)) + 1,
+             int(self.resolution[1] * np.sqrt(2)) + 1))
 
         self.canvas_display = pygame.Surface(self.resolution)
         self.canvas_display.fill(COLOR_BLACK)
@@ -37,11 +40,9 @@ class ObservationWindow:
         # Assume max_range is only the radius!
         self.receptive_field_double = (
             int(canvas_runtime.pix(self.max_range[0] * np.sqrt(2))) * 2,
-            int(canvas_runtime.pix(self.max_range[1] * np.sqrt(2))) * 2
-        )
-        self.receptive_field = (
-            int(canvas_runtime.pix(self.max_range[0])) * 2, int(canvas_runtime.pix(self.max_range[1])) * 2
-        )
+            int(canvas_runtime.pix(self.max_range[1] * np.sqrt(2))) * 2)
+        self.receptive_field = (int(canvas_runtime.pix(self.max_range[0])) * 2,
+                                int(canvas_runtime.pix(self.max_range[1])) * 2)
         self.canvas_rotate = pygame.Surface(self.receptive_field_double)
         self.canvas_rotate.fill(COLOR_BLACK)
         self.canvas_display.fill(COLOR_BLACK)
@@ -49,15 +50,15 @@ class ObservationWindow:
 
     def _blit(self, canvas, position):
         self.canvas_rotate.blit(
-            canvas, (0, 0), (
-                position[0] - self.receptive_field_double[0] / 2, position[1] - self.receptive_field_double[1] / 2,
-                self.receptive_field_double[0], self.receptive_field_double[1]
-            )
-        )
+            canvas, (0, 0),
+            (position[0] - self.receptive_field_double[0] / 2,
+             position[1] - self.receptive_field_double[1] / 2,
+             self.receptive_field_double[0], self.receptive_field_double[1]))
 
     def _rotate(self, heading):
         rotation = np.rad2deg(heading) + 90
-        scale = self.canvas_uncropped.get_size()[0] / self.canvas_rotate.get_size()[0]
+        scale = self.canvas_uncropped.get_size(
+        )[0] / self.canvas_rotate.get_size()[0]
         return pygame.transform.rotozoom(self.canvas_rotate, rotation, scale)
 
     def _crop(self, new_canvas):
@@ -70,8 +71,7 @@ class ObservationWindow:
                 new_canvas.get_size()[1] / 2 - size[1] / 2,  # Top
                 size[0],  # Width
                 size[1]  # Height
-            )
-        )
+            ))
 
     def render(self, canvas, position, heading):
         # Prepare a runtime canvas for rotation. Assume max_range is only the radius, not diameter!
@@ -113,7 +113,8 @@ class WorldSurface(pygame.Surface):
     MOVING_FACTOR = 0.1
     LANE_LINE_COLOR = (35, 35, 35)
 
-    def __init__(self, size: Tuple[int, int], flags: object, surf: pygame.SurfaceType) -> None:
+    def __init__(self, size: Tuple[int, int], flags: object,
+                 surf: pygame.SurfaceType) -> None:
         surf.fill(pygame.Color("White"))
         super().__init__(size, flags, surf)
         self.raw_size = size
@@ -142,7 +143,9 @@ class WorldSurface(pygame.Surface):
         :param y: y world coordinate [m]
         :return: the coordinates of the corresponding pixel [px]
         """
-        return self.pix(x - self.origin[0]), self.raw_size[-1] - self.pix(y - self.origin[1])
+        return self.pix(
+            x -
+            self.origin[0]), self.raw_size[-1] - self.pix(y - self.origin[1])
 
     def vec2pix(self, vec: PositionType) -> Tuple[int, int]:
         """
@@ -161,7 +164,8 @@ class WorldSurface(pygame.Surface):
         :return: whether the position is visible
         """
         x, y = self.vec2pix(vec)
-        return -margin < x < self.get_width() + margin and -margin < y < self.get_height() + margin
+        return -margin < x < self.get_width(
+        ) + margin and -margin < y < self.get_height() + margin
 
     def move_display_window_to(self, position: PositionType) -> None:
         """
@@ -169,15 +173,15 @@ class WorldSurface(pygame.Surface):
 
         :param position: a world position [m]
         """
-        self.origin = position - np.array(
-            [
-                self.centering_position[0] * self.get_width() / self.scaling,
-                self.centering_position[1] * self.get_height() / self.scaling
-            ]
-        )
+        self.origin = position - np.array([
+            self.centering_position[0] * self.get_width() / self.scaling,
+            self.centering_position[1] * self.get_height() / self.scaling
+        ])
 
     def copy(self):
-        ret = WorldSurface(size=self.raw_size, flags=self.raw_flags, surf=self.raw_surface)
+        ret = WorldSurface(size=self.raw_size,
+                           flags=self.raw_flags,
+                           surf=self.raw_surface)
         ret.origin = self.origin
         ret.scaling = self.scaling
         ret.centering_position = self.centering_position
@@ -212,16 +216,14 @@ class ObjectGraphics:
     font = None
 
     @classmethod
-    def display(
-        cls,
-        object: history_object,
-        surface,
-        color,
-        heading,
-        label: bool = False,
-        draw_contour=False,
-        contour_width=1
-    ) -> None:
+    def display(cls,
+                object: history_object,
+                surface,
+                color,
+                heading,
+                label: bool = False,
+                draw_contour=False,
+                contour_width=1) -> None:
         """
         Display a vehicle on a pygame surface.
 
@@ -239,12 +241,20 @@ class ObjectGraphics:
         # As the following rotate code is for left-handed coordinates,
         # so we plus -1 before the heading to adapt it to right-handed coordinates
         angle = -np.rad2deg(heading)
-        box = [pygame.math.Vector2(p) for p in [(-h / 2, -w / 2), (-h / 2, w / 2), (h / 2, w / 2), (h / 2, -w / 2)]]
+        box = [
+            pygame.math.Vector2(p)
+            for p in [(-h / 2, -w / 2), (-h / 2, w / 2), (h / 2,
+                                                          w / 2), (h / 2,
+                                                                   -w / 2)]
+        ]
         box_rotate = [p.rotate(angle) + position for p in box]
 
         pygame.draw.polygon(surface, color, box_rotate)
         if draw_contour and pygame.ver.startswith("2"):
-            pygame.draw.polygon(surface, cls.BLACK, box_rotate, width=contour_width)  # , 1)
+            pygame.draw.polygon(surface,
+                                cls.BLACK,
+                                box_rotate,
+                                width=contour_width)  # , 1)
 
         # Label
         if label:
@@ -278,7 +288,12 @@ class LaneGraphics:
     LANE_LINE_WIDTH: float = 1
 
     @classmethod
-    def display(cls, lane, surface, two_side=True, use_line_color=False, color=None) -> None:
+    def display(cls,
+                lane,
+                surface,
+                two_side=True,
+                use_line_color=False,
+                color=None) -> None:
         """
         Display a lane on a surface.
 
@@ -287,39 +302,78 @@ class LaneGraphics:
         :param two_side: draw two sides of the lane, or only one side
         """
         side = 2 if two_side else 1
-        stripes_count = int(2 * (surface.get_height() + surface.get_width()) / (cls.STRIPE_SPACING * surface.scaling))
+        stripes_count = int(2 * (surface.get_height() + surface.get_width()) /
+                            (cls.STRIPE_SPACING * surface.scaling))
         s_origin, _ = lane.local_coordinates(surface.origin)
-        s0 = (int(s_origin) // cls.STRIPE_SPACING - stripes_count // 2) * cls.STRIPE_SPACING
+        s0 = (int(s_origin) // cls.STRIPE_SPACING -
+              stripes_count // 2) * cls.STRIPE_SPACING
         for side in range(side):
             if use_line_color:
-                if lane.line_colors[side] == PGLineColor.YELLOW and lane.line_types[side] == PGLineType.CONTINUOUS:
+                if lane.line_colors[
+                        side] == PGLineColor.YELLOW and lane.line_types[
+                            side] == PGLineType.CONTINUOUS:
                     color = (255, 175, 35)
                 elif lane.line_types[side] == PGLineType.SIDE:
                     color = (95, 95, 95)
                 else:
                     color = (175, 175, 175)
             if lane.line_types[side] == PGLineType.BROKEN:
-                cls.striped_line(lane, surface, stripes_count, s0, side, color=color)
+                cls.striped_line(lane,
+                                 surface,
+                                 stripes_count,
+                                 s0,
+                                 side,
+                                 color=color)
             # circular side or continuous, it is same now
-            elif lane.line_types[side] == PGLineType.CONTINUOUS and isinstance(lane, CircularLane):
-                cls.continuous_curve(lane, surface, stripes_count, s0, side, color=color)
-            elif (lane.line_types[side] == PGLineType.SIDE
-                  or lane.line_types[side] == PGLineType.GUARDRAIL) and isinstance(lane, CircularLane):
-                cls.continuous_curve(lane, surface, stripes_count, s0, side, color=color)
+            elif lane.line_types[side] == PGLineType.CONTINUOUS and isinstance(
+                    lane, CircularLane):
+                cls.continuous_curve(lane,
+                                     surface,
+                                     stripes_count,
+                                     s0,
+                                     side,
+                                     color=color)
+            elif (lane.line_types[side] == PGLineType.SIDE or
+                  lane.line_types[side] == PGLineType.GUARDRAIL) and isinstance(
+                      lane, CircularLane):
+                cls.continuous_curve(lane,
+                                     surface,
+                                     stripes_count,
+                                     s0,
+                                     side,
+                                     color=color)
             # the line of continuous straight and side straight is same now
-            elif (lane.line_types[side] == PGLineType.CONTINUOUS) and isinstance(lane, StraightLane):
-                cls.continuous_line(lane, surface, stripes_count, s0, side, color=color)
-            elif (lane.line_types[side] == PGLineType.SIDE
-                  or lane.line_types[side] == PGLineType.GUARDRAIL) and isinstance(lane, StraightLane):
-                cls.continuous_line(lane, surface, stripes_count, s0, side, color=color)
+            elif (lane.line_types[side]
+                  == PGLineType.CONTINUOUS) and isinstance(lane, StraightLane):
+                cls.continuous_line(lane,
+                                    surface,
+                                    stripes_count,
+                                    s0,
+                                    side,
+                                    color=color)
+            elif (lane.line_types[side] == PGLineType.SIDE or
+                  lane.line_types[side] == PGLineType.GUARDRAIL) and isinstance(
+                      lane, StraightLane):
+                cls.continuous_line(lane,
+                                    surface,
+                                    stripes_count,
+                                    s0,
+                                    side,
+                                    color=color)
             # special scenario
             elif lane.line_types[side] == PGLineType.NONE:
                 continue
             else:
-                raise ValueError("I don't know how to draw this line type: {}".format(lane.line_types[side]))
+                raise ValueError(
+                    "I don't know how to draw this line type: {}".format(
+                        lane.line_types[side]))
 
     @classmethod
-    def display_scenario_line(cls, polyline, type, surface, line_sample_interval=2) -> None:
+    def display_scenario_line(cls,
+                              polyline,
+                              type,
+                              surface,
+                              line_sample_interval=2) -> None:
         """
         Display a lane on a surface.
 
@@ -333,11 +387,13 @@ class LaneGraphics:
             color = (100, 100, 100)
         else:
             color = (175, 175, 175)
-        if MetaDriveType.is_road_line(type) or MetaDriveType.is_road_boundary_line(type):
+        if MetaDriveType.is_road_line(
+                type) or MetaDriveType.is_road_boundary_line(type):
             # if len(waymo_poly_line.segment_property) < 1:
             #     return
             if MetaDriveType.is_broken_line(type):
-                points_to_skip = math.floor(PGDrivableAreaProperty.STRIPE_LENGTH * 2 / line_sample_interval) * 2
+                points_to_skip = math.floor(PGDrivableAreaProperty.STRIPE_LENGTH
+                                            * 2 / line_sample_interval) * 2
             else:
                 points_to_skip = 1
             for index in range(0, len(polyline) - 1, points_to_skip):
@@ -350,13 +406,18 @@ class LaneGraphics:
                         surface.vec2pix([s_p[0], s_p[1]]),
                         surface.vec2pix([e_p[0], e_p[1]]),
                         # max(surface.pix(LaneGraphics.STRIPE_WIDTH),
-                        surface.pix(PGDrivableAreaProperty.LANE_LINE_WIDTH) * 2
-                    )
+                        surface.pix(PGDrivableAreaProperty.LANE_LINE_WIDTH) * 2)
         elif type == "center_lane" or type is None:
             pass
 
     @classmethod
-    def striped_line(cls, lane, surface, stripes_count: int, longitudinal: float, side: int, color=None) -> None:
+    def striped_line(cls,
+                     lane,
+                     surface,
+                     stripes_count: int,
+                     longitudinal: float,
+                     side: int,
+                     color=None) -> None:
         """
         Draw a striped line on one side of a lane, on a surface.
 
@@ -367,12 +428,19 @@ class LaneGraphics:
         :param side: which side of the road to draw [0:left, 1:right]
         """
         starts = longitudinal + np.arange(stripes_count) * cls.STRIPE_SPACING
-        ends = longitudinal + np.arange(stripes_count) * cls.STRIPE_SPACING + cls.STRIPE_LENGTH
+        ends = longitudinal + np.arange(
+            stripes_count) * cls.STRIPE_SPACING + cls.STRIPE_LENGTH
         lats = [(side - 0.5) * lane.width_at(s) for s in starts]
         cls.draw_stripes(lane, surface, starts, ends, lats, color=color)
 
     @classmethod
-    def continuous_curve(cls, lane, surface, stripes_count: int, longitudinal: float, side: int, color=None) -> None:
+    def continuous_curve(cls,
+                         lane,
+                         surface,
+                         stripes_count: int,
+                         longitudinal: float,
+                         side: int,
+                         color=None) -> None:
         """
         Draw a striped line on one side of a lane, on a surface.
 
@@ -383,12 +451,19 @@ class LaneGraphics:
         :param side: which side of the road to draw [0:left, 1:right]
         """
         starts = longitudinal + np.arange(stripes_count) * cls.STRIPE_SPACING
-        ends = longitudinal + np.arange(stripes_count) * cls.STRIPE_SPACING + cls.STRIPE_SPACING
+        ends = longitudinal + np.arange(
+            stripes_count) * cls.STRIPE_SPACING + cls.STRIPE_SPACING
         lats = [(side - 0.5) * lane.width_at(s) for s in starts]
         cls.draw_stripes(lane, surface, starts, ends, lats, color=color)
 
     @classmethod
-    def continuous_line(cls, lane, surface, stripes_count: int, longitudinal: float, side: int, color=None) -> None:
+    def continuous_line(cls,
+                        lane,
+                        surface,
+                        stripes_count: int,
+                        longitudinal: float,
+                        side: int,
+                        color=None) -> None:
         """
         Draw a continuous line on one side of a lane, on a surface.
 
@@ -399,12 +474,21 @@ class LaneGraphics:
         :param side: which side of the road to draw [0:left, 1:right]
         """
         starts = [longitudinal + 0 * cls.STRIPE_SPACING]
-        ends = [longitudinal + stripes_count * cls.STRIPE_SPACING + cls.STRIPE_LENGTH]
+        ends = [
+            longitudinal + stripes_count * cls.STRIPE_SPACING +
+            cls.STRIPE_LENGTH
+        ]
         lats = [(side - 0.5) * lane.width_at(s) for s in starts]
         cls.draw_stripes(lane, surface, starts, ends, lats, color=color)
 
     @classmethod
-    def draw_stripes(cls, lane, surface, starts: List[float], ends: List[float], lats: List[float], color=None) -> None:
+    def draw_stripes(cls,
+                     lane,
+                     surface,
+                     starts: List[float],
+                     ends: List[float],
+                     lats: List[float],
+                     color=None) -> None:
         """
         Draw a set of stripes along a lane.
 
@@ -421,10 +505,10 @@ class LaneGraphics:
         for k, _ in enumerate(starts):
             if abs(starts[k] - ends[k]) > 0.5 * cls.STRIPE_LENGTH:
                 pygame.draw.line(
-                    surface, color, (surface.vec2pix(lane.position(starts[k], lats[k]))),
+                    surface, color,
+                    (surface.vec2pix(lane.position(starts[k], lats[k]))),
                     (surface.vec2pix(lane.position(ends[k], lats[k]))),
-                    surface.pix(2 * PGDrivableAreaProperty.LANE_LINE_WIDTH)
-                )
+                    surface.pix(2 * PGDrivableAreaProperty.LANE_LINE_WIDTH))
 
     @classmethod
     def draw_drivable_area(cls, lane, surface, color=(255, 255, 255)):
@@ -432,34 +516,40 @@ class LaneGraphics:
         segment_num = int(lane.length / PGBlock.LANE_SEGMENT_LENGTH)
         width = lane.width
         for segment in range(segment_num):
-            p_1 = lane.position(segment * PGBlock.LANE_SEGMENT_LENGTH, -width / 2)
-            p_2 = lane.position(segment * PGBlock.LANE_SEGMENT_LENGTH, width / 2)
-            p_3 = lane.position((segment + 1) * PGBlock.LANE_SEGMENT_LENGTH, width / 2)
-            p_4 = lane.position((segment + 1) * PGBlock.LANE_SEGMENT_LENGTH, -width / 2)
-            pygame.draw.polygon(
-                surface, color,
-                [surface.pos2pix(*p_1),
-                 surface.pos2pix(*p_2),
-                 surface.pos2pix(*p_3),
-                 surface.pos2pix(*p_4)]
-            )
+            p_1 = lane.position(segment * PGBlock.LANE_SEGMENT_LENGTH,
+                                -width / 2)
+            p_2 = lane.position(segment * PGBlock.LANE_SEGMENT_LENGTH,
+                                width / 2)
+            p_3 = lane.position((segment + 1) * PGBlock.LANE_SEGMENT_LENGTH,
+                                width / 2)
+            p_4 = lane.position((segment + 1) * PGBlock.LANE_SEGMENT_LENGTH,
+                                -width / 2)
+            pygame.draw.polygon(surface, color, [
+                surface.pos2pix(*p_1),
+                surface.pos2pix(*p_2),
+                surface.pos2pix(*p_3),
+                surface.pos2pix(*p_4)
+            ])
 
         # # for last part
-        p_1 = lane.position(segment_num * PGBlock.LANE_SEGMENT_LENGTH, -width / 2)
-        p_2 = lane.position(segment_num * PGBlock.LANE_SEGMENT_LENGTH, width / 2)
+        p_1 = lane.position(segment_num * PGBlock.LANE_SEGMENT_LENGTH,
+                            -width / 2)
+        p_2 = lane.position(segment_num * PGBlock.LANE_SEGMENT_LENGTH,
+                            width / 2)
         p_3 = lane.position(lane.length, width / 2)
         p_4 = lane.position(lane.length, -width / 2)
-        pygame.draw.polygon(
-            surface, color,
-            [surface.pos2pix(*p_1),
-             surface.pos2pix(*p_2),
-             surface.pos2pix(*p_3),
-             surface.pos2pix(*p_4)]
-        )
+        pygame.draw.polygon(surface, color, [
+            surface.pos2pix(*p_1),
+            surface.pos2pix(*p_2),
+            surface.pos2pix(*p_3),
+            surface.pos2pix(*p_4)
+        ])
 
 
 class ObservationWindowMultiChannel:
-    CHANNEL_NAMES = ["road_network", "traffic_flow", "target_vehicle", "past_pos"]
+    CHANNEL_NAMES = [
+        "road_network", "traffic_flow", "target_vehicle", "past_pos"
+    ]
 
     def __init__(self, names, max_range, resolution):
         assert isinstance(names, list)
@@ -497,7 +587,10 @@ class ObservationWindowMultiChannel:
 
     def get_observation_window(self, canvas_dict=None):
         if canvas_dict is None:
-            canvas_dict = {k: v.get_observation_window() for k, v in self.sub_observations.items()}
+            canvas_dict = {
+                k: v.get_observation_window()
+                for k, v in self.sub_observations.items()
+            }
         return canvas_dict
 
     def get_size(self):
@@ -513,7 +606,8 @@ class ObservationWindowMultiChannel:
             ret[k] = pygame.transform.scale2x(ret[k])
 
         def _draw(canvas, key, color):
-            mask = pygame.mask.from_threshold(ret[key], (0, 0, 0, 0), (10, 10, 10, 255))
+            mask = pygame.mask.from_threshold(ret[key], (0, 0, 0, 0),
+                                              (10, 10, 10, 255))
             mask.to_surface(canvas, setcolor=None, unsetcolor=color)
 
         if "navigation" in ret:

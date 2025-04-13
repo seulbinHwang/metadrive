@@ -5,7 +5,11 @@ def test_collision_with_vehicle(use_render=False):
     if not use_render:
         env = MetaDriveEnv({"traffic_density": 1.0, "map": "SSS"})
     else:
-        env = MetaDriveEnv({"traffic_density": 1.0, "map": "SSS", "use_render": True})
+        env = MetaDriveEnv({
+            "traffic_density": 1.0,
+            "map": "SSS",
+            "use_render": True
+        })
     o, _ = env.reset()
     pass_test = False
     try:
@@ -50,7 +54,12 @@ def test_line_contact():
 
 
 def test_collision_info(use_render=False):
-    env = MetaDriveEnv({"traffic_density": 1.0, "map": "SSS", "use_render": use_render, "crash_vehicle_done": False})
+    env = MetaDriveEnv({
+        "traffic_density": 1.0,
+        "map": "SSS",
+        "use_render": use_render,
+        "crash_vehicle_done": False
+    })
     o, _ = env.reset()
     pass_test = False
     try:

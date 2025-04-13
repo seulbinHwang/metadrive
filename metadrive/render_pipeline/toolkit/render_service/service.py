@@ -71,7 +71,8 @@ class Application(ShowBase):
                 payload = self.update_queue.pop(0)
                 print("RENDERING:", payload)
 
-                scene = self.loader.loadModel(Filename.from_os_specific(payload["scene"]))
+                scene = self.loader.loadModel(
+                    Filename.from_os_specific(payload["scene"]))
 
                 for light in scene.find_all_matches("**/+PointLight"):
                     light.remove_node()
@@ -81,8 +82,10 @@ class Application(ShowBase):
                 # Find camera
                 main_cam = scene.find("**/Camera")
                 if main_cam:
-                    transform_mat = main_cam.get_transform(self.render).get_mat()
-                    transform_mat = Mat4.convert_mat(CS_zup_right, CS_yup_right) * transform_mat
+                    transform_mat = main_cam.get_transform(
+                        self.render).get_mat()
+                    transform_mat = Mat4.convert_mat(
+                        CS_zup_right, CS_yup_right) * transform_mat
                     self.camera.set_mat(transform_mat)
                 else:
                     print("WARNING: No camera found")
@@ -105,7 +108,9 @@ class Application(ShowBase):
 
     def start_listen(self):
         """ Starts the listener thread """
-        thread = Thread(target=self.listener_thread, args=(), name="ListenerThread")
+        thread = Thread(target=self.listener_thread,
+                        args=(),
+                        name="ListenerThread")
         thread.setDaemon(True)
         thread.start()
         return thread

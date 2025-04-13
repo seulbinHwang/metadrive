@@ -19,12 +19,14 @@ class TollGate(PGBlock):
     SPEED_LIMIT = 3  # m/s ~= 5 miles per hour https://bestpass.com/feed/61-speeding-through-tolls
 
     def _try_plug_into_previous_block(self) -> bool:
-        self.set_part_idx(0)  # only one part in simple block like straight, and curve
+        self.set_part_idx(
+            0)  # only one part in simple block like straight, and curve
         para = self.get_config()
         length = para[Parameter.length]
         self.BUILDING_LENGTH = length
         basic_lane = self.positive_basic_lane
-        new_lane = ExtendStraightLane(basic_lane, length, [PGLineType.CONTINUOUS, PGLineType.SIDE])
+        new_lane = ExtendStraightLane(basic_lane, length,
+                                      [PGLineType.CONTINUOUS, PGLineType.SIDE])
         start = self.pre_block_socket.positive_road.end_node
         end = self.add_road_node()
         socket = Road(start, end)
@@ -41,20 +43,18 @@ class TollGate(PGBlock):
             center_line_type=PGLineType.CONTINUOUS,
             inner_lane_line_type=PGLineType.CONTINUOUS,
             side_lane_line_type=PGLineType.SIDE,
-            ignore_intersection_checking=self.ignore_intersection_checking
-        )
+            ignore_intersection_checking=self.ignore_intersection_checking)
 
         # create negative road
-        no_cross = CreateAdverseRoad(
-            socket,
-            self.block_network,
-            self._global_network,
-            center_line_color=PGLineColor.YELLOW,
-            center_line_type=PGLineType.CONTINUOUS,
-            inner_lane_line_type=PGLineType.CONTINUOUS,
-            side_lane_line_type=PGLineType.SIDE,
-            ignore_intersection_checking=self.ignore_intersection_checking
-        ) and no_cross
+        no_cross = CreateAdverseRoad(socket,
+                                     self.block_network,
+                                     self._global_network,
+                                     center_line_color=PGLineColor.YELLOW,
+                                     center_line_type=PGLineType.CONTINUOUS,
+                                     inner_lane_line_type=PGLineType.CONTINUOUS,
+                                     side_lane_line_type=PGLineType.SIDE,
+                                     ignore_intersection_checking=self.
+                                     ignore_intersection_checking) and no_cross
 
         self.add_sockets(PGBlockSocket(socket, _socket))
         self._add_building_and_speed_limit(socket)
@@ -70,6 +70,8 @@ class TollGate(PGBlock):
                 # add toll
                 position = lane.position(lane.length / 2, 0)
                 building = get_engine().spawn_object(
-                    TollGateBuilding, lane=lane, position=position, heading_theta=lane.heading_theta_at(0)
-                )
+                    TollGateBuilding,
+                    lane=lane,
+                    position=position,
+                    heading_theta=lane.heading_theta_at(0))
                 self._block_objects.append(building)

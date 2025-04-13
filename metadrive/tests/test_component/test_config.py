@@ -18,7 +18,8 @@ def test_config_sync():
     The config in BaseEngine should be the same as env.config, if BaseEngine exists in process
     """
     try:
-        env = MetaDriveEnv({"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
+        env = MetaDriveEnv(
+            {"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
         # assert recursive_equal(env.config, env.engine.global_config)
         assert recursive_equal(env.config, get_global_config())
         assert recursive_equal(env.config, BaseEngine.global_config)
@@ -28,7 +29,8 @@ def test_config_sync():
         assert recursive_equal(env.config, env.engine.global_config)
         assert recursive_equal(env.config, get_global_config())
         assert recursive_equal(env.config, BaseEngine.global_config)
-        env.config.update({"vehicle_config": dict(show_lidar=True, show_navi_mark=True)})
+        env.config.update(
+            {"vehicle_config": dict(show_lidar=True, show_navi_mark=True)})
         assert recursive_equal(env.config, env.engine.global_config)
         assert recursive_equal(env.config, get_global_config())
         assert recursive_equal(env.config, BaseEngine.global_config)
@@ -39,7 +41,8 @@ def test_config_sync():
         assert recursive_equal(env.config, env.engine.global_config)
         assert recursive_equal(env.config, get_global_config())
         assert recursive_equal(env.config, BaseEngine.global_config)
-        env.engine.global_config.update({"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
+        env.engine.global_config.update(
+            {"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
         assert recursive_equal(env.config, env.engine.global_config)
         assert recursive_equal(env.config, get_global_config())
         assert recursive_equal(env.config, BaseEngine.global_config)
@@ -48,9 +51,11 @@ def test_config_sync():
         assert recursive_equal(env.config, env.engine.global_config)
         assert recursive_equal(env.config, get_global_config())
         assert recursive_equal(env.config, BaseEngine.global_config)
-        assert env.engine.global_config["vehicle_config"]["max_engine_force"] == 100
+        assert env.engine.global_config["vehicle_config"][
+            "max_engine_force"] == 100
         env.reset()
-        assert env.engine.global_config["vehicle_config"]["max_engine_force"] == 100
+        assert env.engine.global_config["vehicle_config"][
+            "max_engine_force"] == 100
         assert recursive_equal(env.config, env.engine.global_config)
         assert recursive_equal(env.config, get_global_config())
         assert recursive_equal(env.config, BaseEngine.global_config)
@@ -64,12 +69,14 @@ def test_config_set_unchange():
     The config in BaseEngine should be the same as env.config, if BaseEngine exists in process
     """
     try:
-        env = MetaDriveEnv({"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
+        env = MetaDriveEnv(
+            {"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
         evn_cfg = env.config
         assert evn_cfg is BaseEngine.global_config
         initialize_global_config(None)
         env = None
-        env = MetaDriveEnv({"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
+        env = MetaDriveEnv(
+            {"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
         assert env.config is not evn_cfg
         env_cfg = env.config
         initialize_global_config(None)
@@ -85,7 +92,8 @@ def test_config_set_unchange():
         assert BaseEngine.global_config is env_cfg
         env.close()
 
-        env = MetaDriveEnv({"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
+        env = MetaDriveEnv(
+            {"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
         assert env.config is not env_cfg
         assert BaseEngine.global_config is env.config
         # initialize_global_config(None)
@@ -118,7 +126,8 @@ def test_config_two_env():
         env_1.close()
         assert get_global_config() is None and BaseEngine.global_config is None
         env_2.reset()
-        assert env_1.config is not env_2.config and (env_2.config is BaseEngine.global_config is get_global_config())
+        assert env_1.config is not env_2.config and (
+            env_2.config is BaseEngine.global_config is get_global_config())
         env_2.close()
         assert get_global_config() is None and BaseEngine.global_config is None
     finally:
@@ -131,14 +140,20 @@ def test_config_overwrite():
     The config in BaseEngine should be the same as env.config, if BaseEngine exists in process
     """
     METADRIVE_DEFAULT_CONFIG["map"] = "S"
-    env = MetaDriveEnv({"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
+    env = MetaDriveEnv(
+        {"vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
     try:
         env.reset()
-        assert env.current_map.blocks[-1].ID == "S" and len(env.current_map.blocks) == 2
+        assert env.current_map.blocks[-1].ID == "S" and len(
+            env.current_map.blocks) == 2
         env.close()
-        env = MetaDriveEnv({"map": "C", "vehicle_config": dict(show_lidar=False, show_navi_mark=False)})
+        env = MetaDriveEnv({
+            "map": "C",
+            "vehicle_config": dict(show_lidar=False, show_navi_mark=False)
+        })
         env.reset()
-        assert env.current_map.blocks[-1].ID == "C" and len(env.current_map.blocks) == 2
+        assert env.current_map.blocks[-1].ID == "C" and len(
+            env.current_map.blocks) == 2
         env.close()
     finally:
         env.close()

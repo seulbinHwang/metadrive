@@ -29,17 +29,16 @@ from . import spec
 
 
 class AnimationMixin(object):
+
     def _make_sampler(self, path, input_id, bone):
         # transforms
-        channel = self._buffer.add_channel(
-            {
-                'componentType': spec.TYPE_FLOAT,
-                'type': 'VEC4' if path == 'rotation' else 'VEC3',
-                'extras': {
-                    'reference': path,
-                },
-            }
-        )
+        channel = self._buffer.add_channel({
+            'componentType': spec.TYPE_FLOAT,
+            'type': 'VEC4' if path == 'rotation' else 'VEC3',
+            'extras': {
+                'reference': path,
+            },
+        })
 
         gltf_sampler = {
             'interpolation': 'LINEAR',
@@ -90,15 +89,13 @@ class AnimationMixin(object):
                 gltf_target['node'] = gltf_joint_id
 
             # time or animation frame
-            channel = self._buffer.add_channel(
-                {
-                    'componentType': spec.TYPE_FLOAT,
-                    'type': 'SCALAR',
-                    'extras': {
-                        'reference': 'input',
-                    },
-                }
-            )
+            channel = self._buffer.add_channel({
+                'componentType': spec.TYPE_FLOAT,
+                'type': 'SCALAR',
+                'extras': {
+                    'reference': 'input',
+                },
+            })
             input_id = channel['bufferView']
 
             for path in ('rotation', 'scale', 'translation'):
@@ -156,7 +153,8 @@ class AnimationMixin(object):
                 scale = list(bone_matrix.to_scale())
                 translation = list(bone_matrix.to_translation())
 
-                gltf_channel = gltf_channels['{}/{}'.format(bone.name, 'rotation')]
+                gltf_channel = gltf_channels['{}/{}'.format(
+                    bone.name, 'rotation')]
                 gltf_sampler = gltf_samplers[gltf_channel['sampler']]
                 self._buffer.write(gltf_sampler['output'], *rotation)
 
@@ -164,7 +162,8 @@ class AnimationMixin(object):
                 gltf_sampler = gltf_samplers[gltf_channel['sampler']]
                 self._buffer.write(gltf_sampler['output'], *scale)
 
-                gltf_channel = gltf_channels['{}/{}'.format(bone.name, 'translation')]
+                gltf_channel = gltf_channels['{}/{}'.format(
+                    bone.name, 'translation')]
                 gltf_sampler = gltf_samplers[gltf_channel['sampler']]
                 self._buffer.write(gltf_sampler['output'], *translation)
 

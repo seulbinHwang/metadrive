@@ -29,7 +29,8 @@ def initialize_engine(env_global_config):
         The engine.
     """
     # As a workaround, address the potential bug when rendering in headless machine.
-    if env_global_config["use_render"] is False and env_global_config["image_observation"] is True:
+    if env_global_config["use_render"] is False and env_global_config[
+            "image_observation"] is True:
         _fix_offscreen_rendering()
 
     cls = BaseEngine
@@ -37,7 +38,8 @@ def initialize_engine(env_global_config):
         # assert cls.global_config is not None, "Set global config before initialization BaseEngine"
         cls.singleton = cls(env_global_config)
     else:
-        raise PermissionError("There should be only one BaseEngine instance in one process")
+        raise PermissionError(
+            "There should be only one BaseEngine instance in one process")
     return cls.singleton
 
 
@@ -67,7 +69,8 @@ def initialize_global_config(global_config):
     """
     You can, of course, preset the engine config before launching the engine.
     """
-    assert not engine_initialized(), "Can not call this API after engine initialization!"
+    assert not engine_initialized(
+    ), "Can not call this API after engine initialization!"
     EngineCore.global_config = global_config
 
 
@@ -81,4 +84,5 @@ def set_global_random_seed(random_seed: Optional[int]):
     if engine is not None:
         engine.seed(random_seed)
     else:
-        logging.warning("BaseEngine is not launched, fail to sync seed to engine!")
+        logging.warning(
+            "BaseEngine is not launched, fail to sync seed to engine!")

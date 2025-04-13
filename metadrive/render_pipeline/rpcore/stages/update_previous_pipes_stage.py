@@ -38,6 +38,7 @@ class UpdatePreviousPipesStage(RenderStage):
     specify inputs, since the StageManager passes all required inputs on demand.
     Also this stage does not load any shaders, but creates them on the fly.
     """
+
     def __init__(self, pipeline):
         RenderStage.__init__(self, pipeline)
         self._transfers = []
@@ -75,11 +76,15 @@ class UpdatePreviousPipesStage(RenderStage):
         for i, (from_tex, to_tex) in enumerate(self._transfers):
             index = str(i)
             uniforms.append(self.get_sampler_type(from_tex) + " SrcTex" + index)
-            uniforms.append(self.get_sampler_type(to_tex, True) + " DestTex" + index)
+            uniforms.append(
+                self.get_sampler_type(to_tex, True) + " DestTex" + index)
             lines += [
-                "\n  // Copying " + from_tex.get_name() + " to " + to_tex.get_name(),
-                self.get_sampler_lookup(from_tex, "data" + index, "SrcTex" + index, "coord_2d_int"),
-                self.get_store_code(to_tex, "DestTex" + index, "coord_2d_int", "data" + index),
+                "\n  // Copying " + from_tex.get_name() + " to " +
+                to_tex.get_name(),
+                self.get_sampler_lookup(from_tex, "data" + index,
+                                        "SrcTex" + index, "coord_2d_int"),
+                self.get_store_code(to_tex, "DestTex" + index, "coord_2d_int",
+                                    "data" + index),
                 "\n",
             ]
 

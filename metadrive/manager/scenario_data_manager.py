@@ -27,22 +27,28 @@ class ScenarioDataManager(BaseManager):
         self._scenarios = {}
 
         # Read summary file first:
-        self.summary_dict, self.summary_lookup, self.mapping = read_dataset_summary(self.directory)
-        self.summary_lookup[:self.start_scenario_index] = [None] * self.start_scenario_index
+        self.summary_dict, self.summary_lookup, self.mapping = read_dataset_summary(
+            self.directory)
+        self.summary_lookup[:self.start_scenario_index] = [
+            None
+        ] * self.start_scenario_index
 
         # sort scenario for curriculum training
         self.scenario_difficulty = None
         self.sort_scenarios()
 
         if self.num_scenarios == -1:
-            self.num_scenarios = len(self.summary_lookup) - self.start_scenario_index
+            self.num_scenarios = len(
+                self.summary_lookup) - self.start_scenario_index
             engine.global_config["num_scenarios"] = self.num_scenarios
 
         end_idx = self.start_scenario_index + self.num_scenarios
-        self.summary_lookup[end_idx:] = [None] * (len(self.summary_lookup) - end_idx)
+        self.summary_lookup[end_idx:] = [None
+                                        ] * (len(self.summary_lookup) - end_idx)
 
         # existence check
-        assert self.start_scenario_index < len(self.summary_lookup), "Insufficient scenarios!"
+        assert self.start_scenario_index < len(
+            self.summary_lookup), "Insufficient scenarios!"
         assert self.start_scenario_index + self.num_scenarios <= len(self.summary_lookup), \
             "Insufficient scenarios! Need: {} Has: {}".format(self.num_scenarios,
                                                               len(self.summary_lookup) - self.start_scenario_index)
@@ -57,11 +63,9 @@ class ScenarioDataManager(BaseManager):
     @property
     def available_scenario_indices(self):
         return list(
-            range(
-                self.start_scenario_index + self.worker_index, self.start_scenario_index + self.num_scenarios,
-                self.engine.global_config["num_workers"]
-            )
-        )
+            range(self.start_scenario_index + self.worker_index,
+                  self.start_scenario_index + self.num_scenarios,
+                  self.engine.global_config["num_workers"]))
 
     @property
     def current_scenario_summary(self):
@@ -72,14 +76,17 @@ class ScenarioDataManager(BaseManager):
             "scenario index exceeds range, scenario index: {}, worker_index: {}".format(i, self.worker_index)
         assert i < len(self.summary_lookup)
         scenario_id = self.summary_lookup[i]
-        file_path = os.path.join(self.directory, self.mapping[scenario_id], scenario_id)
+        file_path = os.path.join(self.directory, self.mapping[scenario_id],
+                                 scenario_id)
         ret = read_scenario_data(file_path, centralize=True)
         assert isinstance(ret, SD)
         return ret
 
     def before_reset(self):
         if not self.store_data:
-            assert len(self._scenarios) <= 1, "It seems you access multiple scenarios in one episode"
+            assert len(
+                self._scenarios
+            ) <= 1, "It seems you access multiple scenarios in one episode"
             self._scenarios = {}
 
     def get_scenario(self, i, should_copy=False):
@@ -122,41 +129,53 @@ class ScenarioDataManager(BaseManager):
             return
 
         def _score(scenario_id):
-            file_path = os.path.join(self.directory, self.mapping[scenario_id], scenario_id)
+            file_path = os.path.join(self.directory, self.mapping[scenario_id],
+                                     scenario_id)
             scenario = read_scenario_data(file_path, centralize=True)
             obj_weight = 0
 
             # calculate curvature
             ego_car_id = scenario[SD.METADATA][SD.SDC_ID]
             state_dict = scenario["tracks"][ego_car_id]["state"]
-            valid_track = state_dict["position"][np.where(state_dict["valid"].astype(int))][..., :2]
+            valid_track = state_dict["position"][np.where(
+                state_dict["valid"].astype(int))][..., :2]
 
             dir = valid_track[1:] - valid_track[:-1]
             dir = np.arctan2(dir[..., 1], dir[..., 0])
             curvature = sum(abs(dir[1:] - dir[:-1]) / np.pi) + 1
 
             sdc_moving_dist = SD.sdc_moving_dist(scenario)
-            num_moving_objs = SD.num_moving_object(scenario, object_type=MetaDriveType.VEHICLE)
+            num_moving_objs = SD.num_moving_object(
+                scenario, object_type=MetaDriveType.VEHICLE)
             return sdc_moving_dist * curvature + num_moving_objs * obj_weight, scenario
 
         start = self.start_scenario_index
         end = self.start_scenario_index + self.num_scenarios
-        id_score_scenarios = [(s_id, *_score(s_id)) for s_id in self.summary_lookup[start:end]]
-        id_score_scenarios = sorted(id_score_scenarios, key=lambda scenario: scenario[-2])
-        self.summary_lookup[start:end] = [id_score_scenario[0] for id_score_scenario in id_score_scenarios]
+        id_score_scenarios = [
+            (s_id, *_score(s_id)) for s_id in self.summary_lookup[start:end]
+        ]
+        id_score_scenarios = sorted(id_score_scenarios,
+                                    key=lambda scenario: scenario[-2])
+        self.summary_lookup[start:end] = [
+            id_score_scenario[0] for id_score_scenario in id_score_scenarios
+        ]
         self.scenario_difficulty = {
             id_score_scenario[0]: id_score_scenario[1]
             for id_score_scenario in id_score_scenarios
         }
-        self._scenarios = {i + start: id_score_scenario[-1] for i, id_score_scenario in enumerate(id_score_scenarios)}
+        self._scenarios = {
+            i + start: id_score_scenario[-1]
+            for i, id_score_scenario in enumerate(id_score_scenarios)
+        }
 
     def clear_stored_scenarios(self):
         self._scenarios = {}
 
     @property
     def current_scenario_difficulty(self):
-        return self.scenario_difficulty[self.summary_lookup[self.engine.global_random_seed]
-                                        ] if self.scenario_difficulty is not None else 0
+        return self.scenario_difficulty[self.summary_lookup[
+            self.engine.
+            global_random_seed]] if self.scenario_difficulty is not None else 0
 
     @property
     def current_scenario_id(self):
@@ -168,7 +187,8 @@ class ScenarioDataManager(BaseManager):
 
     @property
     def data_coverage(self):
-        return sum(self.coverage) / len(self.coverage) * self.engine.global_config["num_workers"]
+        return sum(self.coverage) / len(
+            self.coverage) * self.engine.global_config["num_workers"]
 
     def destroy(self):
         """
@@ -196,7 +216,8 @@ class ScenarioOnlineDataManager(BaseManager):
 
     def set_scenario(self, scenario_description):
         SD.sanity_check(scenario_description)
-        scenario_description = SD.centralize_to_ego_car_initial_position(scenario_description)
+        scenario_description = SD.centralize_to_ego_car_initial_position(
+            scenario_description)
         self._scenario = scenario_description
 
     def get_scenario(self, seed=None, should_copy=False):

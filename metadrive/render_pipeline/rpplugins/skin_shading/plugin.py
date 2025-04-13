@@ -35,8 +35,7 @@ class Plugin(BasePlugin):
     author = "tobspr <tobias.springer1@gmail.com>"
     description = (
         "This plugin adds support for Seperable Screen Space Subsurface "
-        "Scattering (SSSSS). This improves skin rendering."
-    )
+        "Scattering (SSSSS). This improves skin rendering.")
     version = "1.0"
 
     def on_stage_setup(self):

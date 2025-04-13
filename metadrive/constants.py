@@ -55,12 +55,10 @@ DEBUG_MESSAGE = "  1: Box Debug Mode\n" \
                 "  4: Print Node Message\n"
 
 # priority and color
-COLLISION_INFO_COLOR = dict(
-    red=(0, Vec4(195 / 255, 0, 0, 1)),
-    orange=(1, Vec4(218 / 255, 80 / 255, 0, 1)),
-    yellow=(2, Vec4(218 / 255, 163 / 255, 0, 1)),
-    green=(3, Vec4(65 / 255, 163 / 255, 0, 1))
-)
+COLLISION_INFO_COLOR = dict(red=(0, Vec4(195 / 255, 0, 0, 1)),
+                            orange=(1, Vec4(218 / 255, 80 / 255, 0, 1)),
+                            yellow=(2, Vec4(218 / 255, 163 / 255, 0, 1)),
+                            green=(3, Vec4(65 / 255, 163 / 255, 0, 1)))
 
 # Used for rendering the banner in Interface.
 COLOR = {
@@ -130,7 +128,8 @@ class CollisionGroup(Mask):
     Terrain = BitMask32.bit(2)
     BrokenLaneLine = BitMask32.bit(3)
     TrafficObject = BitMask32.bit(4)
-    LaneSurface = BitMask32.bit(5)  # useless now, since it is in another bullet world
+    LaneSurface = BitMask32.bit(
+        5)  # useless now, since it is in another bullet world
     Sidewalk = BitMask32.bit(6)
     ContinuousLaneLine = BitMask32.bit(7)
     InvisibleWall = BitMask32.bit(8)
@@ -212,8 +211,10 @@ class CollisionGroup(Mask):
             (cls.Sidewalk, cls.Sidewalk, False),
             (cls.Sidewalk, cls.LidarBroadDetector, False),
             (cls.Sidewalk, cls.TrafficObject, True),
-            (cls.Sidewalk, cls.TrafficParticipants, True),  # don't allow sidewalk contact
-            (cls.Sidewalk, cls.Crosswalk, False),  # don't allow sidewalk contact
+            (cls.Sidewalk, cls.TrafficParticipants,
+             True),  # don't allow sidewalk contact
+            (cls.Sidewalk, cls.Crosswalk,
+             False),  # don't allow sidewalk contact
 
             # LidarBroadDetector
             (cls.LidarBroadDetector, cls.LidarBroadDetector, False),
@@ -232,7 +233,9 @@ class CollisionGroup(Mask):
         ]
 
     @classmethod
-    def set_collision_rule(cls, world: BulletWorld, disable_collision: bool = False):
+    def set_collision_rule(cls,
+                           world: BulletWorld,
+                           disable_collision: bool = False):
         for rule in cls.collision_rules():
             group_1 = int(math.log(rule[0].getWord(), 2))
             group_2 = int(math.log(rule[1].getWord(), 2))
@@ -397,7 +400,8 @@ class Semantics:
     # LANE_LINE = label_color("LANE_LINE", (128, 64, 128))
     # CROSSWALK = label_color("CROSSWALK", (128, 64, 128))
 
-    BUS = label_color("BUS", (0, 60, 100))  # PZH: I just randomly choose a color.
+    BUS = label_color("BUS",
+                      (0, 60, 100))  # PZH: I just randomly choose a color.
 
 
 class MapTerrainSemanticColor:
@@ -430,7 +434,8 @@ class MapTerrainSemanticColor:
         elif type == MetaDriveType.GROUND:
             # return (0, 0, 1, 0)
             return 00
-        elif MetaDriveType.is_white_line(type) or MetaDriveType.is_road_boundary_line(type):
+        elif MetaDriveType.is_white_line(
+                type) or MetaDriveType.is_road_boundary_line(type):
             # return (0, 0, 0, 1)
             return MapTerrainSemanticColor.WHITE
         elif type == MetaDriveType.CROSSWALK:
@@ -449,6 +454,7 @@ class TopDownSemanticColor:
     Do not modify this as it is for terrain generation. If you want your own palette, just add a new one or modify
     class lMapSemanticColor
     """
+
     @staticmethod
     def get_color(type):
         if MetaDriveType.is_lane(type):
@@ -462,7 +468,8 @@ class TopDownSemanticColor:
         elif MetaDriveType.is_yellow_line(type):
             ret = np.array([20, 20, 20])
         # lane divider
-        elif MetaDriveType.is_road_boundary_line(type) or MetaDriveType.is_white_line(type):
+        elif MetaDriveType.is_road_boundary_line(
+                type) or MetaDriveType.is_white_line(type):
             ret = np.array([140, 140, 140])
         # vehicle
         elif MetaDriveType.is_vehicle(type):
@@ -554,15 +561,19 @@ class CameraTagStateKey:
 DEFAULT_SENSOR_OFFSET = (0., 0.8, 1.5)
 DEFAULT_SENSOR_HPR = (0., -5, 0.0)
 
-COLOR_PALETTE = (
-    (0.00392156862745098, 0.45098039215686275,
-     0.6980392156862745), (0.8705882352941177, 0.5607843137254902, 0.0196078431372549),
-    (0.00784313725490196, 0.6196078431372549, 0.45098039215686275), (0.8352941176470589, 0.3686274509803922, 0.0),
-    (0.8, 0.47058823529411764, 0.7372549019607844), (0.792156862745098, 0.5686274509803921, 0.3803921568627451),
-    (0.984313725490196, 0.6862745098039216,
-     0.8941176470588236), (0.5803921568627451, 0.5803921568627451, 0.5803921568627451),
-    (0.9254901960784314, 0.8823529411764706, 0.2), (0.33725490196078434, 0.7058823529411765, 0.9137254901960784)
-)
+COLOR_PALETTE = ((0.00392156862745098, 0.45098039215686275, 0.6980392156862745),
+                 (0.8705882352941177, 0.5607843137254902, 0.0196078431372549),
+                 (0.00784313725490196, 0.6196078431372549,
+                  0.45098039215686275), (0.8352941176470589, 0.3686274509803922,
+                                         0.0), (0.8, 0.47058823529411764,
+                                                0.7372549019607844),
+                 (0.792156862745098, 0.5686274509803921, 0.3803921568627451),
+                 (0.984313725490196, 0.6862745098039216,
+                  0.8941176470588236), (0.5803921568627451, 0.5803921568627451,
+                                        0.5803921568627451),
+                 (0.9254901960784314, 0.8823529411764706,
+                  0.2), (0.33725490196078434, 0.7058823529411765,
+                         0.9137254901960784))
 
 
 def get_color_palette():

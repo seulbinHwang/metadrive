@@ -13,7 +13,8 @@ def assert_equal_pos(dict_1, dict_2):
         pos_2 = dict_2[name]
         difference = pos - pos_2
         diff = norm(difference[0], difference[1])
-        assert diff < 1, "pos mismatch for vehicle: {}, distance: {}".format(name, diff)
+        assert diff < 1, "pos mismatch for vehicle: {}, distance: {}".format(
+            name, diff)
 
 
 def test_save_recreate_scenario(vis=False):
@@ -43,7 +44,10 @@ def test_save_recreate_scenario(vis=False):
         epi_info = env.engine.record_manager.get_episode_metadata()
         for i in range(1, 100000 if vis else 2000):
             o, r, tm, tc, info = env.step([0, 1])
-            positions_1.append({v.name: v.position for v in env.engine.traffic_manager.spawned_objects.values()})
+            positions_1.append({
+                v.name: v.position
+                for v in env.engine.traffic_manager.spawned_objects.values()
+            })
             if tm or tc:
                 break
         env.close()
@@ -56,8 +60,14 @@ def test_save_recreate_scenario(vis=False):
         for i in range(0, 100000 if vis else 2000):
             o, r, tm, tc, info = env.step([0, 1])
             position = positions_1.pop()
-            position = {env.engine.replay_manager.record_name_to_current_name[key]: v for key, v in position.items()}
-            current_position = {v.name: v.position for v in env.engine.traffic_manager.spawned_objects.values()}
+            position = {
+                env.engine.replay_manager.record_name_to_current_name[key]: v
+                for key, v in position.items()
+            }
+            current_position = {
+                v.name: v.position
+                for v in env.engine.traffic_manager.spawned_objects.values()
+            }
             assert_equal_pos(position, current_position)
             if tm or tc:
                 break

@@ -46,6 +46,7 @@ BLENDSHAPE_PRESETS = (
 
 
 class VRMExporter(ArmatureMixin, GLTFExporter):
+
     def __init__(self, args):
         super().__init__(args)
 
@@ -94,19 +95,33 @@ class VRMExporter(ArmatureMixin, GLTFExporter):
             'exporterVersion': gltf_node['asset']['generator'],
             'specVersion': '0.0',
             'meta': {
-                'title': data['meta']['title'],
-                'version': data['meta']['version'],
-                'author': data['meta']['author'],
-                'contactInformation': data['meta']['contactInformation'],
-                'reference': data['meta']['reference'],
-                'texture': 0,  # thumbnail texture
-                'allowedUserName': data['meta'].get('allowedUserName', 'OnlyAuthor'),
-                'violentUssageName': data['meta'].get('violentUssageName', 'Disallow'),
-                'sexualUssageName': data['meta'].get('sexualUssageName', 'Disallow'),
-                'commercialUssageName': data['meta'].get('commercialUssageName', 'Disallow'),
-                'otherPermissionUrl': data['meta'].get('otherPermissionUrl', ''),
-                'licenseName': data['meta'].get('licenseName', 'Redistribution_Prohibited'),
-                'otherLicenseUrl': data['meta'].get('otherLicenseUrl', ''),
+                'title':
+                    data['meta']['title'],
+                'version':
+                    data['meta']['version'],
+                'author':
+                    data['meta']['author'],
+                'contactInformation':
+                    data['meta']['contactInformation'],
+                'reference':
+                    data['meta']['reference'],
+                'texture':
+                    0,  # thumbnail texture
+                'allowedUserName':
+                    data['meta'].get('allowedUserName', 'OnlyAuthor'),
+                'violentUssageName':
+                    data['meta'].get('violentUssageName', 'Disallow'),
+                'sexualUssageName':
+                    data['meta'].get('sexualUssageName', 'Disallow'),
+                'commercialUssageName':
+                    data['meta'].get('commercialUssageName', 'Disallow'),
+                'otherPermissionUrl':
+                    data['meta'].get('otherPermissionUrl', ''),
+                'licenseName':
+                    data['meta'].get('licenseName',
+                                     'Redistribution_Prohibited'),
+                'otherLicenseUrl':
+                    data['meta'].get('otherLicenseUrl', ''),
             },
             'humanoid': {
                 'armStretch': 0.0,
@@ -155,7 +170,8 @@ class VRMExporter(ArmatureMixin, GLTFExporter):
             if os.path.exists(inpdir) and os.path.isdir(inpdir):
                 for filename in reversed(sorted(os.listdir(inpdir))):
                     if filename.startswith(prefix):
-                        self._add_vrm_thumbnail(gltf_node, os.path.join(inpdir, filename))
+                        self._add_vrm_thumbnail(gltf_node,
+                                                os.path.join(inpdir, filename))
                         break
 
         return gltf_node
@@ -268,7 +284,8 @@ class VRMExporter(ArmatureMixin, GLTFExporter):
             'name': vrm_name,
             'presetName': preset,
             'isBinary': False,
-            'binds': [],  # bind to mesh ID and shape key ID with shape key weight
+            'binds': [
+            ],  # bind to mesh ID and shape key ID with shape key weight
             'materialValues': [],  # material values override
         }
 
@@ -288,8 +305,8 @@ class VRMExporter(ArmatureMixin, GLTFExporter):
                 vrm_material['shader'] = 'VRM/UnlitCutout'
 
             if gltf_material['pbrMetallicRoughness'].get('baseColorTexture'):
-                vrm_material['textureProperties']['_MainTex'] = gltf_material['pbrMetallicRoughness']['baseColorTexture'
-                                                                                                      ]['index']
+                vrm_material['textureProperties']['_MainTex'] = gltf_material[
+                    'pbrMetallicRoughness']['baseColorTexture']['index']
 
             root['extensions']['VRM']['materialProperties'].append(vrm_material)
 
@@ -307,10 +324,13 @@ class VRMExporter(ArmatureMixin, GLTFExporter):
                 'firstPersonFlag': 'Auto',
                 'mesh': gltf_mesh_id,
             }
-            root['extensions']['VRM']['firstPerson']['meshAnnotations'].append(vrm_annotation)
+            root['extensions']['VRM']['firstPerson']['meshAnnotations'].append(
+                vrm_annotation)
 
-            for gltf_primitive_id, gltf_primitive in enumerate(gltf_mesh['primitives']):
-                for sk_id, sk_name in enumerate(gltf_primitive['extras']['targetNames']):
+            for gltf_primitive_id, gltf_primitive in enumerate(
+                    gltf_mesh['primitives']):
+                for sk_id, sk_name in enumerate(
+                        gltf_primitive['extras']['targetNames']):
                     if sk_name in vrm_blend_shapes:
                         vrm_blend_shape = vrm_blend_shapes[sk_name]
                     else:
@@ -318,7 +338,8 @@ class VRMExporter(ArmatureMixin, GLTFExporter):
                         vrm_blend_shapes[sk_name] = vrm_blend_shape
 
                     for vrm_bind in vrm_blend_shape['binds']:
-                        if vrm_bind['mesh'] == gltf_mesh_id and vrm_bind['index'] == sk_id:
+                        if vrm_bind['mesh'] == gltf_mesh_id and vrm_bind[
+                                'index'] == sk_id:
                             break
                     else:
                         vrm_bind = {
@@ -329,7 +350,8 @@ class VRMExporter(ArmatureMixin, GLTFExporter):
                         vrm_blend_shape['binds'].append(vrm_bind)
 
         for vrm_blend_shape in vrm_blend_shapes.values():
-            root['extensions']['VRM']['blendShapeMaster']['blendShapeGroups'].append(vrm_blend_shape)
+            root['extensions']['VRM']['blendShapeMaster'][
+                'blendShapeGroups'].append(vrm_blend_shape)
 
         return root, buffer_
 
@@ -384,4 +406,5 @@ class VRMExporterOperator(bpy.types.Operator, ExportHelper):
 
 
 def export(export_op, context):
-    export_op.layout.operator(VRMExporterOperator.bl_idname, text='VRM using KITSUNETSUKI Asset Tools (.vrm)')
+    export_op.layout.operator(VRMExporterOperator.bl_idname,
+                              text='VRM using KITSUNETSUKI Asset Tools (.vrm)')

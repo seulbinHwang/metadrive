@@ -15,13 +15,11 @@ import numpy as np
 def test_multigoal_env(render=False):
     # path = pathlib.Path(AssetLoader.file_path(AssetLoader.asset_path, data_directory, unix_style=False))
     # summary, scenario_ids, mapping = read_dataset_summary(path)
-    env = MultiGoalIntersectionEnv(
-        config=dict(
-            use_render=render,
-            use_multigoal_intersection=True,
-            # agent_policy=ReplayEgoCarPolicy,
-        )
-    )
+    env = MultiGoalIntersectionEnv(config=dict(
+        use_render=render,
+        use_multigoal_intersection=True,
+        # agent_policy=ReplayEgoCarPolicy,
+    ))
     try:
         env.reset()
         for ep in range(10):
@@ -46,8 +44,10 @@ def test_multigoal_env(render=False):
                 assert np.all(r == info["reward/goals/{}".format("default")])
 
                 rc = info["route_completion"]
-                assert np.all(rc == info["route_completion/goals/{}".format(goal)])
-                assert np.all(rc == info["route_completion/goals/{}".format("default")])
+                assert np.all(
+                    rc == info["route_completion/goals/{}".format(goal)])
+                assert np.all(
+                    rc == info["route_completion/goals/{}".format("default")])
 
                 if tm or tc:
                     # assert info["arrive_dest"], "Can not arrive dest"

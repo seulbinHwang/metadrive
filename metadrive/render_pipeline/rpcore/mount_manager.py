@@ -40,6 +40,7 @@ class MountManager(RPObject):
     mount manager also handles the lock, storing the current PID into a file
     named instance.pid and ensuring that there is only 1 instance of the
     pipeline running at one time. """
+
     def __init__(self, pipeline):
         """ Creates a new mount manager """
         RPObject.__init__(self)
@@ -164,7 +165,8 @@ class MountManager(RPObject):
     def _find_basepath(self):
         """ Attempts to find the pipeline base path by looking at the location
         of this file """
-        pth = os.path.abspath(join(os.path.dirname(os.path.realpath(__file__)), ".."))
+        pth = os.path.abspath(
+            join(os.path.dirname(os.path.realpath(__file__)), ".."))
         return Filename.from_os_specific(pth).get_fullpath()
 
     def _is_pid_running(self, pid):
@@ -286,7 +288,8 @@ class MountManager(RPObject):
 
         # Mount directory structure
         vfs.mount(convert_path(self._base_path), "/$$rp", 0)
-        vfs.mount(convert_path(join(self._base_path, "rpcore/shader")), "/$$rp/shader", 0)
+        vfs.mount(convert_path(join(self._base_path, "rpcore/shader")),
+                  "/$$rp/shader", 0)
         vfs.mount(convert_path(join(self._base_path, "effects")), "effects", 0)
 
         # Mount the pipeline temp path:
@@ -298,7 +301,8 @@ class MountManager(RPObject):
             # In case an actual write path is specified:
             # Ensure the pipeline write path exists, and if not, create it
             if not isdir(self._write_path):
-                self.debug("Creating temporary path, since it does not exist yet")
+                self.debug(
+                    "Creating temporary path, since it does not exist yet")
                 try:
                     os.makedirs(self._write_path)
                 except IOError as msg:

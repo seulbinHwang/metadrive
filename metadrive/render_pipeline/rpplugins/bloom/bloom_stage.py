@@ -54,8 +54,10 @@ class BloomStage(RenderStage):
             self.target_firefly.add_color_attachment(bits=16)
             self.target_firefly.prepare_buffer()
 
-        self.scene_target_img = Image.create_2d("BloomDownsample", 0, 0, "RGBA16")
-        self.scene_target_img.set_minfilter(SamplerState.FT_linear_mipmap_linear)
+        self.scene_target_img = Image.create_2d("BloomDownsample", 0, 0,
+                                                "RGBA16")
+        self.scene_target_img.set_minfilter(
+            SamplerState.FT_linear_mipmap_linear)
         self.scene_target_img.set_magfilter(SamplerState.FT_linear)
         self.scene_target_img.set_wrap_u(SamplerState.WM_clamp)
         self.scene_target_img.set_wrap_v(SamplerState.WM_clamp)
@@ -64,10 +66,13 @@ class BloomStage(RenderStage):
 
         self.target_extract = self.create_target("ExtractBrightSpots")
         self.target_extract.prepare_buffer()
-        self.target_extract.set_shader_input("DestTex", self.scene_target_img, False, True, -1, 0)
+        self.target_extract.set_shader_input("DestTex", self.scene_target_img,
+                                             False, True, -1, 0)
 
         if self.remove_fireflies:
-            self.target_extract.set_shader_input("ShadedScene", self.target_firefly.color_tex, 1000)
+            self.target_extract.set_shader_input("ShadedScene",
+                                                 self.target_firefly.color_tex,
+                                                 1000)
 
         self.downsample_targets = []
         self.upsample_targets = []
@@ -78,8 +83,10 @@ class BloomStage(RenderStage):
             target = self.create_target("Downsample:Step-" + str(i))
             target.size = -scale_multiplier, -scale_multiplier
             target.prepare_buffer()
-            target.set_shader_inputs(sourceMip=i, SourceTex=self.scene_target_img)
-            target.set_shader_input("DestTex", self.scene_target_img, False, True, -1, i + 1)
+            target.set_shader_inputs(sourceMip=i,
+                                     SourceTex=self.scene_target_img)
+            target.set_shader_input("DestTex", self.scene_target_img, False,
+                                    True, -1, i + 1)
             self.downsample_targets.append(target)
 
         # Upsample passes
@@ -88,10 +95,11 @@ class BloomStage(RenderStage):
             target = self.create_target("Upsample:Step-" + str(i))
             target.size = -scale_multiplier, -scale_multiplier
             target.prepare_buffer()
-            target.set_shader_inputs(
-                FirstUpsamplePass=(i == 0), sourceMip=(self.num_mips - i), SourceTex=self.scene_target_img
-            )
-            target.set_shader_input("DestTex", self.scene_target_img, False, True, -1, self.num_mips - i - 1)
+            target.set_shader_inputs(FirstUpsamplePass=(i == 0),
+                                     sourceMip=(self.num_mips - i),
+                                     SourceTex=self.scene_target_img)
+            target.set_shader_input("DestTex", self.scene_target_img, False,
+                                    True, -1, self.num_mips - i - 1)
             self.upsample_targets.append(target)
 
         self.target_apply = self.create_target("ApplyBloom")
@@ -104,13 +112,17 @@ class BloomStage(RenderStage):
         self.scene_target_img.set_y_size(Globals.resolution.y)
 
     def reload_shaders(self):
-        self.target_extract.shader = self.load_plugin_shader("extract_bright_spots.frag.glsl")
+        self.target_extract.shader = self.load_plugin_shader(
+            "extract_bright_spots.frag.glsl")
 
         if self.remove_fireflies:
-            self.target_firefly.shader = self.load_plugin_shader("remove_fireflies.frag.glsl")
-        self.target_apply.shader = self.load_plugin_shader("apply_bloom.frag.glsl")
+            self.target_firefly.shader = self.load_plugin_shader(
+                "remove_fireflies.frag.glsl")
+        self.target_apply.shader = self.load_plugin_shader(
+            "apply_bloom.frag.glsl")
 
-        downsample_shader = self.load_plugin_shader("bloom_downsample.frag.glsl")
+        downsample_shader = self.load_plugin_shader(
+            "bloom_downsample.frag.glsl")
         for target in self.downsample_targets:
             target.shader = downsample_shader
 

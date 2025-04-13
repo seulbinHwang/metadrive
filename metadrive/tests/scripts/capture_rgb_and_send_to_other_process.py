@@ -25,11 +25,12 @@ def main_thread():
         random_agent_model=True,
         random_lane_width=True,
         random_lane_num=True,
-        vehicle_config=dict(image_source="rgb_camera", rgb_camera=(W, H), stack_size=1),
+        vehicle_config=dict(image_source="rgb_camera",
+                            rgb_camera=(W, H),
+                            stack_size=1),
         map=4,  # seven block
         start_seed=random.randint(0, 1000),
-        window_size=(300, 200)
-    )
+        window_size=(300, 200))
     env = MetaDriveEnv(config)
     try:
         o, _ = env.reset()
@@ -52,7 +53,8 @@ def main_thread():
             # sm.update(0) # cereal submaster
             # throttle_brake_op = sm['carControl'].actuators.accel
             # steer_op = sm['carControl'].actuators.steeringAngleDeg
-            o, rewards, dones, step_infos = env.step([steer_op, throttle_brake_op])
+            o, rewards, dones, step_infos = env.step(
+                [steer_op, throttle_brake_op])
             try:
                 img = o['image']  # (W,H,3,stack_size)
                 compressed_image = lz4.compress(img)

@@ -27,8 +27,10 @@ if __name__ == '__main__':
         #                       [np.sin(h), np.cos(h), 0, 0],
         #                       [0, 0, 1, 0],
         #                       [0, 0, 0, 1]])
-        extrinsic = np.array([[1, 0, 0, 0], [0, np.cos(h), -np.sin(h), 0], [0, np.sin(h), np.cos(h), 0], [0, 0, 0, 1]])
-        intrinsic = o3d.camera.PinholeCameraIntrinsic(o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)
+        extrinsic = np.array([[1, 0, 0, 0], [0, np.cos(h), -np.sin(h), 0],
+                              [0, np.sin(h), np.cos(h), 0], [0, 0, 0, 1]])
+        intrinsic = o3d.camera.PinholeCameraIntrinsic(
+            o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)
         intrinsic.set_intrinsics(1600, 900, 1.866, 2.066, 800, 450)
         pcd = o3d.geometry.PointCloud.create_from_depth_image(
             depth=raw_depth,

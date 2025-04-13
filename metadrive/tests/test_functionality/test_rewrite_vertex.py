@@ -6,7 +6,8 @@ from metadrive.utils.vertex import add_class_label
 def _test_add_class():
     test = TestBlock(window_type="none")
     initialize_asset_loader(test)
-    model = test.loader.loadModel(AssetLoader.file_path("models", "lada", "vehicle.gltf"))
+    model = test.loader.loadModel(
+        AssetLoader.file_path("models", "lada", "vehicle.gltf"))
     add_class_label(model, 1)
 
     # processGeomNode(geomNode)

@@ -38,7 +38,9 @@ class ReplayManager(BaseManager):
                 assert name not in self.engine._spawned_objects, \
                     "Other Managers failed to clean objects loaded by ReplayManager"
             self.spawned_objects = {}
-            assert len(self.engine._object_policies) == 0, "Policy should be cleaned for reducing memory usage"
+            assert len(
+                self.engine._object_policies
+            ) == 0, "Policy should be cleaned for reducing memory usage"
         else:
             self.clear_objects([name for name in self.spawned_objects])
         self.replay_done = False
@@ -69,15 +71,18 @@ class ReplayManager(BaseManager):
         map_config[BaseMap.GENERATE_TYPE] = MapGenerateMethod.PG_MAP_FILE
         map_config[BaseMap.GENERATE_CONFIG] = map_data["block_sequence"]
         if self.engine.map_manager.maps[self.engine.global_seed] is not None:
-            self.current_map = self.engine.map_manager.maps[self.engine.global_seed]
+            self.current_map = self.engine.map_manager.maps[
+                self.engine.global_seed]
             assert recursive_equal(
-                self.current_map.get_meta_data()["block_sequence"], map_data["block_sequence"], need_assert=True
-            ), "Loaded data mismatch stored data"
+                self.current_map.get_meta_data()["block_sequence"],
+                map_data["block_sequence"],
+                need_assert=True), "Loaded data mismatch stored data"
             self.engine.map_manager.load_map(self.current_map)
         else:
-            self.current_map = self.spawn_object(
-                PGMap, map_config=map_config, auto_fill_random_seed=False, force_spawn=True
-            )
+            self.current_map = self.spawn_object(PGMap,
+                                                 map_config=map_config,
+                                                 auto_fill_random_seed=False,
+                                                 force_spawn=True)
         self.current_frames = self.restore_episode_info["frame"].pop()
         self.replay_frame()
         if self.engine.only_reset_when_replay:
@@ -85,19 +90,25 @@ class ReplayManager(BaseManager):
             self.restore_manager_states(self.current_frame.manager_info)
             # Do special treatment to map manager
             self.engine.map_manager.current_map = self.current_map
-            self.engine.map_manager.maps[self.engine.global_seed] = self.current_map
+            self.engine.map_manager.maps[
+                self.engine.global_seed] = self.current_map
 
     def restore_policy_states(self, policy_spawn_infos):
         # restore agent policy
         agent_policy = self.engine.agent_manager.agent_policy
-        agent_obj_name = self.engine.agent_manager.active_agents[DEFAULT_AGENT].name
+        agent_obj_name = self.engine.agent_manager.active_agents[
+            DEFAULT_AGENT].name
         for name, policy_spawn_info in policy_spawn_infos.items():
             obj_name = self.record_name_to_current_name[name]
-            p_class = policy_spawn_info[PolicyState.POLICY_CLASS] if obj_name != agent_obj_name else agent_policy
+            p_class = policy_spawn_info[
+                PolicyState.
+                POLICY_CLASS] if obj_name != agent_obj_name else agent_policy
             args = policy_spawn_info[PolicyState.ARGS]
             kwargs = policy_spawn_info[PolicyState.KWARGS]
-            assert obj_name == self.record_name_to_current_name[policy_spawn_info[PolicyState.OBJ_NAME]]
-            assert obj_name in self.engine.get_objects().keys(), "Can not find obj when restoring policies"
+            assert obj_name == self.record_name_to_current_name[
+                policy_spawn_info[PolicyState.OBJ_NAME]]
+            assert obj_name in self.engine.get_objects().keys(
+            ), "Can not find obj when restoring policies"
             policy = self.add_policy(obj_name, p_class, *args, **kwargs)
             if policy.control_object is BaseObject:
                 obj = list(self.engine.get_objects([obj_name]).values())[0]
@@ -105,12 +116,17 @@ class ReplayManager(BaseManager):
                 assert obj.id == obj_name
 
     def restore_manager_states(self, states):
-        current_managers = [manager.class_name for manager in self.engine.managers.values()]
+        current_managers = [
+            manager.class_name for manager in self.engine.managers.values()
+        ]
         data_managers = states.keys()
         assert len(current_managers - data_managers
-                   ) == 0, "Manager not match, data: {}, current: {}".format(data_managers, current_managers)
+                  ) == 0, "Manager not match, data: {}, current: {}".format(
+                      data_managers, current_managers)
         for manager in self.engine.managers.values():
-            manager.set_state(states[manager.class_name], old_name_to_current=self.record_name_to_current_name)
+            manager.set_state(
+                states[manager.class_name],
+                old_name_to_current=self.record_name_to_current_name)
 
     def step(self, *args, **kwargs):
         # Note: Update object state must be written in step, because the simulator will step 5 times for each RL step.
@@ -122,7 +138,8 @@ class ReplayManager(BaseManager):
         if self.engine.replay_episode and not self.engine.only_reset_when_replay:
             if len(self.restore_episode_info["frame"]) == 0:
                 self.replay_done = True
-            return self.engine.agent_manager.for_each_active_agents(lambda v: {REPLAY_DONE: self.replay_done})
+            return self.engine.agent_manager.for_each_active_agents(
+                lambda v: {REPLAY_DONE: self.replay_done})
         else:
             return dict()
 
@@ -139,29 +156,34 @@ class ReplayManager(BaseManager):
         # create
         for name, config in self.current_frame.spawn_info.items():
             if config[ObjectState.CLASS] == DefaultVehicle:
-                config[ObjectState.INIT_KWARGS]["vehicle_config"]["use_special_color"] = True
-            obj = self.spawn_object(object_class=config[ObjectState.CLASS], **config[ObjectState.INIT_KWARGS])
+                config[ObjectState.INIT_KWARGS]["vehicle_config"][
+                    "use_special_color"] = True
+            obj = self.spawn_object(object_class=config[ObjectState.CLASS],
+                                    **config[ObjectState.INIT_KWARGS])
             self.current_name_to_record_name[obj.name] = name
             self.record_name_to_current_name[name] = obj.name
             if issubclass(config[ObjectState.CLASS], BaseVehicle):
                 obj.navigation.set_route(
                     self.current_frame.step_info[name]["spawn_road"],
-                    self.current_frame.step_info[name]["destination"][-1]
-                )
+                    self.current_frame.step_info[name]["destination"][-1])
         if self.engine.only_reset_when_replay:
             # for generation policies
             self.restore_policy_states(self.current_frame.policy_spawn_info)
         else:
             # Do not set position, in this mode, or randomness will be introduced!
             for name, state in self.current_frame.step_info.items():
-                self.spawned_objects[self.record_name_to_current_name[name]].before_step()
-                self.spawned_objects[self.record_name_to_current_name[name]].set_state(state)
-                self.spawned_objects[self.record_name_to_current_name[name]].after_step()
+                self.spawned_objects[
+                    self.record_name_to_current_name[name]].before_step()
+                self.spawned_objects[
+                    self.record_name_to_current_name[name]].set_state(state)
+                self.spawned_objects[
+                    self.record_name_to_current_name[name]].after_step()
 
         to_clear = []
         for name in self.current_frame.clear_info:
             to_clear.append(self.record_name_to_current_name[name])
-            self.current_name_to_record_name.pop(self.record_name_to_current_name[name])
+            self.current_name_to_record_name.pop(
+                self.record_name_to_current_name[name])
             self.record_name_to_current_name.pop(name)
         self.clear_objects(to_clear)
 
@@ -169,13 +191,16 @@ class ReplayManager(BaseManager):
 
     @property
     def replay_agents(self):
-        return {k: self.get_object_from_agent(k) for k in self.current_frame.agents}
+        return {
+            k: self.get_object_from_agent(k) for k in self.current_frame.agents
+        }
 
     def __del__(self):
         logging.debug("Replay system is destroyed")
 
     def get_object_from_agent(self, agent_id):
-        return self.spawned_objects[self.record_name_to_current_name[self.current_frame.agent_to_object(agent_id)]]
+        return self.spawned_objects[self.record_name_to_current_name[
+            self.current_frame.agent_to_object(agent_id)]]
 
     def get_observation(self):
         """

@@ -14,22 +14,41 @@ class BaseTrafficParticipant(BaseObject):
     COLLISION_MASK = CollisionGroup.TrafficParticipants
     HEIGHT = None
 
-    def __init__(self, position: Sequence[float], heading_theta: float = 0., random_seed=None, name=None, config=None):
-        super(BaseTrafficParticipant, self).__init__(random_seed=random_seed, name=name, config=config)
-        self.set_position(position, self.HEIGHT / 2 if hasattr(self, "HEIGHT") else 0)
+    def __init__(self,
+                 position: Sequence[float],
+                 heading_theta: float = 0.,
+                 random_seed=None,
+                 name=None,
+                 config=None):
+        super(BaseTrafficParticipant, self).__init__(random_seed=random_seed,
+                                                     name=name,
+                                                     config=config)
+        self.set_position(position,
+                          self.HEIGHT / 2 if hasattr(self, "HEIGHT") else 0)
         self.set_heading_theta(heading_theta)
         assert self.MASS is not None, "No mass for {}".format(self.class_name)
-        assert self.TYPE_NAME is not None, "No name for {}".format(self.class_name)
-        assert self.COLLISION_MASK is not None, "No collision group for {}".format(self.class_name)
+        assert self.TYPE_NAME is not None, "No name for {}".format(
+            self.class_name)
+        assert self.COLLISION_MASK is not None, "No collision group for {}".format(
+            self.class_name)
 
-    def reset(self, position: Sequence[float], heading_theta: float = 0., random_seed=None, name=None, *args, **kwargs):
+    def reset(self,
+              position: Sequence[float],
+              heading_theta: float = 0.,
+              random_seed=None,
+              name=None,
+              *args,
+              **kwargs):
         self.seed(random_seed)
         self.rename(name)
-        self.set_position(position, self.HEIGHT / 2 if hasattr(self, "HEIGHT") else 0)
+        self.set_position(position,
+                          self.HEIGHT / 2 if hasattr(self, "HEIGHT") else 0)
         self.set_heading_theta(heading_theta)
         assert self.MASS is not None, "No mass for {}".format(self.class_name)
-        assert self.TYPE_NAME is not None, "No name for {}".format(self.class_name)
-        assert self.COLLISION_MASK is not None, "No collision group for {}".format(self.class_name)
+        assert self.TYPE_NAME is not None, "No name for {}".format(
+            self.class_name)
+        assert self.COLLISION_MASK is not None, "No collision group for {}".format(
+            self.class_name)
 
     @property
     def top_down_width(self):
@@ -75,9 +94,12 @@ class BaseTrafficParticipant(BaseObject):
         self.coordinates_debug_np = NodePath("debug coordinate")
         self.coordinates_debug_np.hide(CamMask.AllOn)
         self.coordinates_debug_np.show(CamMask.MainCam)
-        x = self.engine._draw_line_3d([0, 0, height], [1, 0, height], [1, 0, 0, 1], 3)
-        y = self.engine._draw_line_3d([0, 0, height], [0, 0.5, height], [0, 1, 0, 1], 3)
-        z = self.engine._draw_line_3d([0, 0, height], [0, 0, height + 0.5], [0, 0, 1, 1], 3)
+        x = self.engine._draw_line_3d([0, 0, height], [1, 0, height],
+                                      [1, 0, 0, 1], 3)
+        y = self.engine._draw_line_3d([0, 0, height], [0, 0.5, height],
+                                      [0, 1, 0, 1], 3)
+        z = self.engine._draw_line_3d([0, 0, height], [0, 0, height + 0.5],
+                                      [0, 0, 1, 1], 3)
         x.reparentTo(self.coordinates_debug_np)
         y.reparentTo(self.coordinates_debug_np)
         z.reparentTo(self.coordinates_debug_np)

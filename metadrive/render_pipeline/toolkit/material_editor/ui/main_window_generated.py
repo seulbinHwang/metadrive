@@ -10,6 +10,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_MainWindow(object):
+
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(262, 608)
@@ -93,8 +94,7 @@ class Ui_MainWindow(object):
             "QCheckBox::indicator:unchecked {\n"
             "    background: #fff;\n"
             "    image: none;\n"
-            "}"
-        )
+            "}")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -109,11 +109,14 @@ class Ui_MainWindow(object):
         self.frame.setObjectName("frame")
         self.label = QtWidgets.QLabel(self.frame)
         self.label.setGeometry(QtCore.QRect(20, 26, 261, 31))
-        self.label.setStyleSheet("font-size: 20px; color: #03C03C;\n" "font-weight: 100;")
+        self.label.setStyleSheet("font-size: 20px; color: #03C03C;\n"
+                                 "font-weight: 100;")
         self.label.setObjectName("label")
         self.label_9 = QtWidgets.QLabel(self.frame)
         self.label_9.setGeometry(QtCore.QRect(20, 6, 261, 31))
-        self.label_9.setStyleSheet("font-size: 13px;\n" "color: #aaa;\n" "font-weight: 600;")
+        self.label_9.setStyleSheet("font-size: 13px;\n"
+                                   "color: #aaa;\n"
+                                   "font-weight: 600;")
         self.label_9.setObjectName("label_9")
         self.verticalLayout.addWidget(self.frame)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
@@ -148,15 +151,18 @@ class Ui_MainWindow(object):
         self.cb_metallic.setGeometry(QtCore.QRect(20, 140, 81, 17))
         self.cb_metallic.setObjectName("cb_metallic")
         self.horizontalLayoutWidget_3 = QtWidgets.QWidget(self.sidebar_material)
-        self.horizontalLayoutWidget_3.setGeometry(QtCore.QRect(30, 240, 201, 73))
+        self.horizontalLayoutWidget_3.setGeometry(QtCore.QRect(
+            30, 240, 201, 73))
         self.horizontalLayoutWidget_3.setObjectName("horizontalLayoutWidget_3")
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_3)
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout(
+            self.horizontalLayoutWidget_3)
         self.horizontalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_4.setSpacing(6)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
-        self.lbl_basecolor_val2 = QtWidgets.QLabel(self.horizontalLayoutWidget_3)
+        self.lbl_basecolor_val2 = QtWidgets.QLabel(
+            self.horizontalLayoutWidget_3)
         self.lbl_basecolor_val2.setMinimumSize(QtCore.QSize(30, 0))
         self.lbl_basecolor_val2.setMaximumSize(QtCore.QSize(30, 16777215))
         self.lbl_basecolor_val2.setStyleSheet("background: transparent;")
@@ -181,14 +187,16 @@ class Ui_MainWindow(object):
         self.basecolor_2.setOrientation(QtCore.Qt.Horizontal)
         self.basecolor_2.setObjectName("basecolor_2")
         self.gridLayout.addWidget(self.basecolor_2, 1, 1, 1, 1)
-        self.lbl_basecolor_val3 = QtWidgets.QLabel(self.horizontalLayoutWidget_3)
+        self.lbl_basecolor_val3 = QtWidgets.QLabel(
+            self.horizontalLayoutWidget_3)
         self.lbl_basecolor_val3.setMinimumSize(QtCore.QSize(30, 0))
         self.lbl_basecolor_val3.setMaximumSize(QtCore.QSize(30, 16777215))
         self.lbl_basecolor_val3.setStyleSheet("background: transparent;")
         self.lbl_basecolor_val3.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_basecolor_val3.setObjectName("lbl_basecolor_val3")
         self.gridLayout.addWidget(self.lbl_basecolor_val3, 2, 2, 1, 1)
-        self.lbl_basecolor_val1 = QtWidgets.QLabel(self.horizontalLayoutWidget_3)
+        self.lbl_basecolor_val1 = QtWidgets.QLabel(
+            self.horizontalLayoutWidget_3)
         self.lbl_basecolor_val1.setMinimumSize(QtCore.QSize(30, 0))
         self.lbl_basecolor_val1.setMaximumSize(QtCore.QSize(30, 16777215))
         self.lbl_basecolor_val1.setStyleSheet("background: transparent;")
@@ -197,17 +205,20 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.lbl_basecolor_val1, 0, 2, 1, 1)
         self.lbl_basecolor1 = QtWidgets.QLabel(self.horizontalLayoutWidget_3)
         self.lbl_basecolor1.setMinimumSize(QtCore.QSize(11, 0))
-        self.lbl_basecolor1.setStyleSheet("background: transparent; color: #555; ")
+        self.lbl_basecolor1.setStyleSheet(
+            "background: transparent; color: #555; ")
         self.lbl_basecolor1.setObjectName("lbl_basecolor1")
         self.gridLayout.addWidget(self.lbl_basecolor1, 0, 0, 1, 1)
         self.lbl_basecolor2 = QtWidgets.QLabel(self.horizontalLayoutWidget_3)
         self.lbl_basecolor2.setMinimumSize(QtCore.QSize(11, 0))
-        self.lbl_basecolor2.setStyleSheet("background: transparent; color: #555; ")
+        self.lbl_basecolor2.setStyleSheet(
+            "background: transparent; color: #555; ")
         self.lbl_basecolor2.setObjectName("lbl_basecolor2")
         self.gridLayout.addWidget(self.lbl_basecolor2, 1, 0, 1, 1)
         self.lbl_basecolor3 = QtWidgets.QLabel(self.horizontalLayoutWidget_3)
         self.lbl_basecolor3.setMinimumSize(QtCore.QSize(11, 0))
-        self.lbl_basecolor3.setStyleSheet("background: transparent; color: #555; ")
+        self.lbl_basecolor3.setStyleSheet(
+            "background: transparent; color: #555; ")
         self.lbl_basecolor3.setObjectName("lbl_basecolor3")
         self.gridLayout.addWidget(self.lbl_basecolor3, 2, 0, 1, 1)
         self.horizontalLayout_4.addLayout(self.gridLayout)
@@ -278,7 +289,8 @@ class Ui_MainWindow(object):
         self.slider_param1.setOrientation(QtCore.Qt.Horizontal)
         self.slider_param1.setObjectName("slider_param1")
         self.lbl_shading_model_param1 = QtWidgets.QLabel(self.frame_2)
-        self.lbl_shading_model_param1.setGeometry(QtCore.QRect(30, 320, 141, 16))
+        self.lbl_shading_model_param1.setGeometry(QtCore.QRect(
+            30, 320, 141, 16))
         self.lbl_shading_model_param1.setObjectName("lbl_shading_model_param1")
         self.cb_rgb = QtWidgets.QRadioButton(self.frame_2)
         self.cb_rgb.setGeometry(QtCore.QRect(30, 34, 60, 27))
@@ -330,15 +342,19 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Render Pipeline Material Editor"))
+        MainWindow.setWindowTitle(
+            _translate("MainWindow", "Render Pipeline Material Editor"))
         self.label.setText(_translate("MainWindow", "MATERIAL EDITOR"))
         self.label_9.setText(_translate("MainWindow", "RENDER PIPELINE"))
         self.label_2.setText(_translate("MainWindow", "Material"))
         self.cb_material.setItemText(0, _translate("MainWindow", "tree01"))
         self.label_14.setText(_translate("MainWindow", "Shading model"))
-        self.cb_shading_model.setItemText(0, _translate("MainWindow", "Default"))
-        self.cb_shading_model.setItemText(1, _translate("MainWindow", "Emissive"))
-        self.cb_shading_model.setItemText(2, _translate("MainWindow", "Transparent"))
+        self.cb_shading_model.setItemText(0, _translate("MainWindow",
+                                                        "Default"))
+        self.cb_shading_model.setItemText(1, _translate("MainWindow",
+                                                        "Emissive"))
+        self.cb_shading_model.setItemText(
+            2, _translate("MainWindow", "Transparent"))
         self.cb_metallic.setText(_translate("MainWindow", "Metallic"))
         self.lbl_basecolor_val2.setText(_translate("MainWindow", "0.43"))
         self.lbl_basecolor_val3.setText(_translate("MainWindow", "0.53"))
@@ -354,7 +370,8 @@ class Ui_MainWindow(object):
         self.lbl_specular.setText(_translate("MainWindow", "1.43"))
         self.lbl_normal.setText(_translate("MainWindow", "0.80"))
         self.lbl_param1.setText(_translate("MainWindow", "0.20"))
-        self.lbl_shading_model_param1.setText(_translate("MainWindow", "Shading-model-param"))
+        self.lbl_shading_model_param1.setText(
+            _translate("MainWindow", "Shading-model-param"))
         self.cb_rgb.setText(_translate("MainWindow", "RGB"))
         self.cb_srgb.setText(_translate("MainWindow", "SRGB"))
         self.cb_hsv.setText(_translate("MainWindow", "HSV"))

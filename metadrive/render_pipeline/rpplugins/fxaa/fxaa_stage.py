@@ -49,4 +49,5 @@ class FXAAStage(RenderStage):
 
     def reload_shaders(self):
         self.target.shader = self.load_plugin_shader("fxaa_stage.frag.glsl")
-        self.luma_target.shader = self.load_plugin_shader("write_luma.frag.glsl")
+        self.luma_target.shader = self.load_plugin_shader(
+            "write_luma.frag.glsl")

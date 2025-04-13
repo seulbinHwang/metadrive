@@ -18,7 +18,8 @@ class BaseRunnable(Configurable, Nameable, Randomizable):
     def __init__(self, name=None, random_seed=None, config=None):
         Nameable.__init__(self, name)
         Randomizable.__init__(self, random_seed)
-        Configurable.__init__(self, {k: None for k in self.PARAMETER_SPACE.parameters})
+        Configurable.__init__(
+            self, {k: None for k in self.PARAMETER_SPACE.parameters})
         # Parameter check
         assert isinstance(
             self.PARAMETER_SPACE, ParameterSpace

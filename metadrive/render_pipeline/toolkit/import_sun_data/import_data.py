@@ -36,8 +36,7 @@ if __name__ == "__main__":
 
     query_str = (
         "Are you sure you want to import the data? This overrides your "
-        "current sun azimuth, altitude and intensity settings! (y/n): "
-    )
+        "current sun azimuth, altitude and intensity settings! (y/n): ")
     if sys.version_info.major >= 3:
         query_result = input(query_str)
     else:
@@ -68,7 +67,8 @@ if __name__ == "__main__":
     plugin_mgr = PluginManager(None)
     plugin_mgr.load()
 
-    convert_to_linear = plugin_mgr.day_settings["scattering"]["sun_intensity"].get_linear_value
+    convert_to_linear = plugin_mgr.day_settings["scattering"][
+        "sun_intensity"].get_linear_value
 
     hour, minutes = 0, 0
 
@@ -79,7 +79,8 @@ if __name__ == "__main__":
     for line in lines:
         if not line:
             break
-        date, time, azim_angle, declination, ascension, elevation = line.split(",")
+        date, time, azim_angle, declination, ascension, elevation = line.split(
+            ",")
 
         float_azim = (float(azim_angle) + 180) / 360
         float_elev = (float(elevation) / 60) * 0.5 + 0.5
@@ -90,7 +91,8 @@ if __name__ == "__main__":
         data_points_altitude.append((float_time, float_elev))
 
         # Approximated intensity
-        approx_intensity = 2.0 * (1 - math.cos(math.pi * max(0, 8.0 + float(elevation)) / 60.0))
+        approx_intensity = 2.0 * (
+            1 - math.cos(math.pi * max(0, 8.0 + float(elevation)) / 60.0))
         approx_intensity = max(0, min(150.0, approx_intensity * 0.25))
         data_points_intensity.append((float_time, approx_intensity))
 

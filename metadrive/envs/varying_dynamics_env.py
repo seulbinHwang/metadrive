@@ -12,7 +12,7 @@ from metadrive.envs.metadrive_env import MetaDriveEnv
 from metadrive.manager.agent_manager import VehicleAgentManager
 
 VaryingDynamicsConfig = dict(
-    vehicle_config=dict(vehicle_model="varying_dynamics", ),
+    vehicle_config=dict(vehicle_model="varying_dynamics",),
     random_dynamics=dict(
         # We will sample each parameter from (min_value, max_value)
         # You can set it to None to stop randomizing the parameter.
@@ -20,12 +20,11 @@ VaryingDynamicsConfig = dict(
         max_brake_force=(20, 600),
         wheel_friction=(0.1, 2.5),
         max_steering=(10, 80),  # The maximum steering angle if action = +-1
-        mass=(300, 3000)
-    )
-)
+        mass=(300, 3000)))
 
 
 class VaryingDynamicsAgentManager(VehicleAgentManager):
+
     def reset(self):
         # Randomize ego vehicle's dynamics here
         random_fields = self.engine.global_config["random_dynamics"]
@@ -39,16 +38,21 @@ class VaryingDynamicsAgentManager(VehicleAgentManager):
                 if para_range[1] == para_range[0]:
                     dynamics[parameter] = para_range[0]
                 else:
-                    dynamics[parameter] = self.np_random.uniform(para_range[0], para_range[1])
+                    dynamics[parameter] = self.np_random.uniform(
+                        para_range[0], para_range[1])
             else:
-                raise ValueError("Unknown parameter range: {}".format(para_range))
+                raise ValueError(
+                    "Unknown parameter range: {}".format(para_range))
 
-        assert len(self.engine.global_config["agent_configs"]) == 1, "Only supporting single-agent now!"
-        self.engine.global_config["agent_configs"]["default_agent"].update(dynamics)
+        assert len(self.engine.global_config["agent_configs"]
+                  ) == 1, "Only supporting single-agent now!"
+        self.engine.global_config["agent_configs"]["default_agent"].update(
+            dynamics)
         super(VaryingDynamicsAgentManager, self).reset()
 
 
 class VaryingDynamicsEnv(MetaDriveEnv):
+
     @classmethod
     def default_config(cls):
         config = super(VaryingDynamicsEnv, cls).default_config()
@@ -56,7 +60,8 @@ class VaryingDynamicsEnv(MetaDriveEnv):
         return config
 
     def _get_agent_manager(self):
-        return VaryingDynamicsAgentManager(init_observations=self._get_observations())
+        return VaryingDynamicsAgentManager(
+            init_observations=self._get_observations())
 
 
 if __name__ == '__main__':
@@ -66,7 +71,8 @@ if __name__ == '__main__':
     })
     for ep in range(3):
         obs, _ = env.reset()
-        print("Current Dynamics Parameters:", env.agent.get_dynamics_parameters())
+        print("Current Dynamics Parameters:",
+              env.agent.get_dynamics_parameters())
         for step in range(1000):
             o, r, tm, tc, i = env.step(env.action_space.sample())
             if tm or tc:

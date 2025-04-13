@@ -58,7 +58,8 @@ class CullProbesStage(RenderStage):
 
         self.per_cell_probes = Image.create_buffer("PerCellProbes", 0, "R32I")
         self.per_cell_probes.clear_image()
-        self.target.set_shader_inputs(PerCellProbes=self.per_cell_probes, threadCount=1)
+        self.target.set_shader_inputs(PerCellProbes=self.per_cell_probes,
+                                      threadCount=1)
 
     def set_dimensions(self):
         max_cells = self._pipeline.light_mgr.total_tiles
@@ -67,4 +68,5 @@ class CullProbesStage(RenderStage):
         self.target.size = self.slice_width, num_rows
 
     def reload_shaders(self):
-        self.target.shader = self.load_plugin_shader("/$$rp/shader/tiled_culling.vert.glsl", "cull_probes.frag.glsl")
+        self.target.shader = self.load_plugin_shader(
+            "/$$rp/shader/tiled_culling.vert.glsl", "cull_probes.frag.glsl")

@@ -64,7 +64,8 @@ def is_anticlockwise(points):
     n = len(points)
     for i in range(n):
         x1, y1 = points[i][:2]
-        x2, y2 = points[(i + 1) % n][:2]  # The next point, wrapping around to the first
+        x2, y2 = points[(i + 1) %
+                        n][:2]  # The next point, wrapping around to the first
         sum += (x2 - x1) * (y2 + y1)
     return sum > 0
 
@@ -80,7 +81,11 @@ def is_anticlockwise(points):
 #     return min_x, min_y, max_x, max_y
 
 
-def make_polygon_model(points, height, auto_anticlockwise=True, force_anticlockwise=False, texture_scale=0.5):
+def make_polygon_model(points,
+                       height,
+                       auto_anticlockwise=True,
+                       force_anticlockwise=False,
+                       texture_scale=0.5):
     """
     Given a polygon represented by a set of 2D points in x-y plane, return a 3D model by extruding along z-axis.
     Args:
@@ -103,7 +108,8 @@ def make_polygon_model(points, height, auto_anticlockwise=True, force_anticlockw
     triangulator = Triangulator()
     values = array.array("f", [])
     back_side_values = array.array("f", [])
-    vertex_data = GeomVertexData("poly", GeomVertexFormat.get_v3n3t2(), Geom.UH_static)
+    vertex_data = GeomVertexData("poly", GeomVertexFormat.get_v3n3t2(),
+                                 Geom.UH_static)
     p_num = len(coords)
 
     # texture coord
@@ -126,12 +132,14 @@ def make_polygon_model(points, height, auto_anticlockwise=True, force_anticlockw
             edge_1 = [edge_1[0] / l_1, edge_1[1] / l_1]
             edge_2 = [edge_2[0] / l2, edge_2[1] / l2]
 
-            normal = np.array([[-edge_1[1], edge_1[0], 0], [-edge_2[1], edge_2[0], 0]])
+            normal = np.array([[-edge_1[1], edge_1[0], 0],
+                               [-edge_2[1], edge_2[0], 0]])
             normal = np.mean(normal, axis=0)
             normal = normal / np.linalg.norm(normal)
 
         if need_side:
-            back_side_values.extend((x, y, -height, *normal, x * texture_scale, y * texture_scale))
+            back_side_values.extend(
+                (x, y, -height, *normal, x * texture_scale, y * texture_scale))
         triangulator.add_vertex(x, y)
         triangulator.add_polygon_vertex(i)
 
@@ -159,7 +167,8 @@ def make_polygon_model(points, height, auto_anticlockwise=True, force_anticlockw
     # since the size of a memoryview cannot change, the vertex data table
     # already needs to have the right amount of rows before creating
     # memoryviews from its array(s)
-    vertex_data.unclean_set_num_rows(len(coords) * 2 if need_side else len(coords))
+    vertex_data.unclean_set_num_rows(
+        len(coords) * 2 if need_side else len(coords))
     # retrieve the data array for modification
     data_array = vertex_data.modify_array(0)
     memview = memoryview(data_array).cast("B").cast("f")

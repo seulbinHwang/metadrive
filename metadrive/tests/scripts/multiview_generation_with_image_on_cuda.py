@@ -20,6 +20,7 @@ from metadrive.envs.scenario_env import ScenarioEnv
 
 
 class MultiviewObservation(BaseObservation):
+
     def __init__(self, config):
         super(MultiviewObservation, self).__init__(config)
         self.rgb = ImageObservation(config, "rgb_camera", config["norm_pixel"])
@@ -27,7 +28,10 @@ class MultiviewObservation(BaseObservation):
 
     @property
     def observation_space(self):
-        os = {"image_{}".format(idx): self.rgb.observation_space for idx in range(self.num_view)}
+        os = {
+            "image_{}".format(idx): self.rgb.observation_space
+            for idx in range(self.num_view)
+        }
         # os["top_down"] = self.rgb.observation_space
         return gym.spaces.Dict(os)
 
@@ -37,8 +41,7 @@ class MultiviewObservation(BaseObservation):
             ret["image_{}".format(idx)] = self.rgb.observe(
                 vehicle._node_path_list[-1].parent,
                 # render/world_np/VEHICLE/wheel ==parent==> render/world_np/VEHICLE
-                hpr=[idx * 60, 0, 0]
-            )
+                hpr=[idx * 60, 0, 0])
         return ret
 
 
@@ -58,25 +61,25 @@ sensor_size = (640, 360)
 # turn on this to enable 3D render. It only works when you have a screen
 threeD_render = False
 # Use the built-in datasets with simulator
-nuscenes_data = AssetLoader.file_path(AssetLoader.asset_path, "nuscenes", unix_style=False)
+nuscenes_data = AssetLoader.file_path(AssetLoader.asset_path,
+                                      "nuscenes",
+                                      unix_style=False)
 
-env = ScenarioEnv(
-    {
-        "reactive_traffic": False,
-        "use_render": threeD_render,
-        "agent_policy": ReplayEgoCarPolicy,
-        "data_directory": nuscenes_data,
-        "num_scenarios": 3,
-        "image_observation": True,
-        "vehicle_config": dict(image_source="rgb_camera"),
-        "sensors": {
-            "rgb_camera": (RGBCamera, *sensor_size)
-        },
-        "stack_size": 3,  # return image shape (H,W,C,stack_size)
-        "image_on_cuda": True,
-        "agent_observation": MultiviewObservation,
-    }
-)
+env = ScenarioEnv({
+    "reactive_traffic": False,
+    "use_render": threeD_render,
+    "agent_policy": ReplayEgoCarPolicy,
+    "data_directory": nuscenes_data,
+    "num_scenarios": 3,
+    "image_observation": True,
+    "vehicle_config": dict(image_source="rgb_camera"),
+    "sensors": {
+        "rgb_camera": (RGBCamera, *sensor_size)
+    },
+    "stack_size": 3,  # return image shape (H,W,C,stack_size)
+    "image_on_cuda": True,
+    "agent_observation": MultiviewObservation,
+})
 
 frames = []
 try:
@@ -98,7 +101,8 @@ try:
     # generate_gif(frames if os.getenv('TEST_DOC') else frames[-100:])  # only show -100 frames
 
     # Save image to disk
-    cv2.imwrite("multiview_observation_with_image_on_cuda_no_fix.png", frames[-1])
+    cv2.imwrite("multiview_observation_with_image_on_cuda_no_fix.png",
+                frames[-1])
 
 finally:
     env.close()

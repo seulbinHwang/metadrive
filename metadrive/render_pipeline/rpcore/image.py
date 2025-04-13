@@ -81,7 +81,8 @@ class Image(RPObject, Texture, ImageFormatTypes):
         """ Creates a new buffer texture """
         img = cls("ImgBuffer-" + name)
         comp_type, comp_format = cls.convert_texture_format(component_format)
-        img.setup_buffer_texture(size, comp_type, comp_format, GeomEnums.UH_static)
+        img.setup_buffer_texture(size, comp_type, comp_format,
+                                 GeomEnums.UH_static)
         return img
 
     @classmethod
@@ -149,8 +150,11 @@ class Image(RPObject, Texture, ImageFormatTypes):
 
     def write(self, pth):
         """ Writes the image to disk """
-        Globals.base.graphicsEngine.extract_texture_data(self, Globals.base.win.gsg)
-        if self.get_texture_type() in [Texture.TT_3d_texture, Texture.TT_cube_map]:
+        Globals.base.graphicsEngine.extract_texture_data(
+            self, Globals.base.win.gsg)
+        if self.get_texture_type() in [
+                Texture.TT_3d_texture, Texture.TT_cube_map
+        ]:
             Texture.write(self, "#_" + pth, 0, 0, True, False)
         else:
             Texture.write(self, pth)

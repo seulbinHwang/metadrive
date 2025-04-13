@@ -2,17 +2,15 @@ from metadrive.envs.marl_envs.marl_inout_roundabout import MultiAgentRoundaboutE
 
 
 def test_infinite_agents():
-    env = MultiAgentRoundaboutEnv(
-        {
-            "map_config": dict(exit_length=20, lane_num=2),
-            # "use_render": True,
-            "num_agents": -1,
-            "delay_done": 50,
-            "horizon": 50,
-            "debug": True,
-            "random_traffic": False
-        }
-    )
+    env = MultiAgentRoundaboutEnv({
+        "map_config": dict(exit_length=20, lane_num=2),
+        # "use_render": True,
+        "num_agents": -1,
+        "delay_done": 50,
+        "horizon": 50,
+        "debug": True,
+        "random_traffic": False
+    })
     try:
         o, _ = env.reset()
         env.seed(100)
@@ -36,7 +34,12 @@ def test_infinite_agents():
         env._DEBUG_RANDOM_SEED = None
         env.close()
 
-    env = MultiAgentRoundaboutEnv({"num_agents": -1, "delay_done": 0, "horizon": 50, "debug": True})
+    env = MultiAgentRoundaboutEnv({
+        "num_agents": -1,
+        "delay_done": 0,
+        "horizon": 50,
+        "debug": True
+    })
     try:
         o, _ = env.reset()
         max_num = old_num_of_vehicles = len(env.agents)

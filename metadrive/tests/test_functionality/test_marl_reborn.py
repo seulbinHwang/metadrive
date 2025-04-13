@@ -5,16 +5,14 @@ from metadrive.envs.marl_envs.marl_inout_roundabout import MultiAgentRoundaboutE
 def test_respawn():
     out_of_road_cost = 5555
     out_of_road_penalty = 2222
-    env = MultiAgentRoundaboutEnv(
-        {
-            "num_agents": 2,
-            "out_of_road_cost": out_of_road_cost,
-            "out_of_road_penalty": out_of_road_penalty,
-            "delay_done": 0,  # Since we are testing respawn!
-            # "use_render": True
-            "crash_done": False,
-        }
-    )
+    env = MultiAgentRoundaboutEnv({
+        "num_agents": 2,
+        "out_of_road_cost": out_of_road_cost,
+        "out_of_road_penalty": out_of_road_penalty,
+        "delay_done": 0,  # Since we are testing respawn!
+        # "use_render": True
+        "crash_done": False,
+    })
     try:
 
         assert set(env.action_space.spaces.keys()) == {"agent0", "agent1"}
@@ -64,8 +62,10 @@ def test_respawn():
                 o, _ = env.reset()
                 assert set(o.keys()) == {"agent0", "agent1"}
                 assert set(env.observations.keys()) == {"agent0", "agent1"}
-                assert set(env.action_space.spaces.keys()) == {"agent0", "agent1"}
-                assert set(env.config["agent_configs"].keys()) == {"agent0", "agent1"}
+                assert set(
+                    env.action_space.spaces.keys()) == {"agent0", "agent1"}
+                assert set(
+                    env.config["agent_configs"].keys()) == {"agent0", "agent1"}
                 assert set(env.agents.keys()) == {"agent0", "agent1"}
     finally:
         env.close()
@@ -76,29 +76,27 @@ def test_respawn():
 def test_delay_done(render=False):
     # Put agent 0 in the left, agent 1 in the right, and let agent 0 dead at first.
     # We wish to see agent 1 hits the dead body of agent 0.
-    env = MultiAgentRoundaboutEnv(
-        {
-            # "use_render": True,
-            #
-            "agent_configs": {
-                "agent0": {
-                    "spawn_longitude": 12,
-                    "spawn_lateral": 0,
-                    "spawn_lane_index": (">", ">>", 0),
-                },
-                "agent1": {
-                    "spawn_longitude": 10,  # locate a little forward
-                    "spawn_lateral": 0,
-                    "spawn_lane_index": (">", ">>", 1),
-                }
+    env = MultiAgentRoundaboutEnv({
+        # "use_render": True,
+        #
+        "agent_configs": {
+            "agent0": {
+                "spawn_longitude": 12,
+                "spawn_lateral": 0,
+                "spawn_lane_index": (">", ">>", 0),
             },
-            "num_agents": 2,
-            "traffic_density": 0,
-            "delay_done": 100,
-            "horizon": 100,
-            "use_render": render
-        }
-    )
+            "agent1": {
+                "spawn_longitude": 10,  # locate a little forward
+                "spawn_lateral": 0,
+                "spawn_lane_index": (">", ">>", 1),
+            }
+        },
+        "num_agents": 2,
+        "traffic_density": 0,
+        "delay_done": 100,
+        "horizon": 100,
+        "use_render": render
+    })
     try:
         agent0_done = False
         agent1_already_hit = False
@@ -129,7 +127,11 @@ def test_delay_done(render=False):
     finally:
         env.close()
 
-    env = MultiAgentRoundaboutEnv({"num_agents": 5, "delay_done": 10, "horizon": 100})
+    env = MultiAgentRoundaboutEnv({
+        "num_agents": 5,
+        "delay_done": 10,
+        "horizon": 100
+    })
     try:
         env.reset()
         dead = set()

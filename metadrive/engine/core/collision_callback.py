@@ -34,9 +34,13 @@ def collision_callback(contact):
                     if obj_2.COST_ONCE:
                         obj_2.crashed = True
             # collision_human
-            elif another_node_name in [MetaDriveType.CYCLIST, MetaDriveType.PEDESTRIAN]:
+            elif another_node_name in [
+                    MetaDriveType.CYCLIST, MetaDriveType.PEDESTRIAN
+            ]:
                 obj_1.crash_human = True
             # crash invisible wall or building
-            elif another_node_name in [MetaDriveType.INVISIBLE_WALL, MetaDriveType.BUILDING]:
+            elif another_node_name in [
+                    MetaDriveType.INVISIBLE_WALL, MetaDriveType.BUILDING
+            ]:
                 obj_1.crash_building = True
             # logging.debug("{} crash with {}".format(nodes[i].getName(), another_nodes[i].getName()))

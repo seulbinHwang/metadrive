@@ -55,7 +55,11 @@ class PipeViewer(DraggableWindow):
 
     def __init__(self, pipeline, parent):
         """ Constructs the pipe viewer """
-        DraggableWindow.__init__(self, width=1300, height=900, parent=parent, title="Pipeline Visualizer")
+        DraggableWindow.__init__(self,
+                                 width=1300,
+                                 height=900,
+                                 parent=parent,
+                                 title="Pipeline Visualizer")
         self._pipeline = pipeline
         self._scroll_width = 8000
         self._scroll_height = 3000
@@ -69,7 +73,8 @@ class PipeViewer(DraggableWindow):
             Globals.base.taskMgr.remove("RP_GUI_UpdatePipeViewer")
             self.hide()
         else:
-            Globals.base.taskMgr.add(self._update_task, "RP_GUI_UpdatePipeViewer")
+            Globals.base.taskMgr.add(self._update_task,
+                                     "RP_GUI_UpdatePipeViewer")
             if not self._created:
                 self._populate_content()
             self.show()
@@ -97,8 +102,14 @@ class PipeViewer(DraggableWindow):
             node = self._content_node.attach_new_node("stage")
             node.set_pos(220 + offs * 200.0, 0, 20)
             node.set_scale(1, 1, -1)
-            DirectFrame(parent=node, frameSize=(10, 150, 0, -3600), frameColor=(0.2, 0.2, 0.2, 1))
-            Text(text=str(stage.debug_name.replace("Stage", "")), parent=node, x=20, y=25, size=15)
+            DirectFrame(parent=node,
+                        frameSize=(10, 150, 0, -3600),
+                        frameColor=(0.2, 0.2, 0.2, 1))
+            Text(text=str(stage.debug_name.replace("Stage", "")),
+                 parent=node,
+                 x=20,
+                 y=25,
+                 size=15)
 
             for output_pipe, pipe_tex in iteritems(stage.produced_pipes):
                 pipe_idx = 0
@@ -108,23 +119,20 @@ class PipeViewer(DraggableWindow):
                 else:
                     current_pipes.append(output_pipe)
                     pipe_idx = len(current_pipes) - 1
-                    DirectFrame(
-                        parent=node,
-                        frameSize=(0, 8000, pipe_pixel_size / 2, -pipe_pixel_size / 2),
-                        frameColor=(r, g, b, 1),
-                        pos=(10, 1, -95 - pipe_idx * pipe_height)
-                    )
+                    DirectFrame(parent=node,
+                                frameSize=(0, 8000, pipe_pixel_size / 2,
+                                           -pipe_pixel_size / 2),
+                                frameColor=(r, g, b, 1),
+                                pos=(10, 1, -95 - pipe_idx * pipe_height))
                 w = 160
                 h = Globals.native_resolution.y /\
                     float(Globals.native_resolution.x) * w
-                DirectFrame(
-                    parent=node,
-                    frameSize=(
-                        -pipe_pixel_size, w + pipe_pixel_size, h / 2 + pipe_pixel_size, -h / 2 - pipe_pixel_size
-                    ),
-                    frameColor=(r, g, b, 1),
-                    pos=(0, 1, -95 - pipe_idx * pipe_height)
-                )
+                DirectFrame(parent=node,
+                            frameSize=(-pipe_pixel_size, w + pipe_pixel_size,
+                                       h / 2 + pipe_pixel_size,
+                                       -h / 2 - pipe_pixel_size),
+                            frameColor=(r, g, b, 1),
+                            pos=(0, 1, -95 - pipe_idx * pipe_height))
 
                 if isinstance(pipe_tex, (list, tuple)):
                     pipe_tex = pipe_tex[0]
@@ -137,49 +145,50 @@ class PipeViewer(DraggableWindow):
                     icon_file = "/$$rp/data/gui/icon_buffer_texture.png"
                 else:
                     icon_file = None
-                    preview = Sprite(
-                        image=pipe_tex,
-                        parent=node,
-                        x=0,
-                        y=50 + pipe_idx * pipe_height,
-                        w=w,
-                        h=h,
-                        any_filter=False,
-                        transparent=False
-                    )
+                    preview = Sprite(image=pipe_tex,
+                                     parent=node,
+                                     x=0,
+                                     y=50 + pipe_idx * pipe_height,
+                                     w=w,
+                                     h=h,
+                                     any_filter=False,
+                                     transparent=False)
 
-                    preview_shader = DisplayShaderBuilder.build(pipe_tex, int(w), int(h))
+                    preview_shader = DisplayShaderBuilder.build(
+                        pipe_tex, int(w), int(h))
                     preview.set_shader(preview_shader)
 
-                    preview.set_shader_inputs(mipmap=0, slice=0, brightness=1, tonemap=False)
+                    preview.set_shader_inputs(mipmap=0,
+                                              slice=0,
+                                              brightness=1,
+                                              tonemap=False)
 
                 if icon_file:
-                    Sprite(
-                        image=icon_file,
-                        parent=node,
-                        x=55,
-                        y=65 + pipe_idx * pipe_height,
-                        w=48,
-                        h=48,
-                        near_filter=False,
-                        transparent=True
-                    )
+                    Sprite(image=icon_file,
+                           parent=node,
+                           x=55,
+                           y=65 + pipe_idx * pipe_height,
+                           w=48,
+                           h=48,
+                           near_filter=False,
+                           transparent=True)
 
-                    if isinstance(pipe_tex, (SimpleInputBlock, GroupedInputBlock)):
+                    if isinstance(pipe_tex,
+                                  (SimpleInputBlock, GroupedInputBlock)):
                         tex_desc = "UBO"
                     else:
-                        tex_desc = pipe_tex.format_texture_type(pipe_tex.get_texture_type())
-                        tex_desc += " - " + pipe_tex.format_format(pipe_tex.get_format()).upper()
+                        tex_desc = pipe_tex.format_texture_type(
+                            pipe_tex.get_texture_type())
+                        tex_desc += " - " + pipe_tex.format_format(
+                            pipe_tex.get_format()).upper()
 
-                    Text(
-                        text=tex_desc,
-                        parent=node,
-                        x=55 + 48 / 2,
-                        y=130 + pipe_idx * pipe_height,
-                        color=Vec3(0.2),
-                        size=12,
-                        align="center"
-                    )
+                    Text(text=tex_desc,
+                         parent=node,
+                         x=55 + 48 / 2,
+                         y=130 + pipe_idx * pipe_height,
+                         color=Vec3(0.2),
+                         size=12,
+                         align="center")
 
             for input_pipe in stage.required_pipes:
                 if input_pipe not in current_pipes:
@@ -187,36 +196,38 @@ class PipeViewer(DraggableWindow):
                     continue
                 idx = current_pipes.index(input_pipe)
                 r, g, b = rgb_from_string(input_pipe)
-                DirectFrame(
-                    parent=node,
-                    frameSize=(0, 10, 40, -40),
-                    frameColor=(r, g, b, 1),
-                    pos=(5, 1, -95 - idx * pipe_height)
-                )
+                DirectFrame(parent=node,
+                            frameSize=(0, 10, 40, -40),
+                            frameColor=(r, g, b, 1),
+                            pos=(5, 1, -95 - idx * pipe_height))
 
-        self._pipe_descriptions = self._content_node.attach_new_node("PipeDescriptions")
+        self._pipe_descriptions = self._content_node.attach_new_node(
+            "PipeDescriptions")
         self._pipe_descriptions.set_scale(1, 1, -1)
 
-        DirectFrame(parent=self._pipe_descriptions, frameSize=(0, 190, 0, -5000), frameColor=(0.1, 0.1, 0.1, 1.0))
+        DirectFrame(parent=self._pipe_descriptions,
+                    frameSize=(0, 190, 0, -5000),
+                    frameColor=(0.1, 0.1, 0.1, 1.0))
 
         # Generate the pipe descriptions
         for idx, pipe in enumerate(current_pipes):
             r, g, b = rgb_from_string(pipe)
-            DirectFrame(
-                parent=self._pipe_descriptions,
-                frameSize=(0, 180, -95, -135),
-                frameColor=(r, g, b, 1.0),
-                pos=(0, 1, -idx * pipe_height)
-            )
-            Text(parent=self._pipe_descriptions, text=pipe, x=42, y=121 + idx * pipe_height, size=15, color=Vec3(0.1))
-            Sprite(
-                parent=self._pipe_descriptions,
-                x=9,
-                y=103 + idx * pipe_height,
-                image="/$$rp/data/gui/icon_pipe.png",
-                transparent=True,
-                near_filter=False
-            )
+            DirectFrame(parent=self._pipe_descriptions,
+                        frameSize=(0, 180, -95, -135),
+                        frameColor=(r, g, b, 1.0),
+                        pos=(0, 1, -idx * pipe_height))
+            Text(parent=self._pipe_descriptions,
+                 text=pipe,
+                 x=42,
+                 y=121 + idx * pipe_height,
+                 size=15,
+                 color=Vec3(0.1))
+            Sprite(parent=self._pipe_descriptions,
+                   x=9,
+                   y=103 + idx * pipe_height,
+                   image="/$$rp/data/gui/icon_pipe.png",
+                   transparent=True,
+                   near_filter=False)
 
     def _create_components(self):
         """ Internal method to create the window components """
@@ -231,8 +242,8 @@ class PipeViewer(DraggableWindow):
             verticalScroll_relief=False,
             horizontalScroll_relief=False,
             parent=self._node,
-            pos=(20, 1, -self._height + 20)
-        )
-        self._content_node = self._content_frame.getCanvas().attach_new_node("PipeComponents")
+            pos=(20, 1, -self._height + 20))
+        self._content_node = self._content_frame.getCanvas().attach_new_node(
+            "PipeComponents")
         self._content_node.set_scale(1, 1, -1)
         self._content_node.set_z(self._scroll_height)

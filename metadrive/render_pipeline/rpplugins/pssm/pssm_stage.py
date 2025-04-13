@@ -32,7 +32,9 @@ class PSSMStage(RenderStage):
     """ This stage uses the PSSM Shadow map to render the shadows """
 
     required_inputs = []
-    required_pipes = ["ShadedScene", "PSSMShadowAtlas", "GBuffer", "PSSMShadowAtlasPCF"]
+    required_pipes = [
+        "ShadedScene", "PSSMShadowAtlas", "GBuffer", "PSSMShadowAtlasPCF"
+    ]
 
     @property
     def produced_pipes(self):
@@ -49,7 +51,8 @@ class PSSMStage(RenderStage):
         self.target.add_color_attachment(bits=16)
         self.target.prepare_buffer()
 
-        self.target.set_shader_input("PrefilteredShadows", self.target_shadows.color_tex)
+        self.target.set_shader_input("PrefilteredShadows",
+                                     self.target_shadows.color_tex)
 
     def set_render_shadows(self, enabled):
         """ Toggle whether to render shadows or whether to just pass through
@@ -60,5 +63,7 @@ class PSSMStage(RenderStage):
             self.enabled = enabled
 
     def reload_shaders(self):
-        self.target_shadows.shader = self.load_plugin_shader("filter_pssm_shadows.frag.glsl")
-        self.target.shader = self.load_plugin_shader("apply_sun_shading.frag.glsl")
+        self.target_shadows.shader = self.load_plugin_shader(
+            "filter_pssm_shadows.frag.glsl")
+        self.target.shader = self.load_plugin_shader(
+            "apply_sun_shading.frag.glsl")

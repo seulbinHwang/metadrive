@@ -8,7 +8,11 @@ number_neg_inf = float("-inf")
 
 
 def safe_clip(array, min_val, max_val):
-    array = np.nan_to_num(array.astype(np.float64), copy=False, nan=0.0, posinf=max_val, neginf=min_val)
+    array = np.nan_to_num(array.astype(np.float64),
+                          copy=False,
+                          nan=0.0,
+                          posinf=max_val,
+                          neginf=min_val)
     return np.clip(array, min_val, max_val).astype(np.float64)
 
 
@@ -43,7 +47,8 @@ def wrap_to_pi(x: float) -> float:
 def get_vertical_vector(vector: np.array):
     length = norm(vector[0], vector[1])
     # return (vector[1] / length, -vector[0] / length), (-vector[1] / length, vector[0] / length)
-    return (-vector[1] / length, vector[0] / length), (vector[1] / length, -vector[0] / length)
+    return (-vector[1] / length, vector[0] / length), (vector[1] / length,
+                                                       -vector[0] / length)
 
 
 def norm(x, y):
@@ -72,12 +77,11 @@ def mph_to_kmh(speed_in_mph: float):
     return speed_in_kmh
 
 
-def get_laser_end(lidar_range, perceive_distance, laser_index, heading_theta, vehicle_position_x, vehicle_position_y):
+def get_laser_end(lidar_range, perceive_distance, laser_index, heading_theta,
+                  vehicle_position_x, vehicle_position_y):
     angle = lidar_range[laser_index] + heading_theta
-    return (
-        perceive_distance * math.cos(angle) + vehicle_position_x,
-        perceive_distance * math.sin(angle) + vehicle_position_y
-    )
+    return (perceive_distance * math.cos(angle) + vehicle_position_x,
+            perceive_distance * math.sin(angle) + vehicle_position_y)
 
 
 def dot(a, b):
@@ -120,7 +124,8 @@ def point_in_rectangle(point, rect_min, rect_max) -> bool:
     :param rect_min: x_min, y_min
     :param rect_max: x_max, y_max
     """
-    return rect_min[0] <= point[0] <= rect_max[0] and rect_min[1] <= point[1] <= rect_max[1]
+    return rect_min[0] <= point[0] <= rect_max[0] and rect_min[1] <= point[
+        1] <= rect_max[1]
 
 
 def point_in_rotated_rectangle(point: np.ndarray, center: np.ndarray, length: float, width: float, angle: float) \
@@ -138,7 +143,8 @@ def point_in_rotated_rectangle(point: np.ndarray, center: np.ndarray, length: fl
     c, s = math.cos(angle), math.sin(angle)
     r = np.array([[c, -s], [s, c]])
     ru = r.dot(point - center)
-    return point_in_rectangle(ru, (-length / 2, -width / 2), (length / 2, width / 2))
+    return point_in_rectangle(ru, (-length / 2, -width / 2),
+                              (length / 2, width / 2))
 
 
 def has_corner_inside(rect1: Tuple, rect2: Tuple) -> bool:
@@ -153,11 +159,15 @@ def has_corner_inside(rect1: Tuple, rect2: Tuple) -> bool:
     c1 = np.array(c1)
     l1v = np.array([l1 / 2, 0])
     w1v = np.array([0, w1 / 2])
-    r1_points = np.array([[0, 0], -l1v, l1v, -w1v, w1v, -l1v - w1v, -l1v + w1v, +l1v - w1v, +l1v + w1v])
+    r1_points = np.array([[0, 0], -l1v, l1v, -w1v, w1v, -l1v - w1v, -l1v + w1v,
+                          +l1v - w1v, +l1v + w1v])
     c, s = math.cos(a1), math.sin(a1)
     r = np.array([[c, -s], [s, c]])
     rotated_r1_points = r.dot(r1_points.transpose()).transpose()
-    return any([point_in_rotated_rectangle(c1 + np.squeeze(p), c2, l2, w2, a2) for p in rotated_r1_points])
+    return any([
+        point_in_rotated_rectangle(c1 + np.squeeze(p), c2, l2, w2, a2)
+        for p in rotated_r1_points
+    ])
 
 
 def get_points_bounding_box(line_points):
@@ -196,6 +206,7 @@ class Vector(tuple):
     """
     Avoid using this data structure!
     """
+
     def __sub__(self, other):
         return Vector((self[0] - other[0], self[1] - other[1]))
 
@@ -277,6 +288,7 @@ def resample_polyline(points, target_distance):
     # Interpolate the points along the resampled distances
     resampled_points = np.empty((len(resampled_distances), points.shape[1]))
     for i in range(points.shape[1]):
-        resampled_points[:, i] = np.interp(resampled_distances, distances, points[:, i])
+        resampled_points[:, i] = np.interp(resampled_distances, distances,
+                                           points[:, i])
 
     return resampled_points

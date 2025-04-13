@@ -10,6 +10,7 @@ LaneIndex = Union[str, Tuple[str, str, int]]
 
 
 class BaseRoadNetwork:
+
     def __init__(self, debug=False):
         self.graph = None
         self.bounding_box = None

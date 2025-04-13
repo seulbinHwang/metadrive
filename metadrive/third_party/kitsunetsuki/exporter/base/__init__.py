@@ -18,8 +18,7 @@ import os
 
 from metadrive.third_party.kitsunetsuki.base.collections import get_object_collection
 from metadrive.third_party.kitsunetsuki.base.objects import (
-    get_object_properties, is_collision, is_object_visible, set_active_object
-)
+    get_object_properties, is_collision, is_object_visible, set_active_object)
 
 from .geom import GeomMixin
 from .material import MaterialMixin
@@ -40,6 +39,7 @@ NOT_MERGED_TYPES = (
 
 
 class Exporter(GeomMixin, MaterialMixin, TextureMixin, VertexMixin):
+
     def __init__(self, args):
         self._inputs = args.inputs
         self._output = args.output

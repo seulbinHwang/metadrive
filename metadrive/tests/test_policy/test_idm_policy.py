@@ -11,53 +11,65 @@ from metadrive.utils import Config
 
 
 def _create_vehicle():
-    v_config = Config(BASE_DEFAULT_CONFIG["vehicle_config"]).update(METADRIVE_DEFAULT_CONFIG["vehicle_config"])
+    v_config = Config(BASE_DEFAULT_CONFIG["vehicle_config"]).update(
+        METADRIVE_DEFAULT_CONFIG["vehicle_config"])
     v_config.update({"use_render": False, "image_observation": False})
     config = Config(BASE_DEFAULT_CONFIG)
-    config.update(
-        {
-            "use_render": False,
-            "pstats": False,
-            "image_observation": False,
-            "debug": False,
-            "vehicle_config": v_config
-        }
-    )
+    config.update({
+        "use_render": False,
+        "pstats": False,
+        "image_observation": False,
+        "debug": False,
+        "vehicle_config": v_config
+    })
     initialize_engine(config)
     v = DefaultVehicle(vehicle_config=v_config, random_seed=0)
     return v
 
 
-@pytest.mark.parametrize("use_mesh_terrain", [True, False], ids=["plane", "mesh"])
+@pytest.mark.parametrize("use_mesh_terrain", [True, False],
+                         ids=["plane", "mesh"])
 def test_idm_policy_briefly(use_mesh_terrain):
     env = MetaDriveEnv({"use_mesh_terrain": use_mesh_terrain})
     try:
         env.reset()
         vehicles = env.engine.traffic_manager.traffic_vehicles
         for v in vehicles:
-            policy = IDMPolicy(
-                vehicle=v, traffic_manager=env.engine.traffic_manager, delay_time=1, random_seed=env.current_seed
-            )
-            action = policy.before_step(v, front_vehicle=None, rear_vehicle=None, current_map=env.engine.current_map)
+            policy = IDMPolicy(vehicle=v,
+                               traffic_manager=env.engine.traffic_manager,
+                               delay_time=1,
+                               random_seed=env.current_seed)
+            action = policy.before_step(v,
+                                        front_vehicle=None,
+                                        rear_vehicle=None,
+                                        current_map=env.engine.current_map)
             action = policy.step(dt=0.02)
-            action = policy.after_step(v, front_vehicle=None, rear_vehicle=None, current_map=env.engine.current_map)
+            action = policy.after_step(v,
+                                       front_vehicle=None,
+                                       rear_vehicle=None,
+                                       current_map=env.engine.current_map)
             env.engine.policy_manager.register_new_policy(
                 IDMPolicy,
                 vehicle=v,
                 traffic_manager=env.engine.traffic_manager,
                 delay_time=1,
-                random_seed=env.current_seed
-            )
+                random_seed=env.current_seed)
         env.step(env.action_space.sample())
         env.reset()
     finally:
         env.close()
 
 
-@pytest.mark.parametrize("use_mesh_terrain", [True, False], ids=["plane", "mesh"])
+@pytest.mark.parametrize("use_mesh_terrain", [True, False],
+                         ids=["plane", "mesh"])
 def test_idm_policy_is_moving(use_mesh_terrain, render=False, in_test=True):
     # config = {"traffic_mode": "hybrid", "map": "SS", "traffic_density": 1.0}
-    config = {"use_mesh_terrain": use_mesh_terrain, "traffic_mode": "respawn", "map": "SS", "traffic_density": 1.0}
+    config = {
+        "use_mesh_terrain": use_mesh_terrain,
+        "traffic_mode": "respawn",
+        "map": "SS",
+        "traffic_density": 1.0
+    }
     if render:
         config.update({"use_render": True, "manual_control": True})
     env = MetaDriveEnv(config)

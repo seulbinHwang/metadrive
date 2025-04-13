@@ -15,7 +15,8 @@ def test_gen_map_read():
     try:
         env = MetaDriveEnv(generate_config)
         env.reset()
-        data = env.engine.map_manager.dump_all_maps(file_name="test_10maps.pickle")
+        data = env.engine.map_manager.dump_all_maps(
+            file_name="test_10maps.pickle")
         env.close()
 
         # Check load

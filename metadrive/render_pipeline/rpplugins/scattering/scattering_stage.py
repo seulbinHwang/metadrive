@@ -45,4 +45,5 @@ class ScatteringStage(RenderStage):
         self.target.prepare_buffer()
 
     def reload_shaders(self):
-        self.target.shader = self.load_plugin_shader("apply_scattering.frag.glsl")
+        self.target.shader = self.load_plugin_shader(
+            "apply_scattering.frag.glsl")

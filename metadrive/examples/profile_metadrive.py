@@ -9,12 +9,19 @@ from metadrive.utils import setup_logger
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num-steps", "-n", default=10_000, type=int, help="Total steps of profiling.")
+    parser.add_argument("--num-steps",
+                        "-n",
+                        default=10_000,
+                        type=int,
+                        help="Total steps of profiling.")
     args = parser.parse_args()
 
-    print("Start to profile the efficiency of MetaDrive with 1000 maps and ~4 vehicles!")
+    print(
+        "Start to profile the efficiency of MetaDrive with 1000 maps and ~4 vehicles!"
+    )
     setup_logger(debug=False)
-    env = MetaDriveEnv(dict(num_scenarios=1000, start_seed=1010, traffic_density=0.05))
+    env = MetaDriveEnv(
+        dict(num_scenarios=1000, start_seed=1010, traffic_density=0.05))
     obs, _ = env.reset()
     start = time.time()
     reset_used_time = 0
@@ -33,11 +40,11 @@ if __name__ == '__main__':
                 "Finish {}/{} simulation steps. Time elapse: {:.4f}. Average FPS: {:.4f}, Average number of "
                 "vehicles: {:.4f}".format(
                     s + 1, total_steps,
-                    time.time() - start, (s + 1) / (time.time() - start - reset_used_time), np.mean(vehicle_num)
-                )
-            )
+                    time.time() - start,
+                    (s + 1) / (time.time() - start - reset_used_time),
+                    np.mean(vehicle_num)))
     print(
-        "Total Time Elapse: {:.3f}, average FPS: {:.3f}, average number of vehicles: {:.3f}.".format(
-            time.time() - start, total_steps / (time.time() - start - reset_used_time), np.mean(vehicle_num)
-        )
-    )
+        "Total Time Elapse: {:.3f}, average FPS: {:.3f}, average number of vehicles: {:.3f}."
+        .format(time.time() - start,
+                total_steps / (time.time() - start - reset_used_time),
+                np.mean(vehicle_num)))

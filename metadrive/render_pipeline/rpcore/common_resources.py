@@ -40,6 +40,7 @@ from metadrive.render_pipeline.rpcore.util.shader_input_blocks import GroupedInp
 class CommonResources(RPObject):
     """ This class manages the loading and binding of commonly used resources,
     such as textures, models, but also shader inputs """
+
     def __init__(self, pipeline):
         RPObject.__init__(self)
         self._pipeline = pipeline
@@ -103,7 +104,8 @@ class CommonResources(RPObject):
         proj_mat = Mat4(self._showbase.camLens.get_projection_mat())
         proj_mat.set_cell(1, 0, 0.0)
         proj_mat.set_cell(1, 1, 0.0)
-        self._input_ubo.update_input("view_proj_mat_no_jitter", view_mat * proj_mat)
+        self._input_ubo.update_input("view_proj_mat_no_jitter",
+                                     view_mat * proj_mat)
 
     def write_config(self):
         """ Generates the shader configuration for the common inputs """
@@ -113,7 +115,8 @@ class CommonResources(RPObject):
             with open("/$$rptemp/$$main_scene_data.inc.glsl", "w") as handle:
                 handle.write(content)
         except IOError as msg:
-            self.error("Failed to write common resources shader configuration!", msg)
+            self.error("Failed to write common resources shader configuration!",
+                       msg)
 
     def _load_textures(self):
         """ Loads commonly used textures and makes them available via the
@@ -125,7 +128,8 @@ class CommonResources(RPObject):
     def _load_environment_cubemap(self):
         """ Loads the default cubemap used for the environment, which is used
         when no other environment data is available """
-        envmap = RPLoader.load_cube_map("/$$rp/data/default_cubemap/cubemap.txo", read_mipmaps=True)
+        envmap = RPLoader.load_cube_map(
+            "/$$rp/data/default_cubemap/cubemap.txo", read_mipmaps=True)
         envmap.set_minfilter(SamplerState.FT_linear_mipmap_linear)
         # envmap.set_format(Image.F_rgba16)
         envmap.set_magfilter(SamplerState.FT_linear)
@@ -156,7 +160,8 @@ class CommonResources(RPObject):
             if "#" in config["src"]:
                 loader_method = RPLoader.load_3d_texture
 
-            brdf_tex = loader_method("/$$rp/data/environment_brdf/{}".format(config["src"]))
+            brdf_tex = loader_method("/$$rp/data/environment_brdf/{}".format(
+                config["src"]))
             brdf_tex.set_minfilter(SamplerState.FT_linear)
             brdf_tex.set_magfilter(SamplerState.FT_linear)
             brdf_tex.set_wrap_u(SamplerState.WM_clamp)
@@ -167,13 +172,15 @@ class CommonResources(RPObject):
 
     def _load_skydome(self):
         """ Loads the skydome """
-        skydome = RPLoader.load_texture("/$$rp/data/builtin_models/skybox/skybox.txo")
+        skydome = RPLoader.load_texture(
+            "/$$rp/data/builtin_models/skybox/skybox.txo")
         skydome.set_wrap_u(SamplerState.WM_clamp)
         skydome.set_wrap_v(SamplerState.WM_clamp)
         self._pipeline.stage_mgr.inputs["DefaultSkydome"] = skydome
 
     def load_default_skybox(self):
-        skybox = RPLoader.load_model("/$$rp/data/builtin_models/skybox/skybox.bam")
+        skybox = RPLoader.load_model(
+            "/$$rp/data/builtin_models/skybox/skybox.bam")
         return skybox
 
     def update(self):
@@ -221,7 +228,8 @@ class CommonResources(RPObject):
 
         # Store the frame delta
         update("frame_delta", Globals.clock.get_dt())
-        update("smooth_frame_delta", 1.0 / max(1e-5, Globals.clock.get_average_frame_rate()))
+        update("smooth_frame_delta",
+               1.0 / max(1e-5, Globals.clock.get_average_frame_rate()))
         update("frame_time", Globals.clock.get_frame_time())
 
         # Store the current film offset, we use this to compute the pixel-perfect

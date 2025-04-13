@@ -47,9 +47,11 @@ class CollectUsedCellsStage(RenderStage):
         self.target.prepare_buffer()
 
         self.cell_list_buffer = Image.create_buffer("CellList", 0, "R32I")
-        self.cell_index_buffer = Image.create_2d_array("CellIndices", 0, 0, 0, "R32I")
+        self.cell_index_buffer = Image.create_2d_array("CellIndices", 0, 0, 0,
+                                                       "R32I")
 
-        self.target.set_shader_inputs(CellListBuffer=self.cell_list_buffer, CellListIndices=self.cell_index_buffer)
+        self.target.set_shader_inputs(CellListBuffer=self.cell_list_buffer,
+                                      CellListIndices=self.cell_index_buffer)
 
     def update(self):
         self.cell_list_buffer.clear_image()

@@ -36,7 +36,8 @@ class Interface:
         self._contact_banners = {}  # to save time/memory
         self.current_banner = None
         self.need_interface = base_engine.mode != RENDER_MODE_NONE and not base_engine.global_config[
-            "debug_physics_world"] and base_engine.global_config["show_interface"]
+            "debug_physics_world"] and base_engine.global_config[
+                "show_interface"]
         if base_engine.mode == RENDER_MODE_NONE:
             assert self.need_interface is False, \
                 "We should not using interface with extra cameras when in offscreen mode!"
@@ -49,7 +50,8 @@ class Interface:
             if self.dashboard is not None:
                 self.dashboard.update_vehicle_state(track_v)
             self._render_contact_result(track_v.contact_results)
-            if hasattr(track_v, "navigation") and track_v.navigation is not None:
+            if hasattr(track_v,
+                       "navigation") and track_v.navigation is not None:
                 self._update_navi_arrow(track_v.navigation.navi_arrow_dir)
 
     def _init_interface(self):
@@ -60,7 +62,8 @@ class Interface:
             self._node_path_list.append(info_np)
 
             self.contact_result_render = info_np
-            for idx, panel_name, in enumerate(reversed(self.engine.global_config["interface_panel"])):
+            for idx, panel_name, in enumerate(
+                    reversed(self.engine.global_config["interface_panel"])):
                 if idx == 0:
                     self.right_panel = self.engine.get_sensor(panel_name)
                 elif idx == 1:
@@ -75,7 +78,8 @@ class Interface:
             self.arrow = self.engine.aspect2d.attachNewNode("arrow")
             self._node_path_list.append(self.arrow)
 
-            navi_arrow_model = AssetLoader.loader.loadModel(AssetLoader.file_path("models", "navi_arrow.gltf"))
+            navi_arrow_model = AssetLoader.loader.loadModel(
+                AssetLoader.file_path("models", "navi_arrow.gltf"))
             navi_arrow_model.setScale(0.1, 0.12, 0.2)
             navi_arrow_model.setPos(2, 1.15, -0.221)
             self._left_arrow = self.arrow.attachNewNode("left arrow")
@@ -95,7 +99,9 @@ class Interface:
             self.arrow.setPos(0, 0, 0.08)
             self.arrow.hide(CamMask.AllOn)
             self.arrow.show(CamMask.MainCam)
-            self.arrow.setQuat(LQuaternionf(math.cos(-math.pi / 4), 0, 0, math.sin(-math.pi / 4)))
+            self.arrow.setQuat(
+                LQuaternionf(math.cos(-math.pi / 4), 0, 0,
+                             math.sin(-math.pi / 4)))
             # the transparency attribute of gltf model is invalid on windows
             # self.arrow.setTransparency(TransparencyAttrib.M_alpha)
 
@@ -154,13 +160,15 @@ class Interface:
             text_node.setTextColor(1, 1, 1, 1)
             text_node.setAlign(TextNode.A_center)
             new_banner.setScale(0.05 * 3 / 4 * self.engine.w_scale)
-            new_banner.setPos(-0.662 * self.engine.w_scale, 0, -0.987 * self.engine.h_scale)
+            new_banner.setPos(-0.662 * self.engine.w_scale, 0,
+                              -0.987 * self.engine.h_scale)
             # new_banner.setPos(-0.75 * self.engine.w_scale, 0, -0.8 * self.engine.h_scale)
             new_banner.reparentTo(self.contact_result_render)
             self.current_banner = new_banner
 
     def _render_contact_result(self, contacts):
-        contacts = sorted(list(contacts), key=lambda c: COLLISION_INFO_COLOR[COLOR[c]][0])
+        contacts = sorted(list(contacts),
+                          key=lambda c: COLLISION_INFO_COLOR[COLOR[c]][0])
         text = contacts[0] if len(contacts) != 0 else MetaDriveType.UNSET
         color = COLLISION_INFO_COLOR[COLOR[text]][1]
         if time.time() - self.engine._episode_start_time < 10:
@@ -188,7 +196,8 @@ class Interface:
                 self.left_panel.destroy()
 
     def _update_navi_arrow(self, lanes_heading):
-        if not self.engine.global_config["vehicle_config"]["show_navigation_arrow"]:
+        if not self.engine.global_config["vehicle_config"][
+                "show_navigation_arrow"]:
             return
         lane_0_heading = lanes_heading[0]
         lane_1_heading = lanes_heading[1]
@@ -198,8 +207,12 @@ class Interface:
                 self._right_arrow.detachNode()
                 self._is_showing_arrow = False
         else:
-            dir_0 = np.array([math.cos(lane_0_heading), math.sin(lane_0_heading), 0])
-            dir_1 = np.array([math.cos(lane_1_heading), math.sin(lane_1_heading), 0])
+            dir_0 = np.array(
+                [math.cos(lane_0_heading),
+                 math.sin(lane_0_heading), 0])
+            dir_1 = np.array(
+                [math.cos(lane_1_heading),
+                 math.sin(lane_1_heading), 0])
             cross_product = np.cross(dir_1, dir_0)
             left = True if cross_product[-1] < 0 else False
             if not self._is_showing_arrow:

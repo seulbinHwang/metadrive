@@ -25,15 +25,13 @@ class ImageBuffer:
     line_borders = []
     num_channels = 3
 
-    def __init__(
-        self,
-        width: float,
-        height: float,
-        bkg_color: Union[Vec4, Vec3],
-        parent_node: NodePath = None,
-        frame_buffer_property=None,
-        engine=None
-    ):
+    def __init__(self,
+                 width: float,
+                 height: float,
+                 bkg_color: Union[Vec4, Vec3],
+                 parent_node: NodePath = None,
+                 frame_buffer_property=None,
+                 engine=None):
         self.logger = get_logger()
         self._node_path_list = []
 
@@ -41,11 +39,11 @@ class ImageBuffer:
         self.engine = engine
         try:
             assert self.engine.win is not None, "{} cannot be made without use_render or image_observation".format(
-                self.__class__.__name__
-            )
+                self.__class__.__name__)
             assert self.CAM_MASK is not None, "Define a camera mask for every image buffer"
         except AssertionError:
-            self.logger.debug("Cannot create {}".format(self.__class__.__name__))
+            self.logger.debug("Cannot create {}".format(
+                self.__class__.__name__))
             self.buffer = None
             self.cam = NodePath(Camera("non-sense camera"))
             self._node_path_list.append(self.cam)
@@ -58,13 +56,15 @@ class ImageBuffer:
         self._create_camera(parent_node, bkg_color)
 
         self._setup_effect()
-        self.logger.debug("Load Image Buffer: {}".format(self.__class__.__name__))
+        self.logger.debug("Load Image Buffer: {}".format(
+            self.__class__.__name__))
 
     def _create_camera(self, parent_node, bkg_color):
         """
         Create camera for the buffer
         """
-        self.cam = cam = self.engine.makeCamera(self.buffer, clearColor=bkg_color)
+        self.cam = cam = self.engine.makeCamera(self.buffer,
+                                                clearColor=bkg_color)
         cam.node().setCameraMask(self.CAM_MASK)
         if parent_node:
             self.cam.reparentTo(parent_node)
@@ -85,10 +85,13 @@ class ImageBuffer:
         """
         if frame_buffer_property is not None:
             self.buffer = self.engine.win.makeTextureBuffer(
-                self.__class__.__name__, width, height, fbp=frame_buffer_property
-            )
+                self.__class__.__name__,
+                width,
+                height,
+                fbp=frame_buffer_property)
         else:
-            self.buffer = self.engine.win.makeTextureBuffer(self.__class__.__name__, width, height)
+            self.buffer = self.engine.win.makeTextureBuffer(
+                self.__class__.__name__, width, height)
 
     def _setup_effect(self):
         """
@@ -114,12 +117,16 @@ class ImageBuffer:
         raise DeprecationWarning("This API is deprecated")
         if not clip:
             numpy_array = np.array(
-                [[int(img.getGray(i, j) * 255) for j in range(img.getYSize())] for i in range(img.getXSize())],
-                dtype=np.uint8
-            )
+                [[int(img.getGray(i, j) * 255)
+                  for j in range(img.getYSize())]
+                 for i in range(img.getXSize())],
+                dtype=np.uint8)
             return np.clip(numpy_array, 0, 255)
         else:
-            numpy_array = np.array([[img.getGray(i, j) for j in range(img.getYSize())] for i in range(img.getXSize())])
+            numpy_array = np.array(
+                [[img.getGray(i, j)
+                  for j in range(img.getYSize())]
+                 for i in range(img.getXSize())])
             return np.clip(numpy_array, 0, 1)
 
     def add_display_region(self, display_region: List[float], keep_height=True):
@@ -133,8 +140,10 @@ class ImageBuffer:
                 h = 0.333 * ratio
                 display_region[-2] = 1 - h
 
-            self.display_region = self.engine.win.makeDisplayRegion(*display_region)
-            self.display_region.setCamera(self.buffer.getDisplayRegions()[1].camera)
+            self.display_region = self.engine.win.makeDisplayRegion(
+                *display_region)
+            self.display_region.setCamera(
+                self.buffer.getDisplayRegions()[1].camera)
             self.draw_border(display_region)
 
     def draw_border(self, display_region):
@@ -145,10 +154,18 @@ class ImageBuffer:
         bottom = display_region[2] * 2 - 1
         top = display_region[3] * 2 - 1
 
-        self.line_borders.append(engine.draw_line_2d([left, bottom], [left, top], self.LINE_FRAME_COLOR, 1.5))
-        self.line_borders.append(engine.draw_line_2d([left, top], [right, top], self.LINE_FRAME_COLOR, 1.5))
-        self.line_borders.append(engine.draw_line_2d([right, top], [right, bottom], self.LINE_FRAME_COLOR, 1.5))
-        self.line_borders.append(engine.draw_line_2d([right, bottom], [left, bottom], self.LINE_FRAME_COLOR, 1.5))
+        self.line_borders.append(
+            engine.draw_line_2d([left, bottom], [left, top],
+                                self.LINE_FRAME_COLOR, 1.5))
+        self.line_borders.append(
+            engine.draw_line_2d([left, top], [right, top],
+                                self.LINE_FRAME_COLOR, 1.5))
+        self.line_borders.append(
+            engine.draw_line_2d([right, top], [right, bottom],
+                                self.LINE_FRAME_COLOR, 1.5))
+        self.line_borders.append(
+            engine.draw_line_2d([right, bottom], [left, bottom],
+                                self.LINE_FRAME_COLOR, 1.5))
 
     def remove_display_region(self):
         engine = self.engine

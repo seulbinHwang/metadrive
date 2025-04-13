@@ -26,6 +26,7 @@ def clear_line(mode=2):
 
 
 class AnsiCodes(object):
+
     def __init__(self):
         # the subclasses declare class attributes which are numbers.
         # Upon instantiation we define instance attributes, which are the same
@@ -37,6 +38,7 @@ class AnsiCodes(object):
 
 
 class AnsiCursor(object):
+
     def UP(self, n=1):
         return CSI + str(n) + 'A'
 

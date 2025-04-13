@@ -18,7 +18,9 @@ def _assert_vehicle(vehicle):
     velocity_direction = vehicle.heading
     np.testing.assert_almost_equal(abs(np.linalg.norm(velocity_direction)), 1.0)
     current_road = vehicle.navigation.current_road
-    np.testing.assert_almost_equal(vehicle.heading_diff(vehicle.lane), 0.5, decimal=3)
+    np.testing.assert_almost_equal(vehicle.heading_diff(vehicle.lane),
+                                   0.5,
+                                   decimal=3)
 
 
 def _get_heading_deg(heading):
@@ -33,9 +35,13 @@ def test_base_vehicle():
         map = env.current_map
 
         # v_config = BaseVehicle.get_vehicle_config(dict())
-        v_config = Config(BASE_DEFAULT_CONFIG["vehicle_config"]).update(METADRIVE_DEFAULT_CONFIG["vehicle_config"])
-        v_config["spawn_lane_index"] = (FirstPGBlock.NODE_1, FirstPGBlock.NODE_2, 0)
-        v = engine.spawn_object(DefaultVehicle, vehicle_config=v_config, random_seed=0)
+        v_config = Config(BASE_DEFAULT_CONFIG["vehicle_config"]).update(
+            METADRIVE_DEFAULT_CONFIG["vehicle_config"])
+        v_config["spawn_lane_index"] = (FirstPGBlock.NODE_1,
+                                        FirstPGBlock.NODE_2, 0)
+        v = engine.spawn_object(DefaultVehicle,
+                                vehicle_config=v_config,
+                                random_seed=0)
 
         v.add_navigation()
         v.add_navigation()
@@ -66,12 +72,16 @@ def test_base_vehicle():
                 _assert_vehicle(v)
                 state = v.get_state()
                 v.set_state(state)
-                assert _get_heading_deg(v.heading_theta) == _get_heading_deg(state["heading_theta"])
-                np.testing.assert_almost_equal(v.position, metadrive_vector(state["position"]))
+                assert _get_heading_deg(v.heading_theta) == _get_heading_deg(
+                    state["heading_theta"])
+                np.testing.assert_almost_equal(
+                    v.position, metadrive_vector(state["position"]))
                 v.convert_to_local_coordinates([a_x, a_y], 0.0)
         env.engine.clear_objects([v.id])
         _nan_speed(env)
-        v = engine.spawn_object(DefaultVehicle, vehicle_config=v_config, random_seed=0)
+        v = engine.spawn_object(DefaultVehicle,
+                                vehicle_config=v_config,
+                                random_seed=0)
         v.reset(position=np.array([10, 0]))
         v.set_heading_theta(np.pi / 2)
         bounding_box = np.asarray(v.bounding_box)

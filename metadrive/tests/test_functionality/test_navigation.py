@@ -6,6 +6,7 @@ from metadrive.constants import DEFAULT_AGENT
 
 
 class Target:
+
     def __init__(self, target_lateral, target_speed_km_h):
         self.lateral = target_lateral
         self.speed_km_h = target_speed_km_h
@@ -24,20 +25,18 @@ class Target:
 
 
 def test_navigation(vis=False):
-    env = MetaDriveEnv(
-        {
-            "num_scenarios": 10,
-            "traffic_density": 0.0,
-            "use_render": vis,
-            "start_seed": 5,
-            "map_config": {
-                BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_NUM,
-                BaseMap.GENERATE_CONFIG: 7,
-                BaseMap.LANE_WIDTH: 3.5,
-                BaseMap.LANE_NUM: 3,
-            }
+    env = MetaDriveEnv({
+        "num_scenarios": 10,
+        "traffic_density": 0.0,
+        "use_render": vis,
+        "start_seed": 5,
+        "map_config": {
+            BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_NUM,
+            BaseMap.GENERATE_CONFIG: 7,
+            BaseMap.LANE_WIDTH: 3.5,
+            BaseMap.LANE_NUM: 3,
         }
-    )
+    })
     target = Target(0.375, 30)
     o, _ = env.reset()
     if vis:
@@ -61,7 +60,8 @@ def test_navigation(vis=False):
         steering_error = o[0] - target.lateral
         steering = steering_controller.get_result(steering_error)
 
-        t_speed = target.speed_km_h if abs(o[12] - 0.5) < 0.01 else target.speed_km_h - 10
+        t_speed = target.speed_km_h if abs(
+            o[12] - 0.5) < 0.01 else target.speed_km_h - 10
         acc_error = env.agents[DEFAULT_AGENT].speed_km_h - t_speed
         acc = acc_controller.get_result(acc_error)
         if vis:
@@ -72,8 +72,7 @@ def test_navigation(vis=False):
                         "S": "Target speed -",
                         "A": "Change to left lane",
                         "D": "Change to right lane"
-                    }
-                )
+                    })
             if i == 500:
                 env.engine.on_screen_message.data.clear()
             else:

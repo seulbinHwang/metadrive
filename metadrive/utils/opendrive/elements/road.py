@@ -4,14 +4,14 @@ from metadrive.utils.opendrive.elements.roadPlanView import PlanView
 from metadrive.utils.opendrive.elements.roadLink import Link
 from metadrive.utils.opendrive.elements.roadLanes import Lanes
 from metadrive.utils.opendrive.elements.roadElevationProfile import (
-    ElevationProfile,
-)
+    ElevationProfile,)
 from metadrive.utils.opendrive.elements.roadLateralProfile import LateralProfile
 from metadrive.utils.opendrive.elements.junction import Junction
 
 
 class Road:
     """ """
+
     def __init__(self):
         self._id = None
         self._name = None

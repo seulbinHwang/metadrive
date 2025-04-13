@@ -2,6 +2,7 @@ from metadrive.envs.marl_envs import MultiAgentTinyInter
 
 
 class TestEnv(MultiAgentTinyInter):
+
     def __init__(self):
         super(TestEnv, self).__init__(
             config={
@@ -20,8 +21,7 @@ class TestEnv(MultiAgentTinyInter):
                 "manual_control": True,
                 # "num_agents": 4,
                 "use_render": True,
-            }
-        )
+            })
 
 
 if __name__ == "__main__":

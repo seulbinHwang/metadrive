@@ -25,9 +25,11 @@ class InstanceCamera(BaseCamera):
         self._setup_effect()
         super().track(new_parent_node, position, hpr)
 
-    def perceive(
-        self, to_float=True, new_parent_node: Union[NodePath, None] = None, position=None, hpr=None
-    ) -> np.ndarray:
+    def perceive(self,
+                 to_float=True,
+                 new_parent_node: Union[NodePath, None] = None,
+                 position=None,
+                 hpr=None) -> np.ndarray:
         self._setup_effect()
         return super().perceive(to_float, new_parent_node, position, hpr)
 
@@ -45,7 +47,8 @@ class InstanceCamera(BaseCamera):
             spawned_objects = get_engine().get_objects()
 
             ##Ensure consistency between color mapping and the objects actually active in the engine.
-            mapping_set, object_set = set(list(mapping.keys())), set(list(spawned_objects.keys()))
+            mapping_set, object_set = set(list(mapping.keys())), set(
+                list(spawned_objects.keys()))
             assert (len(mapping_set.difference(object_set)) == 0)
 
             for id, obj in spawned_objects.items():
@@ -53,13 +56,15 @@ class InstanceCamera(BaseCamera):
             cam = self.get_cam().node()
             cam.setTagStateKey(CameraTagStateKey.ID)
             cam.setInitialState(
-                RenderState.make(
-                    ShaderAttrib.makeOff(), LightAttrib.makeAllOff(), TextureAttrib.makeOff(),
-                    ColorAttrib.makeFlat((0, 0, 0, 1)), 1
-                )
-            )
+                RenderState.make(ShaderAttrib.makeOff(),
+                                 LightAttrib.makeAllOff(),
+                                 TextureAttrib.makeOff(),
+                                 ColorAttrib.makeFlat((0, 0, 0, 1)), 1))
 
             for id in spawned_objects.keys():
                 c = mapping[id]
                 assert c in self.engine.COLORS_OCCUPIED
-                cam.setTagState(id, RenderState.make(ColorAttrib.makeFlat((c[0], c[1], c[2], 1)), 1))
+                cam.setTagState(
+                    id,
+                    RenderState.make(
+                        ColorAttrib.makeFlat((c[0], c[1], c[2], 1)), 1))

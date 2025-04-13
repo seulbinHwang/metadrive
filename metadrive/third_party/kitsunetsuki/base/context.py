@@ -17,6 +17,7 @@ import bpy
 
 
 class Mode(object):
+
     def __init__(self, mode):
         self._mode = mode
 

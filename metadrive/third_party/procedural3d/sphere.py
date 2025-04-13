@@ -7,6 +7,7 @@ from metadrive.third_party.procedural3d.base import *
 
 
 class SphereMaker(ModelMaker):
+
     @property
     def center(self):
         return self._center
@@ -63,24 +64,22 @@ class SphereMaker(ModelMaker):
     def thickness(self, thickness):
         self._thickness = thickness
 
-    def __init__(
-        self,
-        center=None,
-        radius=1.,
-        segments=None,
-        smooth=True,
-        bottom_clip=-1.,
-        top_clip=1.,
-        slice=0.,
-        thickness=None,
-        inverted=False,
-        vertex_color=None,
-        has_uvs=True,
-        tex_units=None,
-        tex_offset=None,
-        tex_rotation=None,
-        tex_scale=None
-    ):
+    def __init__(self,
+                 center=None,
+                 radius=1.,
+                 segments=None,
+                 smooth=True,
+                 bottom_clip=-1.,
+                 top_clip=1.,
+                 slice=0.,
+                 thickness=None,
+                 inverted=False,
+                 vertex_color=None,
+                 has_uvs=True,
+                 tex_units=None,
+                 tex_offset=None,
+                 tex_rotation=None,
+                 tex_scale=None):
         """
         This class generates sphere model primitives with the given parameters:
 
@@ -143,14 +142,13 @@ class SphereMaker(ModelMaker):
 
         """
 
-        surface_ids = (
-            "main", "bottom_cap", "top_cap", "slice_start_cap", "slice_end_cap", "inner_main", "inner_bottom_cap",
-            "inner_top_cap"
-        )
+        surface_ids = ("main", "bottom_cap", "top_cap", "slice_start_cap",
+                       "slice_end_cap", "inner_main", "inner_bottom_cap",
+                       "inner_top_cap")
 
-        ModelMaker.__init__(
-            self, segments, inverted, vertex_color, has_uvs, tex_units, tex_offset, tex_rotation, tex_scale, surface_ids
-        )
+        ModelMaker.__init__(self, segments, inverted, vertex_color, has_uvs,
+                            tex_units, tex_offset, tex_rotation, tex_scale,
+                            surface_ids)
 
         self._center = center
         self._radius = radius
@@ -193,8 +191,10 @@ class SphereMaker(ModelMaker):
         bottom_angle = pi - acos(bottom_height / radius)
         top_angle = acos(top_height / radius)
         delta_angle_v = (pi - bottom_angle - top_angle) / segs_v
-        thickness = radius if self._thickness is None else max(0., self._thickness)
-        inner_radius = radius - thickness if (top_height - bottom_height) * .5 > thickness else 0.
+        thickness = radius if self._thickness is None else max(
+            0., self._thickness)
+        inner_radius = radius - thickness if (
+            top_height - bottom_height) * .5 > thickness else 0.
 
         if inner_radius:
             inner_bottom_height = bottom_height + thickness
@@ -203,7 +203,8 @@ class SphereMaker(ModelMaker):
             inner_top_height = top_height - thickness
             inner_top_clip = inner_top_height / inner_radius
             inner_top_angle = acos(inner_top_height / inner_radius)
-            inner_delta_angle_v = (pi - inner_bottom_angle - inner_top_angle) / segs_v
+            inner_delta_angle_v = (pi - inner_bottom_angle -
+                                   inner_top_angle) / segs_v
 
         inverted = self._inverted
         has_uvs = self._has_uvs
@@ -268,7 +269,8 @@ class SphereMaker(ModelMaker):
 
                 for i in range(segs_h + 1):
 
-                    angle_h = delta_angle_h * i + (0. if inverted else slice_radians)
+                    angle_h = delta_angle_h * i + (0. if inverted else
+                                                   slice_radians)
                     c = cos(angle_h)
                     s = sin(angle_h) * (-1. if inverted else 1.)
                     x = r * c
@@ -306,7 +308,8 @@ class SphereMaker(ModelMaker):
 
                     for j in range(segs_h + 1):
 
-                        angle_h = delta_angle_h * j + (0. if inverted else slice_radians)
+                        angle_h = delta_angle_h * j + (0. if inverted else
+                                                       slice_radians)
                         c = cos(angle_h)
                         s = sin(angle_h) * (-1. if inverted else 1.)
                         x = r * c
@@ -329,7 +332,11 @@ class SphereMaker(ModelMaker):
 
                             u = v = 0.
 
-                        vert = {"pos": (x, y, z), "normal": normal, "uv": (u, v)}
+                        vert = {
+                            "pos": (x, y, z),
+                            "normal": normal,
+                            "uv": (u, v)
+                        }
                         verts.append(vert)
 
                 # Define the vertex order of the bottom cap quads
@@ -341,8 +348,10 @@ class SphereMaker(ModelMaker):
                         vi2 = vi1 - segs_h - 1
                         vi3 = vi2 + 1
                         vi4 = vi1 + 1
-                        indices.extend((vi1, vi2, vi4) if inverted else (vi1, vi2, vi3))
-                        indices.extend((vi2, vi3, vi4) if inverted else (vi1, vi3, vi4))
+                        indices.extend((vi1, vi2,
+                                        vi4) if inverted else (vi1, vi2, vi3))
+                        indices.extend((vi2, vi3,
+                                        vi4) if inverted else (vi1, vi3, vi4))
 
                     index_offset += segs_h + 1
 
@@ -362,12 +371,14 @@ class SphereMaker(ModelMaker):
 
             for i in range(segs_h + 1):
 
-                angle_h = delta_angle_h * i + (0. if inverted else slice_radians)
+                angle_h = delta_angle_h * i + (0.
+                                               if inverted else slice_radians)
                 x = radius_h * cos(angle_h)
                 y = radius_h * sin(angle_h) * (-1. if inverted else 1.)
 
                 if smooth:
-                    normal = Vec3(x, y, z).normalized() * (-1. if inverted else 1.)
+                    normal = Vec3(x, y,
+                                  z).normalized() * (-1. if inverted else 1.)
 
                 if has_uvs:
                     u = i / segs_h
@@ -378,7 +389,11 @@ class SphereMaker(ModelMaker):
                 else:
                     u = 0.
 
-                vert = {"pos": (x, y, z), "normal": normal if smooth else None, "uv": (u, v)}
+                vert = {
+                    "pos": (x, y, z),
+                    "normal": normal if smooth else None,
+                    "uv": (u, v)
+                }
                 verts.append(vert)
 
                 if not smooth and 0 < i < segs_h:
@@ -405,7 +420,11 @@ class SphereMaker(ModelMaker):
                 else:
                     u = v = 0.
 
-                vert = {"pos": (0., 0., -radius), "normal": normal if smooth else None, "uv": (u, v)}
+                vert = {
+                    "pos": (0., 0., -radius),
+                    "normal": normal if smooth else None,
+                    "uv": (u, v)
+                }
                 verts.append(vert)
 
         vertex_count = len(verts)
@@ -442,7 +461,11 @@ class SphereMaker(ModelMaker):
             else:
                 u = 0.
 
-            vert = {"pos": (x, y, z), "normal": normal if smooth else None, "uv": (u, v)}
+            vert = {
+                "pos": (x, y, z),
+                "normal": normal if smooth else None,
+                "uv": (u, v)
+            }
             verts.append(vert)
 
             if not smooth and 0 < i < segs_h:
@@ -510,12 +533,14 @@ class SphereMaker(ModelMaker):
 
             for j in range(segs_h + 1):
 
-                angle_h = delta_angle_h * j + (0. if inverted else slice_radians)
+                angle_h = delta_angle_h * j + (0.
+                                               if inverted else slice_radians)
                 x = radius_h * cos(angle_h)
                 y = radius_h * sin(angle_h) * (-1. if inverted else 1.)
 
                 if smooth:
-                    normal = Vec3(x, y, z).normalized() * (-1. if inverted else 1.)
+                    normal = Vec3(x, y,
+                                  z).normalized() * (-1. if inverted else 1.)
 
                 if has_uvs:
                     u = j / segs_h
@@ -526,7 +551,11 @@ class SphereMaker(ModelMaker):
                 else:
                     u = 0.
 
-                vert = {"pos": (x, y, z), "normal": normal if smooth else None, "uv": (u, v)}
+                vert = {
+                    "pos": (x, y, z),
+                    "normal": normal if smooth else None,
+                    "uv": (u, v)
+                }
                 verts.append(vert)
 
                 if not smooth and 0 < j < segs_h:
@@ -542,8 +571,10 @@ class SphereMaker(ModelMaker):
                     vi2 = vi1 - n
                     vi3 = vi2 + 1
                     vi4 = vi1 + 1
-                    indices.extend((vi1, vi2, vi4) if inverted else (vi1, vi2, vi3))
-                    indices.extend((vi2, vi3, vi4) if inverted else (vi1, vi3, vi4))
+                    indices.extend((vi1, vi2, vi4) if inverted else (vi1, vi2,
+                                                                     vi3))
+                    indices.extend((vi2, vi3, vi4) if inverted else (vi1, vi3,
+                                                                     vi4))
 
                     if not smooth:
                         self._make_flat_shaded((vi1, vi2, vi3, vi4), verts)
@@ -570,12 +601,14 @@ class SphereMaker(ModelMaker):
 
             for i in range(segs_h + 1):
 
-                angle_h = delta_angle_h * i + (0. if inverted else slice_radians)
+                angle_h = delta_angle_h * i + (0.
+                                               if inverted else slice_radians)
                 x = radius_h * cos(angle_h)
                 y = radius_h * sin(angle_h) * (-1. if inverted else 1.)
 
                 if smooth:
-                    normal = Vec3(x, y, z).normalized() * (-1. if inverted else 1.)
+                    normal = Vec3(x, y,
+                                  z).normalized() * (-1. if inverted else 1.)
 
                 if has_uvs:
                     u = i / segs_h
@@ -586,7 +619,11 @@ class SphereMaker(ModelMaker):
                 else:
                     u = 0.
 
-                vert = {"pos": (x, y, z), "normal": normal if smooth else None, "uv": (u, v)}
+                vert = {
+                    "pos": (x, y, z),
+                    "normal": normal if smooth else None,
+                    "uv": (u, v)
+                }
                 verts.append(vert)
 
                 if not smooth and 0 < i < segs_h:
@@ -612,7 +649,11 @@ class SphereMaker(ModelMaker):
                 else:
                     u = v = 0.
 
-                vert = {"pos": (0., 0., radius), "normal": normal if smooth else None, "uv": (u, v)}
+                vert = {
+                    "pos": (0., 0., radius),
+                    "normal": normal if smooth else None,
+                    "uv": (u, v)
+                }
                 verts.append(vert)
 
         index_offset = len(verts) - 1
@@ -688,7 +729,8 @@ class SphereMaker(ModelMaker):
 
                 for i in range(segs_h + 1):
 
-                    angle_h = delta_angle_h * i + (0. if inverted else slice_radians)
+                    angle_h = delta_angle_h * i + (0. if inverted else
+                                                   slice_radians)
                     c = cos(angle_h)
                     s = sin(angle_h) * (-1. if inverted else 1.)
                     x = r * c
@@ -726,7 +768,8 @@ class SphereMaker(ModelMaker):
 
                     for j in range(segs_h + 1):
 
-                        angle_h = delta_angle_h * j + (0. if inverted else slice_radians)
+                        angle_h = delta_angle_h * j + (0. if inverted else
+                                                       slice_radians)
                         c = cos(angle_h)
                         s = sin(angle_h) * (-1. if inverted else 1.)
                         x = r * c
@@ -749,7 +792,11 @@ class SphereMaker(ModelMaker):
 
                             u = v = 0.
 
-                        vert = {"pos": (x, y, z), "normal": normal, "uv": (u, v)}
+                        vert = {
+                            "pos": (x, y, z),
+                            "normal": normal,
+                            "uv": (u, v)
+                        }
                         verts.append(vert)
 
                 # Define the vertex order of the top cap quads
@@ -763,8 +810,10 @@ class SphereMaker(ModelMaker):
                         vi2 = vi1 - segs_h - 1
                         vi3 = vi2 + 1
                         vi4 = vi1 + 1
-                        indices.extend((vi1, vi3, vi2) if inverted else (vi1, vi4, vi2))
-                        indices.extend((vi1, vi4, vi3) if inverted else (vi4, vi3, vi2))
+                        indices.extend((vi1, vi3,
+                                        vi2) if inverted else (vi1, vi4, vi2))
+                        indices.extend((vi1, vi4,
+                                        vi3) if inverted else (vi4, vi3, vi2))
 
                     index_offset += segs_h + 1
 
@@ -893,10 +942,12 @@ class SphereMaker(ModelMaker):
 
                         if has_uvs:
                             if cap_id == "start":
-                                u = .5 + .5 * pos.x / radius * (1. if inverted else -1.)
+                                u = .5 + .5 * pos.x / radius * (1. if inverted
+                                                                else -1.)
                             else:
                                 vec[2] = 0.
-                                u = .5 - .5 * vec.length() / radius * (1. if inverted else -1.)
+                                u = .5 - .5 * vec.length() / radius * (
+                                    1. if inverted else -1.)
                             v = .5 + .5 * pos.z / radius
                             if tex_size:
                                 u = (u - .5) * u_f + .5
@@ -981,10 +1032,12 @@ class SphereMaker(ModelMaker):
 
                         if has_uvs:
                             if cap_id == "start":
-                                u = .5 + .5 * pos.x / radius * (1. if inverted else -1.)
+                                u = .5 + .5 * pos.x / radius * (1. if inverted
+                                                                else -1.)
                             else:
                                 vec[2] = 0.
-                                u = .5 - .5 * vec.length() / radius * (1. if inverted else -1.)
+                                u = .5 - .5 * vec.length() / radius * (
+                                    1. if inverted else -1.)
                             v = .5 + .5 * pos.z / radius
                             if tex_size:
                                 u = (u - .5) * u_f + .5
@@ -1021,7 +1074,8 @@ class SphereMaker(ModelMaker):
 
                         # Define the vertex order of the slice cap triangles
 
-                        n = 0 + (1 if bottom_clip > -1. else 0) + (1 if top_clip < 1. else 0)
+                        n = 0 + (1 if bottom_clip > -1. else 0) + (1 if top_clip
+                                                                   < 1. else 0)
 
                         for j in range(segs_v + n):
 
@@ -1030,15 +1084,20 @@ class SphereMaker(ModelMaker):
                             vi3 = vi2 + 1
 
                             if cap_id == "start":
-                                indices.extend((vi1, vi2, vi3) if inverted else (vi1, vi3, vi2))
+                                indices.extend((vi1, vi2,
+                                                vi3) if inverted else (vi1, vi3,
+                                                                       vi2))
                             else:
-                                indices.extend((vi1, vi3, vi2) if inverted else (vi1, vi2, vi3))
+                                indices.extend((vi1, vi3,
+                                                vi2) if inverted else (vi1, vi2,
+                                                                       vi3))
 
                     else:
 
                         # Define the vertex order of the slice cap quads
 
-                        n = 0 + (1 if bottom_clip > -1. else 0) + (1 if top_clip < 1. else 0)
+                        n = 0 + (1 if bottom_clip > -1. else 0) + (1 if top_clip
+                                                                   < 1. else 0)
                         n += 0 if inner_radius else 1
 
                         for j in range(0 if inner_radius else 1, segs_v + n):
@@ -1049,13 +1108,22 @@ class SphereMaker(ModelMaker):
                             vi4 = vi1 + 1
 
                             if cap_id == "start":
-                                indices.extend((vi1, vi4, vi2) if inverted else (vi1, vi2, vi4))
-                                indices.extend((vi2, vi4, vi3) if inverted else (vi2, vi3, vi4))
+                                indices.extend((vi1, vi4,
+                                                vi2) if inverted else (vi1, vi2,
+                                                                       vi4))
+                                indices.extend((vi2, vi4,
+                                                vi3) if inverted else (vi2, vi3,
+                                                                       vi4))
                             else:
-                                indices.extend((vi1, vi2, vi4) if inverted else (vi1, vi4, vi2))
-                                indices.extend((vi2, vi3, vi4) if inverted else (vi2, vi4, vi3))
+                                indices.extend((vi1, vi2,
+                                                vi4) if inverted else (vi1, vi4,
+                                                                       vi2))
+                                indices.extend((vi2, vi3,
+                                                vi4) if inverted else (vi2, vi4,
+                                                                       vi3))
 
-                    n = 1 + (1 if bottom_clip > -1. else 0) + (1 if top_clip < 1. else 0)
+                    n = 1 + (1 if bottom_clip > -1. else 0) + (1 if top_clip
+                                                               < 1. else 0)
                     index_offset += segs_v + n
 
                 surface_name = "slice_{}_cap".format(cap_id)
@@ -1090,44 +1158,46 @@ class SphereMaker(ModelMaker):
             if tex_units:
                 for surface_name in surface_names:
                     if "inner_" + surface_name in tex_units:
-                        inner_tex_units[surface_name] = tex_units["inner_" + surface_name]
+                        inner_tex_units[surface_name] = tex_units["inner_" +
+                                                                  surface_name]
 
             inner_tex_offset = {} if tex_offset else None
 
             if tex_offset:
                 for surface_name in surface_names:
                     if "inner_" + surface_name in tex_offset:
-                        inner_tex_offset[surface_name] = tex_offset["inner_" + surface_name]
+                        inner_tex_offset[surface_name] = tex_offset[
+                            "inner_" + surface_name]
 
             inner_tex_rot = {} if tex_rotation else None
 
             if tex_rotation:
                 for surface_name in surface_names:
                     if "inner_" + surface_name in tex_rotation:
-                        inner_tex_rot[surface_name] = tex_rotation["inner_" + surface_name]
+                        inner_tex_rot[surface_name] = tex_rotation["inner_" +
+                                                                   surface_name]
 
             inner_tex_scale = {} if tex_scale else None
 
             if tex_scale:
                 for surface_name in surface_names:
                     if "inner_" + surface_name in tex_scale:
-                        inner_tex_scale[surface_name] = tex_scale["inner_" + surface_name]
+                        inner_tex_scale[surface_name] = tex_scale["inner_" +
+                                                                  surface_name]
 
-            model_maker = SphereMaker(
-                None,
-                inner_radius,
-                segs,
-                smooth,
-                inner_bottom_clip,
-                inner_top_clip,
-                slice,
-                inverted=not inverted,
-                has_uvs=has_uvs,
-                tex_units=inner_tex_units,
-                tex_offset=inner_tex_offset,
-                tex_rotation=inner_tex_rot,
-                tex_scale=inner_tex_scale
-            )
+            model_maker = SphereMaker(None,
+                                      inner_radius,
+                                      segs,
+                                      smooth,
+                                      inner_bottom_clip,
+                                      inner_top_clip,
+                                      slice,
+                                      inverted=not inverted,
+                                      has_uvs=has_uvs,
+                                      tex_units=inner_tex_units,
+                                      tex_offset=inner_tex_offset,
+                                      tex_rotation=inner_tex_rot,
+                                      tex_scale=inner_tex_scale)
             node = model_maker.generate()
 
             # Extend the geometry of the inner sphere with the data of the outer sphere
@@ -1171,7 +1241,8 @@ class SphereMaker(ModelMaker):
             tris_array.set_num_rows(new_row_count)
             memview = memoryview(tris_array).cast("B").cast(indices.typecode)
             memview[old_row_count:] = indices
-            tris_prim.offset_vertices(old_vert_count, old_row_count, new_row_count)
+            tris_prim.offset_vertices(old_vert_count, old_row_count,
+                                      new_row_count)
 
             inner_ranges = model_maker.vertex_ranges
 
@@ -1182,7 +1253,8 @@ class SphereMaker(ModelMaker):
                 if inner_range:
                     vert_ranges["inner_{}".format(surface_name)] = inner_range
 
-            for surface_name in ("main", "bottom_cap", "top_cap", "slice_start_cap", "slice_end_cap"):
+            for surface_name in ("main", "bottom_cap", "top_cap",
+                                 "slice_start_cap", "slice_end_cap"):
 
                 vert_range = vert_ranges[surface_name]
 
@@ -1199,7 +1271,8 @@ class SphereMaker(ModelMaker):
             else:
                 vertex_format = GeomVertexFormat.get_v3n3()
 
-            vertex_data = GeomVertexData("sphere_data", vertex_format, Geom.UH_static)
+            vertex_data = GeomVertexData("sphere_data", vertex_format,
+                                         Geom.UH_static)
             vertex_data.unclean_set_num_rows(len(verts))
             data_array = vertex_data.modify_array(0)
             memview = memoryview(data_array).cast("B").cast("f")

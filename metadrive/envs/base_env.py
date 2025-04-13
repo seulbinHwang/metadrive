@@ -26,6 +26,7 @@ from metadrive.obs.image_obs import ImageStateObservation
 from metadrive.obs.observation_base import BaseObservation
 from metadrive.obs.observation_base import DummyObservation
 from metadrive.obs.state_obs import LidarStateObservation
+from metadrive.obs.state_obs import StateObservation
 from metadrive.policy.env_input_policy import EnvInputPolicy
 from metadrive.scenario.utils import convert_recorded_scenario_exported
 from metadrive.utils import Config, merge_dicts, get_np_random, concat_step_infos
@@ -37,7 +38,9 @@ BASE_DEFAULT_CONFIG = dict(
     # Whether randomize the car model for the agent, randomly choosing from 4 types of cars
     random_agent_model=False,
     # The ego config is: env_config["vehicle_config"].update(env_config"[agent_configs"]["default_agent"])
-    agent_configs={DEFAULT_AGENT: dict(use_special_color=True, spawn_lane_index=None)},
+    agent_configs={
+        DEFAULT_AGENT: dict(use_special_color=True, spawn_lane_index=None)
+    },
 
     # ===== multi-agent =====
     # This should be >1 in MARL envs, or set to -1 for spawning as many vehicles as possible.
@@ -77,7 +80,7 @@ BASE_DEFAULT_CONFIG = dict(
     # Whether to use image observation or lidar. It takes effect in get_single_observation
     image_observation=False,
     # Like agent_policy, users can use customized observation class through this field
-    agent_observation=None,
+    agent_observation=StateObservation,
 
     # ===== Termination =====
     # The maximum length of each agent episode. Set to None to remove this constraint
@@ -166,11 +169,20 @@ BASE_DEFAULT_CONFIG = dict(
         top_down_length=None,
 
         # ===== vehicle module config =====
-        lidar=dict(
-            num_lasers=240, distance=50, num_others=0, gaussian_noise=0.0, dropout_prob=0.0, add_others_navi=False
-        ),
-        side_detector=dict(num_lasers=0, distance=50, gaussian_noise=0.0, dropout_prob=0.0),
-        lane_line_detector=dict(num_lasers=0, distance=20, gaussian_noise=0.0, dropout_prob=0.0),
+        lidar=dict(num_lasers=240,
+                   distance=50,
+                   num_others=0,
+                   gaussian_noise=0.0,
+                   dropout_prob=0.0,
+                   add_others_navi=False),
+        side_detector=dict(num_lasers=0,
+                           distance=50,
+                           gaussian_noise=0.0,
+                           dropout_prob=0.0),
+        lane_line_detector=dict(num_lasers=0,
+                                distance=20,
+                                gaussian_noise=0.0,
+                                dropout_prob=0.0),
         show_lidar=False,
         show_side_detector=False,
         show_lane_line_detector=False,
@@ -179,7 +191,9 @@ BASE_DEFAULT_CONFIG = dict(
     ),
 
     # ===== Sensors =====
-    sensors=dict(lidar=(Lidar, ), side_detector=(SideDetector, ), lane_line_detector=(LaneLineDetector, )),
+    sensors=dict(lidar=(Lidar,),
+                 side_detector=(SideDetector,),
+                 lane_line_detector=(LaneLineDetector,)),
 
     # ===== Engine Core config =====
     # If true pop a window to render
@@ -203,7 +217,8 @@ BASE_DEFAULT_CONFIG = dict(
     # Turn on it to use render pipeline, which provides advanced rendering effects (Beta)
     render_pipeline=False,
     # daytime is only available when using render-pipeline
-    daytime="19:00",  # use string like "13:40", We usually set this by editor in toolkit
+    daytime=
+    "19:00",  # use string like "13:40", We usually set this by editor in toolkit
     # Shadow range, unit: [m]
     shadow_range=50,
     # Whether to use multi-thread rendering
@@ -239,9 +254,11 @@ BASE_DEFAULT_CONFIG = dict(
     pstats=False,  # turn on to profile the efficiency
     debug=False,  # debug, output more messages
     debug_panda3d=False,  # debug panda3d
-    debug_physics_world=False,  # only render physics world without model, a special debug option
+    debug_physics_world=
+    False,  # only render physics world without model, a special debug option
     debug_static_world=False,  # debug static world
-    log_level=logging.INFO,  # log level. logging.DEBUG/logging.CRITICAL or so on
+    log_level=logging.
+    INFO,  # log level. logging.DEBUG/logging.CRITICAL or so on
     show_coordinates=False,  # show coordinates for maps and objects for debug
 
     # ===== GUI =====
@@ -289,8 +306,12 @@ class BaseEnv(gym.Env):
         if config is None:
             config = {}
         self.logger = get_logger()
-        set_log_level(config.get("log_level", logging.DEBUG if config.get("debug", False) else logging.INFO))
-        merged_config = self.default_config().update(config, False, ["agent_configs", "sensors"])
+        set_log_level(
+            config.get(
+                "log_level",
+                logging.DEBUG if config.get("debug", False) else logging.INFO))
+        merged_config = self.default_config().update(
+            config, False, ["agent_configs", "sensors"])
         global_config = self._post_process_config(merged_config)
 
         self.config = global_config
@@ -302,8 +323,10 @@ class BaseEnv(gym.Env):
         if not self.is_multi_agent:
             assert self.num_agents == 1
         else:
-            assert not self.config["image_on_cuda"], "Image on cuda don't support Multi-agent!"
-        assert isinstance(self.num_agents, int) and (self.num_agents > 0 or self.num_agents == -1)
+            assert not self.config[
+                "image_on_cuda"], "Image on cuda don't support Multi-agent!"
+        assert isinstance(self.num_agents, int) and (self.num_agents > 0 or
+                                                     self.num_agents == -1)
 
         # observation and action space
         self.agent_manager = self._get_agent_manager()
@@ -331,7 +354,9 @@ class BaseEnv(gym.Env):
 
         # Adjust terrain
         n = config["map_region_size"]
-        assert (n & (n - 1)) == 0 and 512 <= n <= 4096, "map_region_size should be pow of 2 and < 2048."
+        assert (
+            n & (n - 1)
+        ) == 0 and 512 <= n <= 4096, "map_region_size should be pow of 2 and < 2048."
         TerrainProperty.map_region_size = config["map_region_size"]
 
         # Multi-Thread
@@ -343,27 +368,32 @@ class BaseEnv(gym.Env):
         if not config["use_render"] and not config["image_observation"]:
             filtered = {}
             for id, cfg in config["sensors"].items():
-                if len(cfg) > 0 and not issubclass(cfg[0], BaseCamera) and id != "main_camera":
+                if len(cfg) > 0 and not issubclass(
+                        cfg[0], BaseCamera) and id != "main_camera":
                     filtered[id] = cfg
             config["sensors"] = filtered
             config["interface_panel"] = []
 
         # Check sensor existence
         if config["use_render"] or "main_camera" in config["sensors"]:
-            config["sensors"]["main_camera"] = ("MainCamera", *config["window_size"])
+            config["sensors"]["main_camera"] = ("MainCamera",
+                                                *config["window_size"])
 
         # Merge dashboard config with sensors
         to_use = []
-        if not config["render_pipeline"] and config["show_interface"] and "main_camera" in config["sensors"]:
+        if not config["render_pipeline"] and config[
+                "show_interface"] and "main_camera" in config["sensors"]:
             for panel in config["interface_panel"]:
                 if panel == "dashboard":
-                    config["sensors"]["dashboard"] = (DashBoard, )
+                    config["sensors"]["dashboard"] = (DashBoard,)
                 if panel not in config["sensors"]:
                     self.logger.warning(
-                        "Fail to add sensor: {} to the interface. Remove it from panel list!".format(panel)
-                    )
+                        "Fail to add sensor: {} to the interface. Remove it from panel list!"
+                        .format(panel))
                 elif panel == "main_camera":
-                    self.logger.warning("main_camera can not be added to interface_panel, remove")
+                    self.logger.warning(
+                        "main_camera can not be added to interface_panel, remove"
+                    )
                 else:
                     to_use.append(panel)
         config["interface_panel"] = to_use
@@ -376,7 +406,9 @@ class BaseEnv(gym.Env):
         _str = "Sensors: [{}]"
         sensors_str = ""
         for _id, cfg in config["sensors"].items():
-            sensors_str += "{}: {}{}, ".format(_id, cfg[0] if isinstance(cfg[0], str) else cfg[0].__name__, cfg[1:])
+            sensors_str += "{}: {}{}, ".format(
+                _id, cfg[0] if isinstance(cfg[0], str) else cfg[0].__name__,
+                cfg[1:])
         self.logger.info(_str.format(sensors_str[:-2]))
 
         # determine render mode automatically
@@ -386,16 +418,17 @@ class BaseEnv(gym.Env):
         else:
             config["_render_mode"] = RENDER_MODE_NONE
             for sensor in config["sensors"].values():
-                if sensor[0] == "MainCamera" or (issubclass(sensor[0], BaseCamera) and sensor[0] != DashBoard):
+                if sensor[0] == "MainCamera" or (issubclass(
+                        sensor[0], BaseCamera) and sensor[0] != DashBoard):
                     config["_render_mode"] = RENDER_MODE_OFFSCREEN
                     break
         self.logger.info("Render Mode: {}".format(config["_render_mode"]))
-        self.logger.info("Horizon (Max steps per agent): {}".format(config["horizon"]))
+        self.logger.info("Horizon (Max steps per agent): {}".format(
+            config["horizon"]))
         if config["truncate_as_terminate"]:
             self.logger.warning(
                 "When reaching max steps, both 'terminate' and 'truncate will be True."
-                "Generally, only the `truncate` should be `True`."
-            )
+                "Generally, only the `truncate` should be `True`.")
         return config
 
     def _get_observations(self) -> Dict[str, "BaseObservation"]:
@@ -417,11 +450,9 @@ class BaseEnv(gym.Env):
         self.setup_engine()
         # other optional initialization
         self._after_lazy_init()
-        self.logger.info(
-            "Start Scenario Index: {}, Num Scenarios : {}".format(
-                self.engine.gets_start_index(self.config), self.config.get("num_scenarios", 1)
-            )
-        )
+        self.logger.info("Start Scenario Index: {}, Num Scenarios : {}".format(
+            self.engine.gets_start_index(self.config),
+            self.config.get("num_scenarios", 1)))
 
     @property
     def engine(self):
@@ -432,12 +463,16 @@ class BaseEnv(gym.Env):
         pass
 
     # ===== Run-time =====
-    def step(self, actions: Union[Union[np.ndarray, list], Dict[AnyStr, Union[list, np.ndarray]], int]):
-        actions = self._preprocess_actions(actions)  # preprocess environment input
+    def step(self, actions: Union[Union[np.ndarray, list],
+                                  Dict[AnyStr, Union[list, np.ndarray]], int]):
+        actions = self._preprocess_actions(
+            actions)  # preprocess environment input
         engine_info = self._step_simulator(actions)  # step the simulation
         while self.in_stop:
             self.engine.taskMgr.step()  # pause simulation
-        return self._get_step_return(actions, engine_info=engine_info)  # collect observation, reward, termination
+        return self._get_step_return(
+            actions,
+            engine_info=engine_info)  # collect observation, reward, termination
 
     def _preprocess_actions(self, actions: Union[np.ndarray, Dict[AnyStr, np.ndarray], int]) \
             -> Union[np.ndarray, Dict[AnyStr, np.ndarray], int]:
@@ -449,8 +484,7 @@ class BaseEnv(gym.Env):
                 given_keys = set(actions.keys())
                 have_keys = set(self.agents.keys())
                 assert given_keys == have_keys, "The input actions: {} have incompatible keys with existing {}!".format(
-                    given_keys, have_keys
-                )
+                    given_keys, have_keys)
             else:
                 # That would be OK if extra actions is given. This is because, when evaluate a policy with naive
                 # implementation, the "termination observation" will still be given in T=t-1. And at T=t, when you
@@ -468,9 +502,10 @@ class BaseEnv(gym.Env):
         scene_manager_after_step_infos = self.engine.after_step()
 
         # Note that we use shallow update for info dict in this function! This will accelerate system.
-        return merge_dicts(
-            scene_manager_after_step_infos, scene_manager_before_step_infos, allow_new_keys=True, without_copy=True
-        )
+        return merge_dicts(scene_manager_after_step_infos,
+                           scene_manager_before_step_infos,
+                           allow_new_keys=True,
+                           without_copy=True)
 
     def reward_function(self, object_id: str) -> Tuple[float, Dict]:
         """
@@ -478,18 +513,27 @@ class BaseEnv(gym.Env):
         :param object_id: name of this object
         :return: reward, reward info
         """
-        self.logger.warning("Reward function is not implemented. Return reward = 0", extra={"log_once": True})
+        self.logger.warning(
+            "Reward function is not implemented. Return reward = 0",
+            extra={"log_once": True})
         return 0, {}
 
     def cost_function(self, object_id: str) -> Tuple[float, Dict]:
-        self.logger.warning("Cost function is not implemented. Return cost = 0", extra={"log_once": True})
+        self.logger.warning("Cost function is not implemented. Return cost = 0",
+                            extra={"log_once": True})
         return 0, {}
 
     def done_function(self, object_id: str) -> Tuple[bool, Dict]:
-        self.logger.warning("Done function is not implemented. Return Done = False", extra={"log_once": True})
+        self.logger.warning(
+            "Done function is not implemented. Return Done = False",
+            extra={"log_once": True})
         return False, {}
 
-    def render(self, text: Optional[Union[dict, str]] = None, mode=None, *args, **kwargs) -> Optional[np.ndarray]:
+    def render(self,
+               text: Optional[Union[dict, str]] = None,
+               mode=None,
+               *args,
+               **kwargs) -> Optional[np.ndarray]:
         """
         This is a pseudo-render function, only used to update onscreen message when using panda3d backend
         :param text: text to show
@@ -505,8 +549,7 @@ class BaseEnv(gym.Env):
         else:
             self.logger.warning(
                 "Panda Rendering is off now, can not render. Please set config['use_render'] = True!",
-                exc_info={"log_once": True}
-            )
+                exc_info={"log_once": True})
         return None
 
     def reset(self, seed: Union[None, int] = None):
@@ -518,17 +561,19 @@ class BaseEnv(gym.Env):
         """
         if self.logger is None:
             self.logger = get_logger()
-            log_level = self.config.get("log_level", logging.DEBUG if self.config.get("debug", False) else logging.INFO)
+            log_level = self.config.get(
+                "log_level", logging.DEBUG
+                if self.config.get("debug", False) else logging.INFO)
             set_log_level(log_level)
-        self.lazy_init()  # it only works the first time when reset() is called to avoid the error when render
+        self.lazy_init(
+        )  # it only works the first time when reset() is called to avoid the error when render
         self._reset_global_seed(seed)
         if self.engine is None:
             raise ValueError(
                 "Current MetaDrive instance is broken. Please make sure there is only one active MetaDrive "
                 "environment exists in one process. You can try to call env.close() and then call "
                 "env.reset() to rescue this environment. However, a better and safer solution is to check the "
-                "singleton of MetaDrive and restart your program."
-            )
+                "singleton of MetaDrive and restart your program.")
         reset_info = self.engine.reset()
         self.reset_sensors()
         # render the scene
@@ -543,7 +588,8 @@ class BaseEnv(gym.Env):
 
         assert (len(self.agents) == self.num_agents) or (self.num_agents == -1), \
             "Agents: {} != Num_agents: {}".format(len(self.agents), self.num_agents)
-        assert self.config is self.engine.global_config is get_global_config(), "Inconsistent config may bring errors!"
+        assert self.config is self.engine.global_config is get_global_config(
+        ), "Inconsistent config may bring errors!"
         return self._get_reset_return(reset_info)
 
     def reset_sensors(self):
@@ -555,21 +601,37 @@ class BaseEnv(gym.Env):
         if self.main_camera is not None:
             self.main_camera.reset()
             if hasattr(self, "agent_manager"):
-                bev_cam = self.main_camera.is_bird_view_camera() and self.main_camera.current_track_agent is not None
+                bev_cam = self.main_camera.is_bird_view_camera(
+                ) and self.main_camera.current_track_agent is not None
                 agents = list(self.engine.agents.values())
                 current_track_agent = agents[0]
-                self.main_camera.set_follow_lane(self.config["use_chase_camera_follow_lane"])
+                self.main_camera.set_follow_lane(
+                    self.config["use_chase_camera_follow_lane"])
                 self.main_camera.track(current_track_agent)
                 if bev_cam:
                     self.main_camera.stop_track()
-                    self.main_camera.set_bird_view_pos_hpr(current_track_agent.position)
+                    self.main_camera.set_bird_view_pos_hpr(
+                        current_track_agent.position)
                 for name, sensor in self.engine.sensors.items():
                     if hasattr(sensor, "track") and name != "main_camera":
-                        sensor.track(current_track_agent.origin, DEFAULT_SENSOR_OFFSET, DEFAULT_SENSOR_HPR)
+                        sensor.track(current_track_agent.origin,
+                                     DEFAULT_SENSOR_OFFSET, DEFAULT_SENSOR_HPR)
         # Step the env to avoid the black screen in the first frame.
         self.engine.taskMgr.step()
 
     def _get_reset_return(self, reset_info):
+        """
+        type(reset_info):  <class 'dict'>
+        self.observations:
+{'default_agent':
+    <metadrive.obs.state_obs.LidarStateObservation object at 0x78f6cba59f70>
+}
+self.agents: Dict[str, Vehicle]
+    key:  default_agent
+    value:  DefaultVehicle, ID:db2d6fe4-86e2-48fc-8492-93ccffa7c1b1
+
+        """
+        print("type(reset_info): ", type(reset_info))
         # TODO: figure out how to get the information of the before step
         scene_manager_before_step_infos = reset_info
         scene_manager_after_step_infos = self.engine.after_step()
@@ -578,22 +640,24 @@ class BaseEnv(gym.Env):
         done_infos = {}
         cost_infos = {}
         reward_infos = {}
-        engine_info = merge_dicts(
-            scene_manager_after_step_infos, scene_manager_before_step_infos, allow_new_keys=True, without_copy=True
-        )
+        engine_info = merge_dicts(scene_manager_after_step_infos,
+                                  scene_manager_before_step_infos,
+                                  allow_new_keys=True,
+                                  without_copy=True)
         for v_id, v in self.agents.items():
             self.observations[v_id].reset(self, v)
             obses[v_id] = self.observations[v_id].observe(v)
             _, reward_infos[v_id] = self.reward_function(v_id)
             _, done_infos[v_id] = self.done_function(v_id)
             _, cost_infos[v_id] = self.cost_function(v_id)
-
-        step_infos = concat_step_infos([engine_info, done_infos, reward_infos, cost_infos])
+        step_infos = concat_step_infos(
+            [engine_info, done_infos, reward_infos, cost_infos])
 
         if self.is_multi_agent:
             return obses, step_infos
         else:
-            return self._wrap_as_single_agent(obses), self._wrap_info_as_single_agent(step_infos)
+            return self._wrap_as_single_agent(
+                obses), self._wrap_info_as_single_agent(step_infos)
 
     def _wrap_info_as_single_agent(self, data):
         """
@@ -620,12 +684,17 @@ class BaseEnv(gym.Env):
             o = self.observations[v_id].observe(v)
             obses[v_id] = o
 
-        step_infos = concat_step_infos([engine_info, done_infos, reward_infos, cost_infos])
-        truncateds = {k: step_infos[k].get(TerminationState.MAX_STEP, False) for k in self.agents.keys()}
+        step_infos = concat_step_infos(
+            [engine_info, done_infos, reward_infos, cost_infos])
+        truncateds = {
+            k: step_infos[k].get(TerminationState.MAX_STEP, False)
+            for k in self.agents.keys()
+        }
         terminateds = {k: self.dones[k] for k in self.agents.keys()}
 
         # For extreme scenario only. Force to terminate all agents if the environmental step exceeds 5 times horizon.
-        if self.config["horizon"] and self.episode_step > 5 * self.config["horizon"]:
+        if self.config[
+                "horizon"] and self.episode_step > 5 * self.config["horizon"]:
             for k in truncateds:
                 truncateds[k] = True
                 if self.config["truncate_as_terminate"]:
@@ -657,7 +726,8 @@ class BaseEnv(gym.Env):
             self._capture_img = PNMImage()
         self.engine.win.getScreenshot(self._capture_img)
         if file_name is None:
-            file_name = "main_index_{}_step_{}_{}.png".format(self.current_seed, self.engine.episode_step, time.time())
+            file_name = "main_index_{}_step_{}_{}.png".format(
+                self.current_seed, self.engine.episode_step, time.time())
         self._capture_img.write(file_name)
         self.logger.info("Image is saved at: {}".format(file_name))
 
@@ -675,7 +745,9 @@ class BaseEnv(gym.Env):
                 o = self.config["agent_observation"](self.config)
             else:
                 img_obs = self.config["image_observation"]
-                o = ImageStateObservation(self.config) if img_obs else LidarStateObservation(self.config)
+                o = ImageStateObservation(
+                    self.config) if img_obs else LidarStateObservation(
+                        self.config)
         return o
 
     def _wrap_as_single_agent(self, data):
@@ -732,12 +804,16 @@ class BaseEnv(gym.Env):
         Return all active vehicles
         :return: Dict[agent_id:vehicle]
         """
-        self.logger.warning("env.vehicles will be deprecated soon. Use env.agents instead", extra={"log_once": True})
+        self.logger.warning(
+            "env.vehicles will be deprecated soon. Use env.agents instead",
+            extra={"log_once": True})
         return self.agents
 
     @property
     def vehicle(self):
-        self.logger.warning("env.vehicle will be deprecated soon. Use env.agent instead", extra={"log_once": True})
+        self.logger.warning(
+            "env.vehicle will be deprecated soon. Use env.agent instead",
+            extra={"log_once": True})
         return self.agent
 
     @property
@@ -753,8 +829,8 @@ class BaseEnv(gym.Env):
         """A helper to return the agent only in the single-agent environment!"""
         assert len(self.agents) == 1, (
             "env.agent is only supported in single-agent environment!"
-            if len(self.agents) > 1 else "Please initialize the environment first!"
-        )
+            if len(self.agents) > 1 else
+            "Please initialize the environment first!")
         return self.agents[DEFAULT_AGENT]
 
     @property
@@ -809,20 +885,19 @@ class BaseEnv(gym.Env):
     def episode_step(self):
         return self.engine.episode_step if self.engine is not None else 0
 
-    def export_scenarios(
-        self,
-        policies: Union[dict, Callable],
-        scenario_index: Union[list, int],
-        max_episode_length=None,
-        verbose=False,
-        suppress_warning=False,
-        render_topdown=False,
-        return_done_info=True,
-        to_dict=True
-    ):
+    def export_scenarios(self,
+                         policies: Union[dict, Callable],
+                         scenario_index: Union[list, int],
+                         max_episode_length=None,
+                         verbose=False,
+                         suppress_warning=False,
+                         render_topdown=False,
+                         return_done_info=True,
+                         to_dict=True):
         """
         We export scenarios into a unified format with 10hz sample rate
         """
+
         def _act(observation):
             if isinstance(policies, dict):
                 ret = {}
@@ -833,7 +908,9 @@ class BaseEnv(gym.Env):
             return ret
 
         if self.is_multi_agent:
-            assert isinstance(policies, dict), "In MARL setting, policies should be mapped to agents according to id"
+            assert isinstance(
+                policies, dict
+            ), "In MARL setting, policies should be mapped to agents according to id"
         else:
             assert isinstance(policies, Callable), "In single agent case, policy should be a callable object, taking" \
                                                    "observation as input."
@@ -857,14 +934,15 @@ class BaseEnv(gym.Env):
                 if count > 10000 and not suppress_warning:
                     self.logger.warning(
                         "Episode length is too long! If this behavior is intended, "
-                        "set suppress_warning=True to disable this message"
-                    )
+                        "set suppress_warning=True to disable this message")
                 if render_topdown:
                     self.render("topdown")
             episode = self.engine.dump_episode()
             if verbose:
-                self.logger.info("Finish scenario {} with {} steps.".format(index, count))
-            scenarios_to_export[index] = convert_recorded_scenario_exported(episode, to_dict=to_dict)
+                self.logger.info("Finish scenario {} with {} steps.".format(
+                    index, count))
+            scenarios_to_export[index] = convert_recorded_scenario_exported(
+                episode, to_dict=to_dict)
             done_info[index] = info
         self.config["record_episode"] = False
         if return_done_info:
@@ -882,7 +960,8 @@ class BaseEnv(gym.Env):
         if self.main_camera is None:
             return
         self.main_camera.reset()
-        if self.config["prefer_track_agent"] is not None and self.config["prefer_track_agent"] in self.agents.keys():
+        if self.config["prefer_track_agent"] is not None and self.config[
+                "prefer_track_agent"] in self.agents.keys():
             new_v = self.agents[self.config["prefer_track_agent"]]
             current_track_agent = new_v
         else:
@@ -899,7 +978,9 @@ class BaseEnv(gym.Env):
         self.main_camera.track(current_track_agent)
         for name, sensor in self.engine.sensors.items():
             if hasattr(sensor, "track") and name != "main_camera":
-                sensor.track(current_track_agent.origin, constants.DEFAULT_SENSOR_OFFSET, DEFAULT_SENSOR_HPR)
+                sensor.track(current_track_agent.origin,
+                             constants.DEFAULT_SENSOR_OFFSET,
+                             DEFAULT_SENSOR_HPR)
         return
 
     def next_seed_reset(self):
@@ -908,8 +989,9 @@ class BaseEnv(gym.Env):
         else:
             self.logger.warning(
                 "Can't load next scenario! Current seed is already the max scenario index."
-                "Allowed index: {}-{}".format(self.start_index, self.start_index + self.num_scenarios - 1)
-            )
+                "Allowed index: {}-{}".format(
+                    self.start_index,
+                    self.start_index + self.num_scenarios - 1))
 
     def last_seed_reset(self):
         if self.current_seed - 1 >= self.start_index:
@@ -917,8 +999,9 @@ class BaseEnv(gym.Env):
         else:
             self.logger.warning(
                 "Can't load last scenario! Current seed is already the min scenario index"
-                "Allowed index: {}-{}".format(self.start_index, self.start_index + self.num_scenarios - 1)
-            )
+                "Allowed index: {}-{}".format(
+                    self.start_index,
+                    self.start_index + self.num_scenarios - 1))
 
     def _reset_global_seed(self, force_seed=None):
         current_seed = force_seed if force_seed is not None else \

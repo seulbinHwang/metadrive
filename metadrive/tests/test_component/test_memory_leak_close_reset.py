@@ -16,7 +16,9 @@ def test_close_and_restart():
             memory = process_memory(to_mb=True)
             if m == start:
                 start_memory = memory
-        assert (memory - start_memory) / (m - start) < 0.4, "Memory leak per close-reset should be less than 0.4 mb"
+        assert (memory - start_memory) / (
+            m - start
+        ) < 0.4, "Memory leak per close-reset should be less than 0.4 mb"
     finally:
         if "env" in locals():
             env = locals()["env"]
@@ -37,13 +39,20 @@ def test_close_and_restart_metadrive_env():
                 "R",
                 "r",
         ] * 20):
-            env = MetaDriveEnv({"map": m, "use_render": False, "log_level": 50, "traffic_density": 0})
+            env = MetaDriveEnv({
+                "map": m,
+                "use_render": False,
+                "log_level": 50,
+                "traffic_density": 0
+            })
             o, _ = env.reset()
             env.close()
             memory = process_memory(to_mb=True)
             if idx == start:
                 start_memory = memory
-        assert (memory - start_memory) / (idx - start) < 0.4, "Memory leak per close-reset should be less than 0.4 mb"
+        assert (memory - start_memory) / (
+            idx - start
+        ) < 0.4, "Memory leak per close-reset should be less than 0.4 mb"
     finally:
         if "env" in locals():
             env = locals()["env"]

@@ -28,15 +28,14 @@ class Vehicle:
     """ Range for random initial speeds [m/s] """
     MAX_SPEED = 40.
     """ Maximum reachable speed [m/s] """
-    def __init__(
-        self,
-        traffic_mgr: PGTrafficManager,
-        position: List,
-        heading: float = 0,
-        speed: float = 0,
-        np_random: np.random.RandomState = None,
-        name: str = None
-    ):
+
+    def __init__(self,
+                 traffic_mgr: PGTrafficManager,
+                 position: List,
+                 heading: float = 0,
+                 speed: float = 0,
+                 np_random: np.random.RandomState = None,
+                 name: str = None):
         raise DeprecationWarning("We don't use kinematics from highway now")
         deprecation_warning("Vehicle", "Policy Class", error=False)
 
@@ -87,14 +86,12 @@ class Vehicle:
     #     return cls(traffic_manager, lane.position(longitudinal, 0), lane.heading_at(longitudinal), speed)
 
     @classmethod
-    def create_random(
-        cls,
-        traffic_mgr: PGTrafficManager,
-        lane: AbstractLane,
-        longitude: float,
-        speed: float = None,
-        random_seed=None
-    ):
+    def create_random(cls,
+                      traffic_mgr: PGTrafficManager,
+                      lane: AbstractLane,
+                      longitude: float,
+                      speed: float = None,
+                      random_seed=None):
         """
         Create a random vehicle on the road.
 
@@ -108,7 +105,8 @@ class Vehicle:
         :return: A vehicle with random position and/or speed
         """
         if speed is None:
-            speed = traffic_mgr.np_random.uniform(Vehicle.DEFAULT_SPEEDS[0], Vehicle.DEFAULT_SPEEDS[1])
+            speed = traffic_mgr.np_random.uniform(Vehicle.DEFAULT_SPEEDS[0],
+                                                  Vehicle.DEFAULT_SPEEDS[1])
         v = cls(
             traffic_mgr,
             list(lane.position(longitude, 0)),
@@ -129,7 +127,8 @@ class Vehicle:
         :param vehicle: a vehicle
         :return: a new vehicle at the same dynamical state
         """
-        v = cls(vehicle.traffic_mgr, vehicle.position, vehicle.heading, vehicle.speed)
+        v = cls(vehicle.traffic_mgr, vehicle.position, vehicle.heading,
+                vehicle.speed)
         return v
 
     # def act(self, action: Union[dict, str] = None) -> None:
@@ -151,7 +150,9 @@ class Vehicle:
         action = self.clip_actions(action)
         delta_f = action['steering']
         beta = np.arctan(1 / 2 * np.tan(delta_f))
-        v = self.speed * np.array([math.cos(self.heading + beta), math.sin(self.heading + beta)])
+        v = self.speed * np.array(
+            [math.cos(self.heading + beta),
+             math.sin(self.heading + beta)])
 
         self._position += v * dt
 
@@ -167,9 +168,11 @@ class Vehicle:
         action['steering'] = float(action['steering'])
         action['acceleration'] = float(action['acceleration'])
         if self.speed > self.MAX_SPEED:
-            action['acceleration'] = min(action['acceleration'], 1.0 * (self.MAX_SPEED - self.speed))
+            action['acceleration'] = min(action['acceleration'],
+                                         1.0 * (self.MAX_SPEED - self.speed))
         elif self.speed < -self.MAX_SPEED:
-            action['acceleration'] = max(action['acceleration'], 1.0 * (self.MAX_SPEED - self.speed))
+            action['acceleration'] = max(action['acceleration'],
+                                         1.0 * (self.MAX_SPEED - self.speed))
         return action
 
     @property
@@ -244,7 +247,8 @@ class Vehicle:
     # @property
     def destination(self) -> np.ndarray:
         if getattr(self, "route", None):
-            last_lane = self.traffic_mgr.current_map.road_network.get_lane(self.route[-1])
+            last_lane = self.traffic_mgr.current_map.road_network.get_lane(
+                self.route[-1])
             return last_lane.position(last_lane.length, 0)
         else:
             return self.position
@@ -265,7 +269,9 @@ class Vehicle:
     # def front_distance_to(self, other: "Vehicle") -> float:
     #     return self.direction.dot(other.position - self.position)
 
-    def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:
+    def to_dict(self,
+                origin_vehicle: "Vehicle" = None,
+                observe_intentions: bool = True) -> dict:
         d = {
             'presence': 1,
             'x': self.position[0],
@@ -299,7 +305,8 @@ class Vehicle:
         self.np_random = None
 
     def __str__(self):
-        return "{} #{}: {}".format(self.__class__.__name__, id(self) % 1000, self.position)
+        return "{} #{}: {}".format(self.__class__.__name__,
+                                   id(self) % 1000, self.position)
 
     def __repr__(self):
         return self.__str__()

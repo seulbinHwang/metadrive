@@ -12,16 +12,23 @@ from metadrive.utils.math import resample_polyline, get_polyline_length
 
 
 class ScenarioMap(BaseMap):
-    def __init__(self, map_index, map_data, random_seed=None, need_lane_localization=False):
+
+    def __init__(self,
+                 map_index,
+                 map_data,
+                 random_seed=None,
+                 need_lane_localization=False):
         self.map_index = map_index
         self.map_data = map_data
         self.need_lane_localization = need_lane_localization or self.engine.global_config.get(
-            "need_lane_localization", False
-        )
-        super(ScenarioMap, self).__init__(dict(id=self.map_index), random_seed=random_seed)
+            "need_lane_localization", False)
+        super(ScenarioMap, self).__init__(dict(id=self.map_index),
+                                          random_seed=random_seed)
 
     def show_coordinates(self):
-        lanes = [lane_info.lane for lane_info in self.road_network.graph.values()]
+        lanes = [
+            lane_info.lane for lane_info in self.road_network.graph.values()
+        ]
         self._show_coordinates(lanes)
 
     def _generate(self):
@@ -31,11 +38,12 @@ class ScenarioMap(BaseMap):
             random_seed=0,
             map_index=self.map_index,
             map_data=self.map_data,
-            need_lane_localization=self.need_lane_localization
-        )
+            need_lane_localization=self.need_lane_localization)
         self.crosswalks = block.crosswalks
         self.sidewalks = block.sidewalks
-        block.construct_block(self.engine.worldNP, self.engine.physics_world, attach_to_world=True)
+        block.construct_block(self.engine.worldNP,
+                              self.engine.physics_world,
+                              attach_to_world=True)
         self.blocks.append(block)
 
     def play(self):
@@ -71,24 +79,35 @@ class ScenarioMap(BaseMap):
                     continue
                 line = np.asarray(data[ScenarioDescription.POLYLINE])[..., :2]
                 length = get_polyline_length(line)
-                resampled = resample_polyline(line, interval) if length > interval * 2 else line
+                resampled = resample_polyline(
+                    line, interval) if length > interval * 2 else line
                 if MetaDriveType.is_broken_line(type):
                     ret[map_feat_id] = {
-                        "type": MetaDriveType.LINE_BROKEN_SINGLE_YELLOW
-                        if MetaDriveType.is_yellow_line(type) else MetaDriveType.LINE_BROKEN_SINGLE_WHITE,
-                        "polyline": resampled
+                        "type":
+                            MetaDriveType.LINE_BROKEN_SINGLE_YELLOW
+                            if MetaDriveType.is_yellow_line(type) else
+                            MetaDriveType.LINE_BROKEN_SINGLE_WHITE,
+                        "polyline":
+                            resampled
                     }
                 else:
                     ret[map_feat_id] = {
-                        "polyline": resampled,
-                        "type": MetaDriveType.LINE_SOLID_SINGLE_YELLOW
-                        if MetaDriveType.is_yellow_line(type) else MetaDriveType.LINE_SOLID_SINGLE_WHITE
+                        "polyline":
+                            resampled,
+                        "type":
+                            MetaDriveType.LINE_SOLID_SINGLE_YELLOW
+                            if MetaDriveType.is_yellow_line(type) else
+                            MetaDriveType.LINE_SOLID_SINGLE_WHITE
                     }
             elif MetaDriveType.is_road_boundary_line(type):
                 line = np.asarray(data[ScenarioDescription.POLYLINE])[..., :2]
                 length = get_polyline_length(line)
-                resampled = resample_polyline(line, interval) if length > interval * 2 else line
-                ret[map_feat_id] = {"polyline": resampled, "type": MetaDriveType.BOUNDARY_LINE}
+                resampled = resample_polyline(
+                    line, interval) if length > interval * 2 else line
+                ret[map_feat_id] = {
+                    "polyline": resampled,
+                    "type": MetaDriveType.BOUNDARY_LINE
+                }
             elif MetaDriveType.is_lane(type):
                 continue
             # else:
@@ -155,14 +174,16 @@ if __name__ == "__main__":
     default_config["use_render"] = True
     default_config["debug"] = True
     default_config["debug_static_world"] = True
-    default_config["data_directory"] = AssetLoader.file_path("waymo", unix_style=False)
+    default_config["data_directory"] = AssetLoader.file_path("waymo",
+                                                             unix_style=False)
     # default_config["data_directory"] = AssetLoader.file_path("nuscenes", unix_style=False)
     # default_config["data_directory"] = "/home/shady/Downloads/test_processed"
     default_config["num_scenarios"] = 1
     engine = initialize_engine(default_config)
 
     engine.data_manager = ScenarioDataManager()
-    m_data = engine.data_manager.get_scenario(0, should_copy=False)["map_features"]
+    m_data = engine.data_manager.get_scenario(0,
+                                              should_copy=False)["map_features"]
     map = ScenarioMap(map_index=0, map_data=m_data)
     map.attach_to_world()
     engine.enableMouse()

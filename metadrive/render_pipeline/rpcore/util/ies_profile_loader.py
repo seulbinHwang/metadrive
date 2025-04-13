@@ -55,8 +55,9 @@ class IESProfileLoader(RPObject):
 
     # Supported IES Profiles
     PROFILES = [
-        "IESNA:LM-63-1986", "IESNA:LM-63-1991", "IESNA91", "IESNA:LM-63-1995", "IESNA:LM-63-2002",
-        "ERCO Leuchten GmbH  BY: ERCO/LUM650/8701", "ERCO Leuchten GmbH"
+        "IESNA:LM-63-1986", "IESNA:LM-63-1991", "IESNA91", "IESNA:LM-63-1995",
+        "IESNA:LM-63-2002", "ERCO Leuchten GmbH  BY: ERCO/LUM650/8701",
+        "ERCO Leuchten GmbH"
     ]
 
     # Regexp for extracting keywords
@@ -71,7 +72,8 @@ class IESProfileLoader(RPObject):
 
     def _create_storage(self):
         """ Internal method to create the storage for the profile dataset textures """
-        self._storage_tex = Image.create_3d("IESDatasets", 512, 512, self._max_entries, "R16")
+        self._storage_tex = Image.create_3d("IESDatasets", 512, 512,
+                                            self._max_entries, "R16")
         self._storage_tex.set_minfilter(SamplerState.FT_linear)
         self._storage_tex.set_magfilter(SamplerState.FT_linear)
         self._storage_tex.set_wrap_u(SamplerState.WM_clamp)
@@ -92,7 +94,9 @@ class IESProfileLoader(RPObject):
 
         # Make filename unique
         fname = Filename.from_os_specific(filename)
-        if not VirtualFileSystem.get_global_ptr().resolve_filename(fname, get_model_path().get_value(), "ies"):
+        if not VirtualFileSystem.get_global_ptr().resolve_filename(
+                fname,
+                get_model_path().get_value(), "ies"):
             self.error("Could not resolve", filename)
             return -1
         fname = fname.get_fullpath()
@@ -117,7 +121,8 @@ class IESProfileLoader(RPObject):
             return -1
 
         # Dataset was loaded successfully, now copy it
-        dataset.generate_dataset_texture_into(self._storage_tex, len(self._entries))
+        dataset.generate_dataset_texture_into(self._storage_tex,
+                                              len(self._entries))
         self._entries.append(fname)
 
         return len(self._entries) - 1
@@ -144,7 +149,8 @@ class IESProfileLoader(RPObject):
 
         # Next line should be TILT=NONE according to the spec
         if lines.pop(0) != "TILT=NONE":
-            raise InvalidIESProfileException("Expected TILT=NONE line, but none found!")
+            raise InvalidIESProfileException(
+                "Expected TILT=NONE line, but none found!")
 
         # From now on, lines do not matter anymore, instead everything is
         # space seperated
@@ -167,7 +173,8 @@ class IESProfileLoader(RPObject):
         num_horizontal_angles = read_int()
 
         if num_vertical_angles < 1 or num_horizontal_angles < 1:
-            raise InvalidIESProfileException("Invalid of vertical/horizontal angles!")
+            raise InvalidIESProfileException(
+                "Invalid of vertical/horizontal angles!")
 
         photometric_type = read_int()  # noqa
         unit_type = read_int()
@@ -230,7 +237,8 @@ class IESProfileLoader(RPObject):
         """ Checks if the IES version header is correct and the specified IES
         version is supported """
         if first_line not in self.PROFILES:
-            raise InvalidIESProfileException("Unsupported Profile: " + first_line)
+            raise InvalidIESProfileException("Unsupported Profile: " +
+                                             first_line)
 
     def _extract_keywords(self, lines):
         """ Extracts the keywords from a list of lines, and removes all lines
@@ -257,6 +265,7 @@ class IESProfileLoader(RPObject):
                     key, val = match.group(1, 2)
                     keywords[key.strip()] = val.strip()
                 else:
-                    raise InvalidIESProfileException("Invalid keyword line: " + line)
+                    raise InvalidIESProfileException("Invalid keyword line: " +
+                                                     line)
 
         return keywords

@@ -23,7 +23,9 @@ from panda3d.core import Filename, VirtualFileSystem, get_model_path
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--frames', type=str, help='comma separated frame groups')
+    parser.add_argument('--frames',
+                        type=str,
+                        help='comma separated frame groups')
     parser.add_argument('--fps', type=int, help='frames per second rate')
     parser.add_argument('--scale', type=float, help='object scale')
     parser.add_argument('--output', type=str, help='output file')
@@ -56,7 +58,9 @@ def main():
 
     if args.prefix:
         vfs = VirtualFileSystem.get_global_ptr()
-        vfs.mount(Filename.from_os_specific('.').get_fullpath(), args.prefix.rstrip('/'), 0)
+        vfs.mount(
+            Filename.from_os_specific('.').get_fullpath(),
+            args.prefix.rstrip('/'), 0)
         mp = get_model_path()
         mp.prepend_directory(args.prefix.rstrip('/'))
 

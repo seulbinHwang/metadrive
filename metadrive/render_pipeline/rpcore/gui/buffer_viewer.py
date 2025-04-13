@@ -48,9 +48,14 @@ from metadrive.render_pipeline.rpcore.gui.draggable_window import DraggableWindo
 
 class BufferViewer(DraggableWindow):
     """ This class provides a view into the buffers to inspect them """
+
     def __init__(self, pipeline, parent):
         """ Constructs the buffer viewer """
-        DraggableWindow.__init__(self, width=1400, height=800, parent=parent, title="Buffer- and Image-Browser")
+        DraggableWindow.__init__(self,
+                                 width=1400,
+                                 height=800,
+                                 parent=parent,
+                                 title="Buffer- and Image-Browser")
         self._pipeline = pipeline
         self._scroll_height = 3000
         self._display_images = False
@@ -115,9 +120,9 @@ class BufferViewer(DraggableWindow):
             horizontalScroll_incButton_relief=False,
             horizontalScroll_decButton_relief=False,
             parent=self._node,
-            pos=(0, 1, -self._height)
-        )
-        self._content_node = self._content_frame.getCanvas().attach_new_node("BufferComponents")
+            pos=(0, 1, -self._height))
+        self._content_node = self._content_frame.getCanvas().attach_new_node(
+            "BufferComponents")
         self._content_node.set_scale(1, 1, -1)
         self._content_node.set_z(self._scroll_height)
         self._chb_show_images = LabeledCheckbox(
@@ -128,8 +133,7 @@ class BufferViewer(DraggableWindow):
             chb_checked=False,
             text="Display image resources",
             text_color=Vec3(0.4),
-            expand_width=330
-        )
+            expand_width=330)
 
     def _set_show_images(self, arg):
         """ Sets whether images and textures will be shown """
@@ -139,7 +143,8 @@ class BufferViewer(DraggableWindow):
     def _set_scroll_height(self, height):
         """ Sets the maximum scroll height in the content frame """
         self._scroll_height = height
-        self._content_frame["canvasSize"] = (0, self._width - 80, 0, self._scroll_height)
+        self._content_frame["canvasSize"] = (0, self._width - 80, 0,
+                                             self._scroll_height)
         self._content_node.set_z(self._scroll_height)
 
     def _remove_components(self):
@@ -202,7 +207,8 @@ class BufferViewer(DraggableWindow):
             yoffs = index // entries_per_row
             node = self._content_node.attach_new_node("Preview")
             node.set_sz(-1)
-            node.set_pos(10 + xoffs * (entry_width - 14), 1, yoffs * (entry_height - 14 + 10))
+            node.set_pos(10 + xoffs * (entry_width - 14), 1,
+                         yoffs * (entry_height - 14 + 10))
 
             r, g, b = 0.2, 0.2, 0.2
             if isinstance(stage_tex, Image):
@@ -211,25 +217,30 @@ class BufferViewer(DraggableWindow):
             stage_name = stage_name.replace("render_pipeline_internal:", "")
             parts = stage_name.split(":")
             stage_name = parts[-1]
-            DirectFrame(
-                parent=node,
-                frameSize=(7, entry_width - 17, -7, -entry_height + 17),
-                frameColor=(r, g, b, 1.0),
-                pos=(0, 0, 0)
-            )
+            DirectFrame(parent=node,
+                        frameSize=(7, entry_width - 17, -7, -entry_height + 17),
+                        frameColor=(r, g, b, 1.0),
+                        pos=(0, 0, 0))
 
-            frame_hover = DirectFrame(
-                parent=node,
-                frameSize=(0, entry_width - 10, 0, -entry_height + 10),
-                frameColor=(0, 0, 0, 0),
-                pos=(0, 0, 0),
-                state=DGG.NORMAL
-            )
-            frame_hover.bind(DGG.ENTER, partial(self._on_texture_hovered, frame_hover))
-            frame_hover.bind(DGG.EXIT, partial(self._on_texture_blurred, frame_hover))
-            frame_hover.bind(DGG.B1PRESS, partial(self._on_texture_clicked, stage_tex))
+            frame_hover = DirectFrame(parent=node,
+                                      frameSize=(0, entry_width - 10, 0,
+                                                 -entry_height + 10),
+                                      frameColor=(0, 0, 0, 0),
+                                      pos=(0, 0, 0),
+                                      state=DGG.NORMAL)
+            frame_hover.bind(DGG.ENTER,
+                             partial(self._on_texture_hovered, frame_hover))
+            frame_hover.bind(DGG.EXIT,
+                             partial(self._on_texture_blurred, frame_hover))
+            frame_hover.bind(DGG.B1PRESS,
+                             partial(self._on_texture_clicked, stage_tex))
 
-            Text(text=stage_name, x=15, y=29, parent=node, size=12, color=Vec3(0.8))
+            Text(text=stage_name,
+                 x=15,
+                 y=29,
+                 parent=node,
+                 size=12,
+                 color=Vec3(0.8))
 
             # Scale image so it always fits
             w, h = stage_tex.get_x_size(), stage_tex.get_y_size()
@@ -243,20 +254,23 @@ class BufferViewer(DraggableWindow):
                 w = entry_width - padd_x
                 h = entry_height - padd_y
 
-            preview = Sprite(
-                image=stage_tex,
-                w=scale_factor * w,
-                h=scale_factor * h,
-                any_filter=False,
-                parent=node,
-                x=7,
-                y=40,
-                transparent=False
-            )
+            preview = Sprite(image=stage_tex,
+                             w=scale_factor * w,
+                             h=scale_factor * h,
+                             any_filter=False,
+                             parent=node,
+                             x=7,
+                             y=40,
+                             transparent=False)
 
-            preview.set_shader_inputs(mipmap=0, slice=0, brightness=1, tonemap=False)
+            preview.set_shader_inputs(mipmap=0,
+                                      slice=0,
+                                      brightness=1,
+                                      tonemap=False)
 
-            preview_shader = DisplayShaderBuilder.build(stage_tex, scale_factor * w, scale_factor * h)
+            preview_shader = DisplayShaderBuilder.build(stage_tex,
+                                                        scale_factor * w,
+                                                        scale_factor * h)
             preview.set_shader(preview_shader)
 
         num_rows = (index + entries_per_row) // entries_per_row

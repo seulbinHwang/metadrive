@@ -30,7 +30,7 @@ except ImportError:
     AbstractWidget = object
     abstractmethod = lambda fn: fn
 else:
-    AbstractWidget = ABCMeta('AbstractWidget', (object, ), {})
+    AbstractWidget = ABCMeta('AbstractWidget', (object,), {})
 
 
 def format_updatable(updatable, pbar):
@@ -68,6 +68,7 @@ class WidgetHFill(Widget):
     fill the line. You can use more than one in the same line, and they will
     all have the same width, and together will fill the line.
     '''
+
     @abstractmethod
     def update(self, pbar, width):
         '''Updates the widget providing the total width the widget must fill.
@@ -156,6 +157,7 @@ class AnimatedMarker(Widget):
     '''An animated marker for the progress bar which defaults to appear as if
     it were rotating.
     '''
+
     def __init__(self, markers='|/-\\'):
         self.markers = markers
         self.curmark = -1
@@ -237,7 +239,12 @@ class SimpleProgress(Widget):
 class Bar(WidgetHFill):
     'A progress bar which stretches to fill the line.'
 
-    def __init__(self, marker='#', left='|', right='|', fill=' ', fill_left=True):
+    def __init__(self,
+                 marker='#',
+                 left='|',
+                 right='|',
+                 fill=' ',
+                 fill_left=True):
         '''Creates a customizable progress bar.
 
         marker - string or updatable object to use as a marker
@@ -255,7 +262,8 @@ class Bar(WidgetHFill):
     def update(self, pbar, width):
         'Updates the progress bar and its subcomponents'
 
-        left, marker, right = (format_updatable(i, pbar) for i in (self.left, self.marker, self.right))
+        left, marker, right = (format_updatable(i, pbar)
+                               for i in (self.left, self.marker, self.right))
 
         width -= len(left) + len(right)
         # Marker must *always* have length of 1
@@ -270,7 +278,12 @@ class Bar(WidgetHFill):
 class ReverseBar(Bar):
     'A bar which has a marker which bounces from side to side.'
 
-    def __init__(self, marker='#', left='|', right='|', fill=' ', fill_left=False):
+    def __init__(self,
+                 marker='#',
+                 left='|',
+                 right='|',
+                 fill=' ',
+                 fill_left=False):
         '''Creates a customizable progress bar.
 
         marker - string or updatable object to use as a marker
@@ -287,10 +300,12 @@ class ReverseBar(Bar):
 
 
 class BouncingBar(Bar):
+
     def update(self, pbar, width):
         'Updates the progress bar and its subcomponents'
 
-        left, marker, right = (format_updatable(i, pbar) for i in (self.left, self.marker, self.right))
+        left, marker, right = (format_updatable(i, pbar)
+                               for i in (self.left, self.marker, self.right))
 
         width -= len(left) + len(right)
 

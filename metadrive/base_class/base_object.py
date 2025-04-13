@@ -61,6 +61,7 @@ def clear_node_list(node_path_list):
 
 
 class PhysicsNodeList(list):
+
     def __init__(self):
         super(PhysicsNodeList, self).__init__()
         self.attached = False
@@ -93,7 +94,8 @@ class PhysicsNodeList(list):
 
     def destroy_node_list(self):
         for node in self:
-            if isinstance(node, BaseGhostBodyNode) or isinstance(node, BaseRigidBodyNode):
+            if isinstance(node, BaseGhostBodyNode) or isinstance(
+                    node, BaseRigidBodyNode):
                 node.destroy()
             if isinstance(node, BulletBodyNode):
                 node.removeAllChildren()
@@ -113,7 +115,11 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
     COLLISION_MASK = None
     SEMANTIC_LABEL = Semantics.UNLABELED.label
 
-    def __init__(self, name=None, random_seed=None, config=None, escape_random_seed_assertion=False):
+    def __init__(self,
+                 name=None,
+                 random_seed=None,
+                 config=None,
+                 escape_random_seed_assertion=False):
         """
         Config is a static conception, which specified the parameters of one element.
         There parameters doesn't change, such as length of straight road, max speed of one vehicle, etc.
@@ -122,7 +128,8 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
         BaseRunnable.__init__(self, name, random_seed, config)
         MetaDriveType.__init__(self)
         if not escape_random_seed_assertion:
-            assert random_seed is not None, "Please assign a random seed for {} class.".format(self.class_name)
+            assert random_seed is not None, "Please assign a random seed for {} class.".format(
+                self.class_name)
 
         # Following properties are available when this object needs visualization and physics property
         self._body = None
@@ -198,11 +205,12 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
             else:
                 self.dynamic_nodes.append(physics_body)
             if self.MASS is not None:
-                assert isinstance(self.MASS,
-                                  int) or isinstance(self.MASS, float), "MASS should be a float or an integer"
+                assert isinstance(self.MASS, int) or isinstance(
+                    self.MASS, float), "MASS should be a float or an integer"
                 self._body.setMass(self.MASS)
 
-            if self.engine is not None and self.engine.global_config["show_coordinates"]:
+            if self.engine is not None and self.engine.global_config[
+                    "show_coordinates"]:
                 self.need_show_coordinates = True
                 self.show_coordinates()
         else:
@@ -215,7 +223,8 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
         else:
             return self._body
 
-    def attach_to_world(self, parent_node_path: NodePath, physics_world: PhysicsWorld):
+    def attach_to_world(self, parent_node_path: NodePath,
+                        physics_world: PhysicsWorld):
         """
         Load the object to the world from memory, attach the object to the scene graph.
         Args:
@@ -226,13 +235,19 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
 
         """
         if not self.is_attached():
-            assert isinstance(self.origin, NodePath), "No render model on node_path in this Element"
+            assert isinstance(
+                self.origin,
+                NodePath), "No render model on node_path in this Element"
             self.origin.reparentTo(parent_node_path)
-            self.dynamic_nodes.attach_to_physics_world(physics_world.dynamic_world)
-            self.static_nodes.attach_to_physics_world(physics_world.static_world)
+            self.dynamic_nodes.attach_to_physics_world(
+                physics_world.dynamic_world)
+            self.static_nodes.attach_to_physics_world(
+                physics_world.static_world)
             logger.debug("{} is attached to the world.".format(self.class_name))
         else:
-            logger.debug("Can not attach object {} to world, as it is already attached!".format(self.class_name))
+            logger.debug(
+                "Can not attach object {} to world, as it is already attached!".
+                format(self.class_name))
 
     def detach_from_world(self, physics_world: PhysicsWorld):
         """
@@ -246,11 +261,16 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
         """
         if self.is_attached():
             self.origin.detachNode()
-            self.dynamic_nodes.detach_from_physics_world(physics_world.dynamic_world)
-            self.static_nodes.detach_from_physics_world(physics_world.static_world)
-            logger.debug("{} is detached from the world.".format(self.class_name))
+            self.dynamic_nodes.detach_from_physics_world(
+                physics_world.dynamic_world)
+            self.static_nodes.detach_from_physics_world(
+                physics_world.static_world)
+            logger.debug("{} is detached from the world.".format(
+                self.class_name))
         else:
-            logger.debug("Object {} is already detached from the world. Can not detach again".format(self.class_name))
+            logger.debug(
+                "Object {} is already detached from the world. Can not detach again"
+                .format(self.class_name))
 
     def is_attached(self):
         return self.origin is not None and self.origin.hasParent()
@@ -279,7 +299,8 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
 
             clear_node_list(self._node_path_list)
 
-            logger.debug("Finish cleaning {} node path for {}.".format(len(self._node_path_list), self.class_name))
+            logger.debug("Finish cleaning {} node path for {}.".format(
+                len(self._node_path_list), self.class_name))
             self._node_path_list.clear()
             self._node_path_list = []
 
@@ -305,7 +326,10 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
     def position(self):
         return metadrive_vector(self.origin.getPos())
 
-    def set_velocity(self, direction: np.array, value=None, in_local_frame=False):
+    def set_velocity(self,
+                     direction: np.array,
+                     value=None,
+                     in_local_frame=False):
         """
         Set velocity for object including the direction of velocity and the value (speed)
         The direction of velocity will be normalized automatically, value decided its scale
@@ -322,10 +346,12 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
             norm_ratio = 1
         self._body.setLinearVelocity(
             LVector3(direction[0] * norm_ratio, direction[1] * norm_ratio,
-                     self._body.getLinearVelocity()[-1])
-        )
+                     self._body.getLinearVelocity()[-1]))
 
-    def set_velocity_km_h(self, direction: list, value=None, in_local_frame=False):
+    def set_velocity_km_h(self,
+                          direction: list,
+                          value=None,
+                          in_local_frame=False):
         direction = np.array(direction)
         if value is None:
             direction /= 3.6
@@ -460,14 +486,14 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
     @property
     def top_down_width(self):
         raise NotImplementedError(
-            "Implement this func for rendering class {} in top down renderer".format(self.class_name)
-        )
+            "Implement this func for rendering class {} in top down renderer".
+            format(self.class_name))
 
     @property
     def top_down_length(self):
         raise NotImplementedError(
-            "Implement this func for rendering class {} in top down renderer".format(self.class_name)
-        )
+            "Implement this func for rendering class {} in top down renderer".
+            format(self.class_name))
 
     def show_coordinates(self):
         pass
@@ -483,7 +509,8 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
     def rename(self, new_name):
         super(BaseObject, self).rename(new_name)
         physics_node = self._body.getPythonTag(self._body.getName())
-        if isinstance(physics_node, BaseGhostBodyNode) or isinstance(physics_node, BaseRigidBodyNode):
+        if isinstance(physics_node, BaseGhostBodyNode) or isinstance(
+                physics_node, BaseRigidBodyNode):
             physics_node.rename(new_name)
 
     def random_rename(self):
@@ -514,7 +541,8 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
         In a word, for calculating **points transformation** in different coordinates, origin is required. This is
         because vectors have no origin but origin is required to define a point.
         """
-        assert len(vector) == 2 or len(vector) == 3, "the vector should be in shape (2,) or (3,)"
+        assert len(vector) == 2 or len(
+            vector) == 3, "the vector should be in shape (2,) or (3,)"
         vector = vector[:2]
         vector = LVector3(*vector, 0.)
         vector = self.engine.origin.getRelativeVector(self.origin, vector)
@@ -536,10 +564,14 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
         This function will return the 2D bounding box of vehicle. Points are in clockwise sequence, first point is the
         top-left point.
         """
-        p1 = self.convert_to_world_coordinates([self.LENGTH / 2, self.WIDTH / 2], self.position)
-        p2 = self.convert_to_world_coordinates([self.LENGTH / 2, -self.WIDTH / 2], self.position)
-        p3 = self.convert_to_world_coordinates([-self.LENGTH / 2, -self.WIDTH / 2], self.position)
-        p4 = self.convert_to_world_coordinates([-self.LENGTH / 2, self.WIDTH / 2], self.position)
+        p1 = self.convert_to_world_coordinates(
+            [self.LENGTH / 2, self.WIDTH / 2], self.position)
+        p2 = self.convert_to_world_coordinates(
+            [self.LENGTH / 2, -self.WIDTH / 2], self.position)
+        p3 = self.convert_to_world_coordinates(
+            [-self.LENGTH / 2, -self.WIDTH / 2], self.position)
+        p4 = self.convert_to_world_coordinates(
+            [-self.LENGTH / 2, self.WIDTH / 2], self.position)
         return [p1, p2, p3, p4]
 
     @property

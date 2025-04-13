@@ -76,12 +76,14 @@ class BasePlugin(RPObject):
     def get_setting(self, setting_id, plugin_id=None):
         """ Returns the value of a setting given by its setting id. If plugin_id
         is set, returns the setting of the given plugin """
-        return self._pipeline.plugin_mgr.settings[plugin_id or self.plugin_id][setting_id].value
+        return self._pipeline.plugin_mgr.settings[
+            plugin_id or self.plugin_id][setting_id].value
 
     def get_daytime_setting(self, setting_id, plugin_id=None):
         """ Returns the value of a time of day setting given by its setting
         id. If plugin_id is set, returns the setting of a gien plugin """
-        handle = self._pipeline.plugin_mgr.day_settings[plugin_id or self.plugin_id][setting_id]
+        handle = self._pipeline.plugin_mgr.day_settings[
+            plugin_id or self.plugin_id][setting_id]
         return handle.get_scaled_value_at(self._pipeline.daytime_mgr.time)
 
     def get_plugin_instance(self, plugin_id):

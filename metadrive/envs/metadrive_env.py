@@ -25,7 +25,8 @@ METADRIVE_DEFAULT_CONFIG = dict(
     random_lane_num=False,
     map_config={
         BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_NUM,
-        BaseMap.GENERATE_CONFIG: None,  # it can be a file path / block num / block ID sequence
+        BaseMap.GENERATE_CONFIG:
+            None,  # it can be a file path / block num / block ID sequence
         BaseMap.LANE_WIDTH: 3.5,
         BaseMap.LANE_NUM: 3,
         "exit_length": 50,
@@ -49,7 +50,8 @@ METADRIVE_DEFAULT_CONFIG = dict(
     ),
 
     # ===== Object =====
-    accident_prob=0.,  # accident may happen on each block with this probability, except multi-exits block
+    accident_prob=
+    0.,  # accident may happen on each block with this probability, except multi-exits block
     static_traffic_object=True,  # object won't react to any collisions
 
     # ===== Others =====
@@ -61,10 +63,11 @@ METADRIVE_DEFAULT_CONFIG = dict(
     random_spawn_lane_index=True,
     vehicle_config=dict(navigation_module=NodeNetworkNavigation),
     agent_configs={
-        DEFAULT_AGENT: dict(
-            use_special_color=True,
-            spawn_lane_index=(FirstPGBlock.NODE_1, FirstPGBlock.NODE_2, 0),
-        )
+        DEFAULT_AGENT:
+            dict(
+                use_special_color=True,
+                spawn_lane_index=(FirstPGBlock.NODE_1, FirstPGBlock.NODE_2, 0),
+            )
     },
 
     # ===== Reward Scheme =====
@@ -95,6 +98,7 @@ METADRIVE_DEFAULT_CONFIG = dict(
 
 
 class MetaDriveEnv(BaseEnv):
+
     @classmethod
     def default_config(cls) -> Config:
         config = super(MetaDriveEnv, cls).default_config()
@@ -104,7 +108,8 @@ class MetaDriveEnv(BaseEnv):
         return config
 
     def __init__(self, config: Union[dict, None] = None):
-        self.default_config_copy = Config(self.default_config(), unchangeable=True)
+        self.default_config_copy = Config(self.default_config(),
+                                          unchangeable=True)
         super(MetaDriveEnv, self).__init__(config)
 
         # scenario setting
@@ -120,10 +125,12 @@ class MetaDriveEnv(BaseEnv):
             )
 
         config["map_config"] = parse_map_config(
-            easy_map_config=config["map"], new_map_config=config["map_config"], default_config=self.default_config_copy
-        )
+            easy_map_config=config["map"],
+            new_map_config=config["map_config"],
+            default_config=self.default_config_copy)
         config["vehicle_config"]["norm_pixel"] = config["norm_pixel"]
-        config["vehicle_config"]["random_agent_model"] = config["random_agent_model"]
+        config["vehicle_config"]["random_agent_model"] = config[
+            "random_agent_model"]
         target_v_config = copy.deepcopy(config["vehicle_config"])
         if not config["is_multi_agent"]:
             target_v_config.update(config["agent_configs"][DEFAULT_AGENT])
@@ -133,7 +140,8 @@ class MetaDriveEnv(BaseEnv):
     def done_function(self, vehicle_id: str):
         vehicle = self.agents[vehicle_id]
         done = False
-        max_step = self.config["horizon"] is not None and self.episode_lengths[vehicle_id] >= self.config["horizon"]
+        max_step = self.config["horizon"] is not None and self.episode_lengths[
+            vehicle_id] >= self.config["horizon"]
         done_info = {
             TerminationState.CRASH_VEHICLE: vehicle.crash_vehicle,
             TerminationState.CRASH_OBJECT: vehicle.crash_object,
@@ -151,56 +159,61 @@ class MetaDriveEnv(BaseEnv):
         # for compatibility
         # crash almost equals to crashing with vehicles
         done_info[TerminationState.CRASH] = (
-            done_info[TerminationState.CRASH_VEHICLE] or done_info[TerminationState.CRASH_OBJECT]
-            or done_info[TerminationState.CRASH_BUILDING] or done_info[TerminationState.CRASH_SIDEWALK]
-            or done_info[TerminationState.CRASH_HUMAN]
-        )
+            done_info[TerminationState.CRASH_VEHICLE] or
+            done_info[TerminationState.CRASH_OBJECT] or
+            done_info[TerminationState.CRASH_BUILDING] or
+            done_info[TerminationState.CRASH_SIDEWALK] or
+            done_info[TerminationState.CRASH_HUMAN])
 
         # determine env return
         if done_info[TerminationState.SUCCESS]:
             done = True
             self.logger.debug(
-                "Episode ended! Scenario Index: {} Reason: arrive_dest.".format(self.current_seed),
-                extra={"log_once": True}
-            )
-        if done_info[TerminationState.OUT_OF_ROAD] and self.config["out_of_road_done"]:
+                "Episode ended! Scenario Index: {} Reason: arrive_dest.".format(
+                    self.current_seed),
+                extra={"log_once": True})
+        if done_info[TerminationState.
+                     OUT_OF_ROAD] and self.config["out_of_road_done"]:
             done = True
             self.logger.debug(
-                "Episode ended! Scenario Index: {} Reason: out_of_road.".format(self.current_seed),
-                extra={"log_once": True}
-            )
-        if done_info[TerminationState.CRASH_VEHICLE] and self.config["crash_vehicle_done"]:
+                "Episode ended! Scenario Index: {} Reason: out_of_road.".format(
+                    self.current_seed),
+                extra={"log_once": True})
+        if done_info[TerminationState.
+                     CRASH_VEHICLE] and self.config["crash_vehicle_done"]:
             done = True
             self.logger.debug(
-                "Episode ended! Scenario Index: {} Reason: crash vehicle ".format(self.current_seed),
-                extra={"log_once": True}
-            )
-        if done_info[TerminationState.CRASH_OBJECT] and self.config["crash_object_done"]:
+                "Episode ended! Scenario Index: {} Reason: crash vehicle ".
+                format(self.current_seed),
+                extra={"log_once": True})
+        if done_info[TerminationState.
+                     CRASH_OBJECT] and self.config["crash_object_done"]:
             done = True
             self.logger.debug(
-                "Episode ended! Scenario Index: {} Reason: crash object ".format(self.current_seed),
-                extra={"log_once": True}
-            )
+                "Episode ended! Scenario Index: {} Reason: crash object ".
+                format(self.current_seed),
+                extra={"log_once": True})
         if done_info[TerminationState.CRASH_BUILDING]:
             done = True
             self.logger.debug(
-                "Episode ended! Scenario Index: {} Reason: crash building ".format(self.current_seed),
-                extra={"log_once": True}
-            )
-        if done_info[TerminationState.CRASH_HUMAN] and self.config["crash_human_done"]:
+                "Episode ended! Scenario Index: {} Reason: crash building ".
+                format(self.current_seed),
+                extra={"log_once": True})
+        if done_info[TerminationState.
+                     CRASH_HUMAN] and self.config["crash_human_done"]:
             done = True
             self.logger.debug(
-                "Episode ended! Scenario Index: {} Reason: crash human".format(self.current_seed),
-                extra={"log_once": True}
-            )
+                "Episode ended! Scenario Index: {} Reason: crash human".format(
+                    self.current_seed),
+                extra={"log_once": True})
         if done_info[TerminationState.MAX_STEP]:
             # single agent horizon has the same meaning as max_step_per_agent
             if self.config["truncate_as_terminate"]:
                 done = True
             self.logger.debug(
-                "Episode ended! Scenario Index: {} Reason: max step ".format(self.current_seed),
-                extra={"log_once": True}
-            )
+                "Episode ended! Scenario Index: {} Reason: max step ".format(
+                    self.current_seed),
+                extra={"log_once": True})
         return done, done_info
 
     def cost_function(self, vehicle_id: str):
@@ -224,11 +237,13 @@ class MetaDriveEnv(BaseEnv):
         Returns:
             flag: Whether this vehicle arrives its destination.
         """
-        long, lat = vehicle.navigation.final_lane.local_coordinates(vehicle.position)
-        flag = (vehicle.navigation.final_lane.length - 5 < long < vehicle.navigation.final_lane.length + 5) and (
-            vehicle.navigation.get_current_lane_width() / 2 >= lat >=
-            (0.5 - vehicle.navigation.get_current_lane_num()) * vehicle.navigation.get_current_lane_width()
-        )
+        long, lat = vehicle.navigation.final_lane.local_coordinates(
+            vehicle.position)
+        flag = (vehicle.navigation.final_lane.length - 5 < long <
+                vehicle.navigation.final_lane.length + 5) and (
+                    vehicle.navigation.get_current_lane_width() / 2 >= lat >=
+                    (0.5 - vehicle.navigation.get_current_lane_num()) *
+                    vehicle.navigation.get_current_lane_width())
         return flag
 
     def _is_out_of_road(self, vehicle):
@@ -265,13 +280,17 @@ class MetaDriveEnv(BaseEnv):
 
         # reward for lane keeping, without it vehicle can learn to overtake but fail to keep in lane
         if self.config["use_lateral_reward"]:
-            lateral_factor = clip(1 - 2 * abs(lateral_now) / vehicle.navigation.get_current_lane_width(), 0.0, 1.0)
+            lateral_factor = clip(
+                1 - 2 * abs(lateral_now) /
+                vehicle.navigation.get_current_lane_width(), 0.0, 1.0)
         else:
             lateral_factor = 1.0
 
         reward = 0.0
-        reward += self.config["driving_reward"] * (long_now - long_last) * lateral_factor * positive_road
-        reward += self.config["speed_reward"] * (vehicle.speed_km_h / vehicle.max_speed_km_h) * positive_road
+        reward += self.config["driving_reward"] * (
+            long_now - long_last) * lateral_factor * positive_road
+        reward += self.config["speed_reward"] * (
+            vehicle.speed_km_h / vehicle.max_speed_km_h) * positive_road
 
         step_info["step_reward"] = reward
 
@@ -297,7 +316,8 @@ class MetaDriveEnv(BaseEnv):
         self.engine.register_manager("map_manager", PGMapManager())
         self.engine.register_manager("traffic_manager", PGTrafficManager())
         if abs(self.config["accident_prob"] - 0) > 1e-2:
-            self.engine.register_manager("object_manager", TrafficObjectManager())
+            self.engine.register_manager("object_manager",
+                                         TrafficObjectManager())
 
 
 if __name__ == '__main__':

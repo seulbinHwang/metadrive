@@ -18,7 +18,10 @@ if __name__ == "__main__":
     data_directory = "waymo"
     render = True
 
-    path = pathlib.Path(AssetLoader.file_path(AssetLoader.asset_path, data_directory, unix_style=False))
+    path = pathlib.Path(
+        AssetLoader.file_path(AssetLoader.asset_path,
+                              data_directory,
+                              unix_style=False))
     summary, scenario_ids, mapping = read_dataset_summary(path)
     try:
         env = ScenarioOnlineEnv(config=dict(

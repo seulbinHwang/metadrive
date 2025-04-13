@@ -15,7 +15,8 @@ class BaseManager(Randomizable):
 
     def __init__(self):
         from metadrive.engine.engine_utils import get_engine, engine_initialized
-        assert engine_initialized(), "You should not create manager before the initialization of BaseEngine"
+        assert engine_initialized(
+        ), "You should not create manager before the initialization of BaseEngine"
         # self.engine = get_engine()
         Randomizable.__init__(self, get_engine().global_random_seed)
         self.spawned_objects = {}
@@ -48,7 +49,8 @@ class BaseManager(Randomizable):
         """
         Update episode level config to this manager and clean element or detach element
         """
-        self.clear_objects([object_id for object_id in self.spawned_objects.keys()])
+        self.clear_objects(
+            [object_id for object_id in self.spawned_objects.keys()])
         self.spawned_objects = {}
 
     def reset(self):
@@ -70,7 +72,8 @@ class BaseManager(Randomizable):
         """
         # self.engine = None
         super(BaseManager, self).destroy()
-        self.clear_objects(list(self.spawned_objects.keys()), force_destroy=True)
+        self.clear_objects(list(self.spawned_objects.keys()),
+                           force_destroy=True)
         self.spawned_objects = None
 
     def spawn_object(self, object_class, **kwargs):
@@ -104,8 +107,10 @@ class BaseManager(Randomizable):
         self.spawned_objects[new_name] = obj
         obj.name = new_name
 
-    def add_policy(self, object_id, policy_class, *policy_args, **policy_kwargs):
-        return self.engine.add_policy(object_id, policy_class, *policy_args, **policy_kwargs)
+    def add_policy(self, object_id, policy_class, *policy_args,
+                   **policy_kwargs):
+        return self.engine.add_policy(object_id, policy_class, *policy_args,
+                                      **policy_kwargs)
 
     def get_policy(self, object_id):
         return self.engine.get_policy(object_id)
@@ -115,7 +120,11 @@ class BaseManager(Randomizable):
 
     def get_state(self):
         """This function will be called by RecordManager to collect manager state, usually some mappings"""
-        return {"spawned_objects": {name: v.class_name for name, v in self.spawned_objects.items()}}
+        return {
+            "spawned_objects": {
+                name: v.class_name for name, v in self.spawned_objects.items()
+            }
+        }
 
     def set_state(self, state: dict, old_name_to_current=None):
         """
@@ -129,8 +138,8 @@ class BaseManager(Randomizable):
         for name, class_name in spawned_objects.items():
             current_name = old_name_to_current[name]
             name_obj = self.engine.get_objects([current_name])
-            assert current_name in name_obj and name_obj[current_name
-                                                         ].class_name == class_name, "Can not restore mappings!"
+            assert current_name in name_obj and name_obj[
+                current_name].class_name == class_name, "Can not restore mappings!"
             ret[current_name] = name_obj[current_name]
         self.spawned_objects = ret
 
@@ -172,7 +181,9 @@ class BaseAgentManager(BaseManager):
         self._active_objects = {}  # {object.id: BaseObject}
 
         # fake init. before creating engine, it is necessary when all objects re-created in runtime
-        self.observations = copy.copy(init_observations)  # its value is map<agent_id, obs> before init() is called
+        self.observations = copy.copy(
+            init_observations
+        )  # its value is map<agent_id, obs> before init() is called
         self._init_observations = init_observations  # map <agent_id, observation>
 
         # init spaces before initializing env.engine
@@ -180,6 +191,7 @@ class BaseAgentManager(BaseManager):
             agent_id: single_obs.observation_space
             for agent_id, single_obs in init_observations.items()
         }
+
         init_action_space = self._get_action_space()
         assert isinstance(init_action_space, dict)
         assert isinstance(observation_space, dict)
@@ -190,15 +202,22 @@ class BaseAgentManager(BaseManager):
         self.episode_created_agents = None
 
         # this map will be override when the env.init() is first called and objects are made
-        self._agent_to_object = {k: k for k in self.observations.keys()}  # no target objects created, fake init
-        self._object_to_agent = {k: k for k in self.observations.keys()}  # no target objects created, fake init
+        self._agent_to_object = {
+            k: k for k in self.observations.keys()
+        }  # no target objects created, fake init
+        self._object_to_agent = {
+            k: k for k in self.observations.keys()
+        }  # no target objects created, fake init
 
         self._debug = None
 
     def _get_action_space(self):
         from metadrive.engine.engine_utils import get_global_config
         if self.global_config["is_multi_agent"]:
-            return {v_id: self.agent_policy.get_input_space() for v_id in get_global_config()["agent_configs"].keys()}
+            return {
+                v_id: self.agent_policy.get_input_space()
+                for v_id in get_global_config()["agent_configs"].keys()
+            }
         else:
             return {DEFAULT_AGENT: self.agent_policy.get_input_space()}
 
@@ -240,19 +259,23 @@ class BaseAgentManager(BaseManager):
         """
         config = self.engine.global_config
         self._debug = config["debug"]
-        self.episode_created_agents = self._create_agents(config_dict=self.engine.global_config["agent_configs"])
+        self.episode_created_agents = self._create_agents(
+            config_dict=self.engine.global_config["agent_configs"])
 
     def after_reset(self):
         init_objects = self.episode_created_agents
         objects_created = set(init_objects.keys())
         objects_in_config = set(self._init_observations.keys())
         assert objects_created == objects_in_config, "{} not defined in target objects config".format(
-            objects_created.difference(objects_in_config)
-        )
+            objects_created.difference(objects_in_config))
 
         # it is used when reset() is called to reset its original agent_id
-        self._agent_to_object = {agent_id: object.name for agent_id, object in init_objects.items()}
-        self._object_to_agent = {object.name: agent_id for agent_id, object in init_objects.items()}
+        self._agent_to_object = {
+            agent_id: object.name for agent_id, object in init_objects.items()
+        }
+        self._object_to_agent = {
+            object.name: agent_id for agent_id, object in init_objects.items()
+        }
         self._active_objects = {v.name: v for v in init_objects.values()}
 
         # real init {obj_name: space} map
@@ -270,7 +293,10 @@ class BaseAgentManager(BaseManager):
     def set_state(self, state: dict, old_name_to_current=None):
         super(BaseAgentManager, self).set_state(state, old_name_to_current)
         created_agents = state["created_agents"]
-        created_agents = {agent_id: old_name_to_current[obj_name] for agent_id, obj_name in created_agents.items()}
+        created_agents = {
+            agent_id: old_name_to_current[obj_name]
+            for agent_id, obj_name in created_agents.items()
+        }
         episode_created_agents = {}
         for a_id, name in created_agents.items():
             episode_created_agents[a_id] = self.engine.get_objects([name])[name]
@@ -278,7 +304,10 @@ class BaseAgentManager(BaseManager):
 
     def get_state(self):
         ret = super(BaseAgentManager, self).get_state()
-        agent_info = {agent_id: obj.name for agent_id, obj in self.episode_created_agents.items()}
+        agent_info = {
+            agent_id: obj.name
+            for agent_id, obj in self.episode_created_agents.items()
+        }
         ret["created_agents"] = agent_info
         return ret
 
@@ -291,11 +320,13 @@ class BaseAgentManager(BaseManager):
         assert stage == "before_step" or stage == "after_step"
         for agent_id in self.active_agents.keys():
             policy = self.get_policy(self._agent_to_object[agent_id])
-            assert policy is not None, "No policy is set for agent {}".format(agent_id)
+            assert policy is not None, "No policy is set for agent {}".format(
+                agent_id)
             if stage == "before_step":
                 action = policy.act(agent_id)
                 step_infos[agent_id] = policy.get_action_info()
-                step_infos[agent_id].update(self.get_agent(agent_id).before_step(action))
+                step_infos[agent_id].update(
+                    self.get_agent(agent_id).before_step(action))
 
         return step_infos
 
@@ -346,10 +377,17 @@ class BaseAgentManager(BaseManager):
         """
         Return Map<agent_id, BaseObject>
         """
-        if hasattr(self, "engine") and self.engine is not None and self.engine.replay_episode:
+        if hasattr(self, "engine"
+                  ) and self.engine is not None and self.engine.replay_episode:
             return self.engine.replay_manager.replay_agents
         else:
-            return {self._object_to_agent[k]: v for k, v in self._active_objects.items()}
+            # _active_objects -> object.id: BaseObject}
+            # _object_to_agent -> object.name: agent_id
+            # BaseObject -> agent_id: BaseObject
+            return {
+                self._object_to_agent[k]: v
+                for k, v in self._active_objects.items()
+            }
 
     def get_agent(self, agent_name, raise_error=True):
         object_name = self.agent_to_object(agent_name)

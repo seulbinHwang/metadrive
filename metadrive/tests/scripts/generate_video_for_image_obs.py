@@ -14,6 +14,7 @@ from metadrive.envs.metadrive_env import MetaDriveEnv
 
 
 class ImageEncoder(object):
+
     def __init__(self, output_path, frame_shape, frames_per_sec):
         self.proc = None
         self.output_path = output_path
@@ -23,8 +24,7 @@ class ImageEncoder(object):
             raise error.InvalidFrame(
                 "Your frame has shape {}, but we require (w,h,3) or (w,h,4), "
                 "i.e., RGB values for a w-by-h image, with an optional alpha "
-                "channel.".format(frame_shape)
-            )
+                "channel.".format(frame_shape))
         self.wh = (w, h)
         self.includes_alpha = (pixfmt == 4)
         self.frame_shape = frame_shape
@@ -40,17 +40,21 @@ class ImageEncoder(object):
                 you can install ffmpeg via `brew install ffmpeg`. On most 
                 Ubuntu variants, `sudo apt-get install ffmpeg` should do it. 
                 On Ubuntu 14.04, however, you'll need to install avconv with 
-                `sudo apt-get install libav-tools`."""
-            )
+                `sudo apt-get install libav-tools`.""")
 
         self.start()
 
     @property
     def version_info(self):
         return {
-            'backend': self.backend,
-            'version': str(subprocess.check_output([self.backend, '-version'], stderr=subprocess.STDOUT)),
-            'cmdline': self.cmdline
+            'backend':
+                self.backend,
+            'version':
+                str(
+                    subprocess.check_output([self.backend, '-version'],
+                                            stderr=subprocess.STDOUT)),
+            'cmdline':
+                self.cmdline
         }
 
     def start(self):
@@ -86,32 +90,33 @@ class ImageEncoder(object):
             '18',
             # '-vtag',
             # 'hvc1',
-            self.output_path
-        )
+            self.output_path)
 
         logger.debug('Starting ffmpeg with "%s"', ' '.join(self.cmdline))
         if hasattr(os, 'setsid'):  # setsid not present on Windows
-            self.proc = subprocess.Popen(self.cmdline, stdin=subprocess.PIPE, preexec_fn=os.setsid)
+            self.proc = subprocess.Popen(self.cmdline,
+                                         stdin=subprocess.PIPE,
+                                         preexec_fn=os.setsid)
         else:
             self.proc = subprocess.Popen(self.cmdline, stdin=subprocess.PIPE)
 
     def capture_frame(self, frame):
         if not isinstance(frame, (np.ndarray, np.generic)):
             raise error.InvalidFrame(
-                'Wrong type {} for {} (must be np.ndarray or np.generic)'.format(type(frame), frame)
-            )
+                'Wrong type {} for {} (must be np.ndarray or np.generic)'.
+                format(type(frame), frame))
         if frame.shape != self.frame_shape:
             raise error.InvalidFrame(
                 "Your frame has shape {}, but the VideoRecorder is "
-                "configured for shape {}.".format(frame.shape, self.frame_shape)
-            )
+                "configured for shape {}.".format(frame.shape,
+                                                  self.frame_shape))
         if frame.dtype != np.uint8:
             raise error.InvalidFrame(
                 "Your frame has data type {}, but we require uint8 (i.e. RGB "
-                "values from 0-255).".format(frame.dtype)
-            )
+                "values from 0-255).".format(frame.dtype))
 
-        if distutils.version.LooseVersion(np.__version__) >= distutils.version.LooseVersion('1.9.0'):
+        if distutils.version.LooseVersion(
+                np.__version__) >= distutils.version.LooseVersion('1.9.0'):
             self.proc.stdin.write(frame.tobytes())
         else:
             self.proc.stdin.write(frame.tostring())
@@ -120,7 +125,8 @@ class ImageEncoder(object):
         self.proc.stdin.close()
         ret = self.proc.wait()
         if ret != 0:
-            logger.error("VideoRecorder encoder exited with status {}".format(ret))
+            logger.error(
+                "VideoRecorder encoder exited with status {}".format(ret))
 
 
 def gen_video(frames, file="tmp"):
@@ -149,8 +155,7 @@ if __name__ == '__main__':
             },
             traffic_density=0.5,
             image_observation=True,
-        )
-    )
+        ))
     start = time.time()
     env.reset()
     frames = []

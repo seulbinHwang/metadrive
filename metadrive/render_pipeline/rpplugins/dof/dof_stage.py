@@ -50,26 +50,29 @@ class DoFStage(RenderStage):
         self.tile_target.add_color_attachment(bits=(16, 16, 0))
         self.tile_target.prepare_buffer()
 
-        self.tile_target.set_shader_input("PrecomputedCoC", self.target_prefilter.color_tex)
+        self.tile_target.set_shader_input("PrecomputedCoC",
+                                          self.target_prefilter.color_tex)
 
         self.tile_target_horiz = self.create_target("FetchHorizDOF")
         self.tile_target_horiz.size = -self.tile_size
         self.tile_target_horiz.add_color_attachment(bits=(16, 16, 0))
         self.tile_target_horiz.prepare_buffer()
-        self.tile_target_horiz.set_shader_input("SourceTex", self.tile_target.color_tex)
+        self.tile_target_horiz.set_shader_input("SourceTex",
+                                                self.tile_target.color_tex)
 
         self.minmax_target = self.create_target("DoFNeighborMinMax")
         self.minmax_target.size = -self.tile_size
         self.minmax_target.add_color_attachment(bits=(16, 16, 0))
         self.minmax_target.prepare_buffer()
-        self.minmax_target.set_shader_input("TileMinMax", self.tile_target_horiz.color_tex)
+        self.minmax_target.set_shader_input("TileMinMax",
+                                            self.tile_target_horiz.color_tex)
 
         self.presort_target = self.create_target("DoFPresort")
         self.presort_target.add_color_attachment(bits=(11, 11, 10))
         self.presort_target.prepare_buffer()
         self.presort_target.set_shader_inputs(
-            TileMinMax=self.minmax_target.color_tex, PrecomputedCoC=self.target_prefilter.color_tex
-        )
+            TileMinMax=self.minmax_target.color_tex,
+            PrecomputedCoC=self.target_prefilter.color_tex)
 
         self.target = self.create_target("ComputeDoF")
         # self.target.size = -2
@@ -78,8 +81,7 @@ class DoFStage(RenderStage):
         self.target.set_shader_inputs(
             PresortResult=self.presort_target.color_tex,
             PrecomputedCoC=self.target_prefilter.color_tex,
-            TileMinMax=self.minmax_target.color_tex
-        )
+            TileMinMax=self.minmax_target.color_tex)
 
         self.target_merge = self.create_target("MergeDoF")
         self.target_merge.add_color_attachment(bits=16)
@@ -90,12 +92,18 @@ class DoFStage(RenderStage):
         # self.target_upscale.set_shader_input("upscaleWeights", Vec2(0.001, 0.001))
 
     def reload_shaders(self):
-        self.tile_target.shader = self.load_plugin_shader("fetch_dof_minmax.frag.glsl")
-        self.tile_target_horiz.shader = self.load_plugin_shader("fetch_dof_minmax_horiz.frag.glsl")
-        self.minmax_target.shader = self.load_plugin_shader("fetch_dof_tile_neighbors.frag.glsl")
-        self.presort_target.shader = self.load_plugin_shader("dof_presort.frag.glsl")
-        self.target_prefilter.shader = self.load_plugin_shader("prefilter_dof.frag.glsl")
+        self.tile_target.shader = self.load_plugin_shader(
+            "fetch_dof_minmax.frag.glsl")
+        self.tile_target_horiz.shader = self.load_plugin_shader(
+            "fetch_dof_minmax_horiz.frag.glsl")
+        self.minmax_target.shader = self.load_plugin_shader(
+            "fetch_dof_tile_neighbors.frag.glsl")
+        self.presort_target.shader = self.load_plugin_shader(
+            "dof_presort.frag.glsl")
+        self.target_prefilter.shader = self.load_plugin_shader(
+            "prefilter_dof.frag.glsl")
         self.target.shader = self.load_plugin_shader("compute_dof.frag.glsl")
-        self.target_merge.shader = self.load_plugin_shader("merge_dof.frag.glsl")
+        self.target_merge.shader = self.load_plugin_shader(
+            "merge_dof.frag.glsl")
         # self.target_upscale.shader = self.load_plugin_shader(
         #     "/$$rp/shader/bilateral_upscale.frag.glsl")

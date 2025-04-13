@@ -72,6 +72,7 @@ class RenderPipeline(RPObject):
     """ This is the main render pipeline class, it combines all components of
     the pipeline to form a working system. It does not do much work itself, but
     instead setups all the managers and systems to be able to do their work. """
+
     def __init__(self):
         """ Creates a new pipeline with a given showbase instance. This should
         be done before intializing the ShowBase, the pipeline will take care of
@@ -137,7 +138,8 @@ class RenderPipeline(RPObject):
             self.load_settings("/$$rpconfig/pipeline.yaml")
 
         if not isfile("/$$rp/data/install.flag"):
-            self.fatal("You didn't setup the pipeline yet! Please run setup.py.")
+            self.fatal(
+                "You didn't setup the pipeline yet! Please run setup.py.")
 
         load_prc_file("/$$rpconfig/panda3d-config.prc")
         self._pre_showbase_initialized = True
@@ -191,9 +193,7 @@ class RenderPipeline(RPObject):
         self._first_frame = time.process_time()
         self.debug(
             "Finished initialization in {:3.3f} s, first frame: {}".format(
-                init_duration, Globals.clock.get_frame_count()
-            )
-        )
+                init_duration, Globals.clock.get_frame_count()))
 
     def set_loading_screen_image(self, image_source):
         """ Tells the pipeline to use the default loading screen, which consists
@@ -227,7 +227,8 @@ class RenderPipeline(RPObject):
         if effect is None:
             return self.error("Could not apply effect")
 
-        for i, stage in enumerate(("gbuffer", "shadow", "voxelize", "envmap", "forward")):
+        for i, stage in enumerate(
+            ("gbuffer", "shadow", "voxelize", "envmap", "forward")):
             if not effect.get_option("render_" + stage):
                 nodepath.hide(self.tag_mgr.get_mask(stage))
             else:
@@ -235,15 +236,17 @@ class RenderPipeline(RPObject):
                 if stage == "gbuffer":
                     nodepath.set_shader(shader, 25)
                 else:
-                    self.tag_mgr.apply_state(stage, nodepath, shader, str(effect.effect_id), 25 + 10 * i + sort)
+                    self.tag_mgr.apply_state(stage, nodepath, shader,
+                                             str(effect.effect_id),
+                                             25 + 10 * i + sort)
                 nodepath.show_through(self.tag_mgr.get_mask(stage))
 
-        if effect.get_option("render_gbuffer") and effect.get_option("render_forward"):
+        if effect.get_option("render_gbuffer") and effect.get_option(
+                "render_forward"):
             self.error(
                 "You cannot render an object forward and deferred at the "
                 "same time! Either use render_gbuffer or use render_forward, "
-                "but not both."
-            )
+                "but not both.")
 
     def set_effect(self, nodepath, effect_src, options=None, sort=30):
         """ See _internal_set_effect. """
@@ -256,9 +259,12 @@ class RenderPipeline(RPObject):
         the probe can be modified. In case the env_probes plugin is not activated,
         this returns a dummy object which can be modified but has no impact. """
         if not self.plugin_mgr.is_plugin_enabled("env_probes"):
-            self.warn("env_probes plugin is not loaded - cannot add environment probe")
+            self.warn(
+                "env_probes plugin is not loaded - cannot add environment probe"
+            )
 
             class DummyEnvironmentProbe(object):  # pylint: disable=too-few-public-methods
+
                 def __getattr__(self, *args, **kwargs):
                     return lambda *args, **kwargs: None
 
@@ -341,10 +347,13 @@ class RenderPipeline(RPObject):
                         if not tristrips_warning_emitted:
                             self.warn(
                                 "At least one GeomNode (", geom_node.get_name(),
-                                "and possible more..) contains tristrips."
+                                "and possible more..) contains tristrips.")
+                            self.warn(
+                                "Due to a NVIDIA Driver bug, we have to convert them to triangles now."
                             )
-                            self.warn("Due to a NVIDIA Driver bug, we have to convert them to triangles now.")
-                            self.warn("Consider exporting your models with the Bam Exporter to avoid this.")
+                            self.warn(
+                                "Consider exporting your models with the Bam Exporter to avoid this."
+                            )
                             tristrips_warning_emitted = True
                             break
 
@@ -352,7 +361,8 @@ class RenderPipeline(RPObject):
                     geom_node.modify_geom(i).decompose_in_place()
 
                 if not state.has_attrib(MaterialAttrib):
-                    self.warn("Geom", geom_node, "has no material! Please fix this.")
+                    self.warn("Geom", geom_node,
+                              "has no material! Please fix this.")
                     continue
 
                 material = state.get_attrib(MaterialAttrib).get_material()
@@ -365,17 +375,18 @@ class RenderPipeline(RPObject):
                             "Transparent materials must be on their own geom!\n"
                             "If you are exporting from blender, split them into\n"
                             "seperate meshes, then re-export your scene. The\n"
-                            "problematic mesh is: " + geom_np.get_name()
-                        )
+                            "problematic mesh is: " + geom_np.get_name())
                         continue
-                    self.set_effect(
-                        geom_np, "effects/default.yaml", {
-                            "render_forward": True,
-                            "render_gbuffer": False
-                        }, 100
-                    )
+                    self.set_effect(geom_np, "effects/default.yaml", {
+                        "render_forward": True,
+                        "render_gbuffer": False
+                    }, 100)
 
-        return {"lights": lights, "envprobes": envprobes, "transparent_objects": transparent_objects}
+        return {
+            "lights": lights,
+            "envprobes": envprobes,
+            "transparent_objects": transparent_objects
+        }
 
     def _create_managers(self):
         """ Internal method to create all managers and instances. This also
@@ -395,28 +406,28 @@ class RenderPipeline(RPObject):
         """ Prints information about the system used, including information
         about the used Panda3D build. Also checks if the Panda3D build is out
         of date. """
-        self.debug(
-            "Using Python {}.{} with architecture {}".format(
-                sys.version_info.major, sys.version_info.minor, PandaSystem.get_platform()
-            )
-        )
+        self.debug("Using Python {}.{} with architecture {}".format(
+            sys.version_info.major, sys.version_info.minor,
+            PandaSystem.get_platform()))
 
         build_date = getattr(PandaSystem, 'build_date', None)
         if build_date:
-            self.debug("Using Panda3D {} built on {}".format(PandaSystem.get_version_string(), build_date))
+            self.debug("Using Panda3D {} built on {}".format(
+                PandaSystem.get_version_string(), build_date))
         else:
-            self.debug("Using Panda3D {}".format(PandaSystem.get_version_string()))
+            self.debug("Using Panda3D {}".format(
+                PandaSystem.get_version_string()))
 
         if PandaSystem.get_git_commit():
-            self.debug("Using git commit {}".format(PandaSystem.get_git_commit()))
+            self.debug("Using git commit {}".format(
+                PandaSystem.get_git_commit()))
         else:
             self.debug("Using custom Panda3D build")
         if not self._check_version():
             self.fatal(
                 "Your Panda3D version is outdated! Please update to the newest \n"
                 "git version! Checkout https://github.com/panda3d/panda3d to "
-                "compile panda from source, or get a recent buildbot build."
-            )
+                "compile panda from source, or get a recent buildbot build.")
 
     def _initialize_managers(self):
         """ Internal method to initialize all managers, after they have been
@@ -439,6 +450,7 @@ class RenderPipeline(RPObject):
             # Use an empty onscreen debugger in case the debugger is not
             # enabled, which defines all member functions as empty lambdas
             class EmptyDebugger(object):  # pylint: disable=too-few-public-methods
+
                 def __getattr__(self, *args, **kwargs):
                     return lambda *args, **kwargs: None
 
@@ -450,11 +462,13 @@ class RenderPipeline(RPObject):
         ShowBase instance, as well as the render resolution, the GUI font,
         and various global logging and output methods. """
         Globals.load(self._showbase)
-        native_w, native_h = self._showbase.win.get_x_size(), self._showbase.win.get_y_size()
+        native_w, native_h = self._showbase.win.get_x_size(
+        ), self._showbase.win.get_y_size()
         Globals.native_resolution = LVecBase2i(native_w, native_h)
         self._last_window_dims = LVecBase2i(Globals.native_resolution)
         self._compute_render_resolution()
-        RenderTarget.RT_OUTPUT_FUNC = lambda *args: RPObject.global_warn("RenderTarget", *args[1:])
+        RenderTarget.RT_OUTPUT_FUNC = lambda *args: RPObject.global_warn(
+            "RenderTarget", *args[1:])
         RenderTarget.USE_R11G11B10 = self.settings["pipeline.use_r11_g11_b10"]
 
     def _set_default_effect(self):
@@ -501,8 +515,7 @@ class RenderPipeline(RPObject):
                         "You constructed your own ShowBase object but you\n"
                         "did not call pre_show_base_init() on the render\n"
                         "pipeline object before! Checkout the 00-Loading the\n"
-                        "pipeline sample to see how to initialize the RP."
-                    )
+                        "pipeline sample to see how to initialize the RP.")
             self._showbase = base
 
         # Now that we have a showbase and a window, we can print out driver info
@@ -513,24 +526,35 @@ class RenderPipeline(RPObject):
     def _init_bindings(self):
         """ Internal method to init the tasks and keybindings. This constructs
         the tasks to be run on a per-frame basis. """
-        self._showbase.addTask(self._manager_update_task, "RP_UpdateManagers", sort=10)
-        self._showbase.addTask(self._plugin_pre_render_update, "RP_Plugin_BeforeRender", sort=12)
-        self._showbase.addTask(self._plugin_post_render_update, "RP_Plugin_AfterRender", sort=15)
-        self._showbase.addTask(self._update_inputs_and_stages, "RP_UpdateInputsAndStages", sort=18)
-        self._showbase.taskMgr.doMethodLater(0.5, self._clear_state_cache, "RP_ClearStateCache")
+        self._showbase.addTask(self._manager_update_task,
+                               "RP_UpdateManagers",
+                               sort=10)
+        self._showbase.addTask(self._plugin_pre_render_update,
+                               "RP_Plugin_BeforeRender",
+                               sort=12)
+        self._showbase.addTask(self._plugin_post_render_update,
+                               "RP_Plugin_AfterRender",
+                               sort=15)
+        self._showbase.addTask(self._update_inputs_and_stages,
+                               "RP_UpdateInputsAndStages",
+                               sort=18)
+        self._showbase.taskMgr.doMethodLater(0.5, self._clear_state_cache,
+                                             "RP_ClearStateCache")
         self._showbase.accept("window-event", self._handle_window_event)
 
     def _handle_window_event(self, event):
         """ Checks for window events. This mainly handles incoming resizes,
         and calls the required handlers """
         self._showbase.windowEvent(event)
-        window_dims = LVecBase2i(self._showbase.win.get_x_size(), self._showbase.win.get_y_size())
+        window_dims = LVecBase2i(self._showbase.win.get_x_size(),
+                                 self._showbase.win.get_y_size())
         if window_dims != self._last_window_dims and window_dims != Globals.native_resolution:
             self._last_window_dims = LVecBase2i(window_dims)
 
             # Ensure the dimensions are a multiple of 4, and if not, correct it
             if window_dims.x % 4 != 0 or window_dims.y % 4 != 0:
-                self.debug("Correcting non-multiple of 4 window size:", window_dims)
+                self.debug("Correcting non-multiple of 4 window size:",
+                           window_dims)
                 window_dims.x = window_dims.x - window_dims.x % 4
                 window_dims.y = window_dims.y - window_dims.y % 4
                 props = WindowProperties.size(window_dims.x, window_dims.y)
@@ -564,7 +588,8 @@ class RenderPipeline(RPObject):
         self.daytime_mgr.update()
         self.light_mgr.update()
 
-        if Globals.clock.get_frame_count() >= 10 and self.loading_screen.fullscreen_node.hasParent():
+        if Globals.clock.get_frame_count(
+        ) >= 10 and self.loading_screen.fullscreen_node.hasParent():
             self.debug("Hiding loading screen after 10 pre-rendered frames.")
             self.loading_screen.remove()
 
@@ -634,8 +659,7 @@ class RenderPipeline(RPObject):
                 "alpha_testing": False,
                 "normal_mapping": False,
                 "parallax_mapping": False
-            }, 1000
-        )
+            }, 1000)
         return skybox
 
     def _check_version(self):
@@ -668,7 +692,8 @@ class RenderPipeline(RPObject):
 
     def _get_serialized_material_name(self, material, index=0):
         """ Returns a serializable material name """
-        return str(index) + "-" + (material.get_name().replace(" ", "").strip() or "unnamed")
+        return str(index) + "-" + (material.get_name().replace(" ", "").strip()
+                                   or "unnamed")
 
     def export_materials(self, pth):
         """ Exports a list of all materials found in the current scene in a
@@ -676,25 +701,24 @@ class RenderPipeline(RPObject):
 
         with open(pth, "w") as handle:
             for i, material in enumerate(Globals.render.find_all_materials()):
-                if not material.has_base_color() or not material.has_roughness() or not material.has_refractive_index():
+                if not material.has_base_color() or not material.has_roughness(
+                ) or not material.has_refractive_index():
                     print("Skipping non-pbr material:", material.name)
                     continue
 
-                handle.write(
-                    ("{} " * 11).format(
-                        self._get_serialized_material_name(material, i),
-                        material.base_color.x,
-                        material.base_color.y,
-                        material.base_color.z,
-                        material.roughness,
-                        material.refractive_index,
-                        material.metallic,
-                        material.emission.x,  # shading model
-                        material.emission.y,  # normal strength
-                        material.emission.z,  # arbitrary 0
-                        material.emission.w,  # arbitrary 1
-                    ) + "\n"
-                )
+                handle.write(("{} " * 11).format(
+                    self._get_serialized_material_name(material, i),
+                    material.base_color.x,
+                    material.base_color.y,
+                    material.base_color.z,
+                    material.roughness,
+                    material.refractive_index,
+                    material.metallic,
+                    material.emission.x,  # shading model
+                    material.emission.y,  # normal strength
+                    material.emission.z,  # arbitrary 0
+                    material.emission.w,  # arbitrary 1
+                ) + "\n")
 
     def update_serialized_material(self, data):
         """ Internal method to update a material from a given serialized material """
@@ -702,15 +726,17 @@ class RenderPipeline(RPObject):
 
         for i, material in enumerate(Globals.render.find_all_materials()):
             if self._get_serialized_material_name(material, i) == name:
-                material.set_base_color(Vec4(float(data[1]), float(data[2]), float(data[3]), 1.0))
+                material.set_base_color(
+                    Vec4(float(data[1]), float(data[2]), float(data[3]), 1.0))
                 material.set_roughness(float(data[4]))
                 material.set_refractive_index(float(data[5]))
                 material.set_metallic(float(data[6]))
-                material.set_emission(Vec4(
-                    float(data[7]),
-                    float(data[8]),
-                    float(data[9]),
-                    float(data[10]),
-                ))
+                material.set_emission(
+                    Vec4(
+                        float(data[7]),
+                        float(data[8]),
+                        float(data[9]),
+                        float(data[10]),
+                    ))
 
         RenderState.clear_cache()

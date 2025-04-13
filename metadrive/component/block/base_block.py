@@ -49,7 +49,9 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         random_seed,
         ignore_intersection_checking=False,
     ):
-        super(BaseBlock, self).__init__(str(block_index) + self.ID, random_seed, escape_random_seed_assertion=True)
+        super(BaseBlock, self).__init__(str(block_index) + self.ID,
+                                        random_seed,
+                                        escape_random_seed_assertion=True)
         # block information
         assert self.ID is not None, "Each Block must has its unique ID When define Block"
         assert len(self.ID) == 1, "Block ID must be a character "
@@ -74,17 +76,20 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
 
         if self.render:
             # side
-            self.side_texture = self.loader.loadTexture(AssetLoader.file_path("textures", "sidewalk", "color.png"))
+            self.side_texture = self.loader.loadTexture(
+                AssetLoader.file_path("textures", "sidewalk", "color.png"))
             # self.side_texture.set_format(Texture.F_srgb)
             self.side_texture.setWrapU(Texture.WM_repeat)
             self.side_texture.setWrapV(Texture.WM_repeat)
             self.side_texture.setMinfilter(SamplerState.FT_linear_mipmap_linear)
             self.side_texture.setAnisotropicDegree(1)
-            self.side_normal = self.loader.loadTexture(AssetLoader.file_path("textures", "sidewalk", "normal.png"))
+            self.side_normal = self.loader.loadTexture(
+                AssetLoader.file_path("textures", "sidewalk", "normal.png"))
             # self.side_normal.set_format(Texture.F_srgb)
             self.side_normal.setWrapU(Texture.WM_repeat)
             self.side_normal.setWrapV(Texture.WM_repeat)
-            self.line_seg = make_polygon_model([(-0.5, 0.5), (-0.5, -0.5), (0.5, -0.5), (0.5, 0.5)], 0)
+            self.line_seg = make_polygon_model([(-0.5, 0.5), (-0.5, -0.5),
+                                                (0.5, -0.5), (0.5, 0.5)], 0)
 
     def _sample_topology(self) -> bool:
         """
@@ -92,14 +97,12 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         """
         raise NotImplementedError
 
-    def construct_block(
-        self,
-        root_render_np: NodePath,
-        physics_world: PhysicsWorld,
-        extra_config: Dict = None,
-        no_same_node=True,
-        attach_to_world=True
-    ) -> bool:
+    def construct_block(self,
+                        root_render_np: NodePath,
+                        physics_world: PhysicsWorld,
+                        extra_config: Dict = None,
+                        no_same_node=True,
+                        attach_to_world=True) -> bool:
         """
         Randomly Construct a block, if overlap return False
         """
@@ -143,7 +146,8 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
                 obj.detach_from_world(physics_world)
         super(BaseBlock, self).detach_from_world(physics_world)
 
-    def attach_to_world(self, parent_node_path: NodePath, physics_world: PhysicsWorld):
+    def attach_to_world(self, parent_node_path: NodePath,
+                        physics_world: PhysicsWorld):
         """
         Attach the object to the scene graph
         Args:
@@ -173,7 +177,8 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         self.sidewalks = {}
         self.crosswalks = {}
 
-    def construct_from_config(self, config: Dict, root_render_np: NodePath, physics_world: PhysicsWorld):
+    def construct_from_config(self, config: Dict, root_render_np: NodePath,
+                              physics_world: PhysicsWorld):
         success = self.construct_block(root_render_np, physics_world, config)
         return success
 
@@ -195,7 +200,8 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         raise NotImplementedError()
 
     def _add_one_respawn_road(self, respawn_road: Road):
-        assert isinstance(respawn_road, Road), "Spawn roads list only accept Road Type"
+        assert isinstance(respawn_road,
+                          Road), "Spawn roads list only accept Road Type"
         self._respawn_roads.append(respawn_road)
 
     def _clear_topology(self):
@@ -215,9 +221,12 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         Note: Override the create_in_world() function instead of this one, since this method severing as a wrapper to
         help improve efficiency
         """
-        self.lane_line_node_path = NodePath(RigidBodyCombiner(self.name + "_lane_line"))
-        self.sidewalk_node_path = NodePath(RigidBodyCombiner(self.name + "_sidewalk"))
-        self.crosswalk_node_path = NodePath(RigidBodyCombiner(self.name + "_crosswalk"))
+        self.lane_line_node_path = NodePath(
+            RigidBodyCombiner(self.name + "_lane_line"))
+        self.sidewalk_node_path = NodePath(
+            RigidBodyCombiner(self.name + "_sidewalk"))
+        self.crosswalk_node_path = NodePath(
+            RigidBodyCombiner(self.name + "_crosswalk"))
         self.lane_node_path = NodePath(RigidBodyCombiner(self.name + "_lane"))
 
         if skip:  # for debug
@@ -259,7 +268,8 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         self.lane_node_path.reparentTo(self.origin)
 
         # semantics
-        self.sidewalk_node_path.setTag(CameraTagStateKey.Semantic, Semantics.SIDEWALK.label)
+        self.sidewalk_node_path.setTag(CameraTagStateKey.Semantic,
+                                       Semantics.SIDEWALK.label)
 
         try:
             self._bounding_box = self.block_network.get_bounding_box()
@@ -283,8 +293,7 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         raise DeprecationWarning(
             "Different from common objects like vehicle/traffic sign, Block has several bodies!"
             "Therefore, you should create BulletBody and then add them to self.dynamics_nodes "
-            "manually. See in construct() method"
-        )
+            "manually. See in construct() method")
 
     def get_state(self) -> Dict:
         """
@@ -298,7 +307,8 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         """
         pass
 
-    def _add_box_body(self, lane_start, lane_end, middle, parent_np: NodePath, line_type, line_color):
+    def _add_box_body(self, lane_start, lane_end, middle, parent_np: NodePath,
+                      line_type, line_color):
         raise DeprecationWarning("Useless, currently")
         length = norm(lane_end[0] - lane_start[0], lane_end[1] - lane_start[1])
         if PGLineType.prohibit(line_type):
@@ -314,19 +324,22 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         self._node_path_list.append(body_np)
 
         shape = BulletBoxShape(
-            Vec3(length / 2, PGDrivableAreaProperty.LANE_LINE_WIDTH / 2, PGDrivableAreaProperty.LANE_LINE_GHOST_HEIGHT)
-        )
+            Vec3(length / 2, PGDrivableAreaProperty.LANE_LINE_WIDTH / 2,
+                 PGDrivableAreaProperty.LANE_LINE_GHOST_HEIGHT))
         body_np.node().addShape(shape)
         mask = PGDrivableAreaProperty.CONTINUOUS_COLLISION_MASK if line_type != PGLineType.BROKEN else PGDrivableAreaProperty.BROKEN_COLLISION_MASK
         body_np.node().setIntoCollideMask(mask)
         self.static_nodes.append(body_np.node())
 
-        body_np.setPos(panda_vector(middle, PGDrivableAreaProperty.LANE_LINE_GHOST_HEIGHT / 2))
+        body_np.setPos(
+            panda_vector(middle,
+                         PGDrivableAreaProperty.LANE_LINE_GHOST_HEIGHT / 2))
         direction_v = lane_end - lane_start
         # theta = -numpy.arctan2(direction_v[1], direction_v[0])
         theta = panda_heading(math.atan2(direction_v[1], direction_v[0]))
 
-        body_np.setQuat(LQuaternionf(math.cos(theta / 2), 0, 0, math.sin(theta / 2)))
+        body_np.setQuat(
+            LQuaternionf(math.cos(theta / 2), 0, 0, math.sin(theta / 2)))
 
     @property
     def block_network_type(self):
@@ -379,7 +392,8 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
                     np.reparentTo(self.sidewalk_node_path)
                     np.setPos(0, 0, z_pos)
 
-                    body_node = BaseRigidBodyNode(None, MetaDriveType.BOUNDARY_SIDEWALK)
+                    body_node = BaseRigidBodyNode(
+                        None, MetaDriveType.BOUNDARY_SIDEWALK)
                     body_node.setKinematic(False)
                     body_node.setStatic(True)
                     body_np = self.sidewalk_node_path.attachNewNode(body_node)
@@ -400,7 +414,8 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         """
         Construct the crosswalk for semantic Cam
         """
-        if self.engine is None or (self.engine.global_config["show_crosswalk"] and not self.engine.use_render_pipeline):
+        if self.engine is None or (self.engine.global_config["show_crosswalk"]
+                                   and not self.engine.use_render_pipeline):
             for cross_id, crosswalk in self.crosswalks.items():
                 if len(crosswalk["polygon"]) == 0:
                     continue
@@ -410,7 +425,8 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
                 for polygon in polygons:
                     np = make_polygon_model(polygon, 1.5)
 
-                    body_node = BaseGhostBodyNode(cross_id, MetaDriveType.CROSSWALK)
+                    body_node = BaseGhostBodyNode(cross_id,
+                                                  MetaDriveType.CROSSWALK)
                     body_node.setKinematic(False)
                     body_node.setStatic(True)
                     body_np = self.crosswalk_node_path.attachNewNode(body_node)
@@ -467,7 +483,8 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
             self.static_nodes.append(segment_node)
             segment_np.reparentTo(self.lane_node_path)
 
-    def _construct_lane_line_segment(self, start_point, end_point, line_color: Vec4, line_type: PGLineType):
+    def _construct_lane_line_segment(self, start_point, end_point,
+                                     line_color: Vec4, line_type: PGLineType):
         node_path_list = []
 
         if not isinstance(start_point, np.ndarray):
@@ -475,7 +492,8 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         if not isinstance(end_point, np.ndarray):
             end_point = np.array(end_point)
 
-        length = norm(end_point[0] - start_point[0], end_point[1] - start_point[1])
+        length = norm(end_point[0] - start_point[0],
+                      end_point[1] - start_point[1])
         middle = (start_point + end_point) / 2
 
         if not TerrainProperty.point_in_map(middle):
@@ -502,7 +520,9 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
 
         # its scale will change by setScale
         body_height = PGDrivableAreaProperty.LANE_LINE_GHOST_HEIGHT
-        shape = BulletBoxShape(Vec3(length / 2, PGDrivableAreaProperty.LANE_LINE_WIDTH / 4, body_height))
+        shape = BulletBoxShape(
+            Vec3(length / 2, PGDrivableAreaProperty.LANE_LINE_WIDTH / 4,
+                 body_height))
         body_np.node().addShape(shape)
         mask = PGDrivableAreaProperty.CONTINUOUS_COLLISION_MASK if line_type != PGLineType.BROKEN \
             else PGDrivableAreaProperty.BROKEN_COLLISION_MASK
@@ -510,10 +530,13 @@ class BaseBlock(BaseObject, PGDrivableAreaProperty, ABC):
         self.static_nodes.append(body_np.node())
 
         # position and heading
-        body_np.setPos(panda_vector(middle, PGDrivableAreaProperty.LANE_LINE_GHOST_HEIGHT / 2))
+        body_np.setPos(
+            panda_vector(middle,
+                         PGDrivableAreaProperty.LANE_LINE_GHOST_HEIGHT / 2))
         direction_v = end_point - start_point
         # theta = -numpy.arctan2(direction_v[1], direction_v[0])
         theta = panda_heading(math.atan2(direction_v[1], direction_v[0]))
-        body_np.setQuat(LQuaternionf(math.cos(theta / 2), 0, 0, math.sin(theta / 2)))
+        body_np.setQuat(
+            LQuaternionf(math.cos(theta / 2), 0, 0, math.sin(theta / 2)))
 
         return node_path_list

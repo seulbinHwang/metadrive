@@ -25,7 +25,8 @@ if __name__ == '__main__':
     start_seed = 100
     generate_video = True
 
-    folder_name = "example_video_{}".format(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+    folder_name = "example_video_{}".format(
+        datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
     video_bev = []
     video_interface = []
 
@@ -38,10 +39,10 @@ if __name__ == '__main__':
             use_render=True,
             window_size=(900, 600),
             crash_vehicle_done=False,
-            manual_control=True,  # For using expert policy. You don't need to control it.
+            manual_control=
+            True,  # For using expert policy. You don't need to control it.
             horizon=100,
-        )
-    )
+        ))
 
     ep_count = 0
     step_count = 0
@@ -87,8 +88,11 @@ if __name__ == '__main__':
                 mediapy.write_video(video_name_bev, video_bev, fps=60)
 
                 video_name_interface = video_base_name + "_interface.mp4"
-                print("Interface video should be saved at: ", video_name_interface)
-                mediapy.write_video(video_name_interface, video_interface, fps=60)
+                print("Interface video should be saved at: ",
+                      video_name_interface)
+                mediapy.write_video(video_name_interface,
+                                    video_interface,
+                                    fps=60)
 
             if ep_count >= num_scenarios:
                 break

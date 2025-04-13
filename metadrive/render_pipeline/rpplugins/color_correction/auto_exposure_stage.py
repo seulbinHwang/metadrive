@@ -39,7 +39,10 @@ class AutoExposureStage(RenderStage):
 
     @property
     def produced_pipes(self):
-        return {"ShadedScene": self.target_apply.color_tex, "Exposure": self.tex_exposure}
+        return {
+            "ShadedScene": self.target_apply.color_tex,
+            "Exposure": self.tex_exposure
+        }
 
     def create(self):
 
@@ -64,7 +67,8 @@ class AutoExposureStage(RenderStage):
         self.target_analyze.size = 1, 1
         self.target_analyze.prepare_buffer()
 
-        self.target_analyze.set_shader_input("ExposureStorage", self.tex_exposure)
+        self.target_analyze.set_shader_input("ExposureStorage",
+                                             self.tex_exposure)
 
         # Create the target which applies the generated exposure to the scene
         self.target_apply = self.create_target("ApplyExposure")
@@ -95,7 +99,8 @@ class AutoExposureStage(RenderStage):
             self.mip_targets.append(mip_target)
             last_tex = mip_target.color_tex
 
-        self.target_analyze.set_shader_input("DownscaledTex", self.mip_targets[-1].color_tex)
+        self.target_analyze.set_shader_input("DownscaledTex",
+                                             self.mip_targets[-1].color_tex)
 
         # Shaders might not have been loaded at this point
         if hasattr(self, "mip_shader"):
@@ -103,11 +108,15 @@ class AutoExposureStage(RenderStage):
                 target.shader = self.mip_shader
 
     def reload_shaders(self):
-        self.target_lum.shader = self.load_plugin_shader("generate_luminance.frag.glsl")
-        self.target_analyze.shader = self.load_plugin_shader("analyze_brightness.frag.glsl")
-        self.target_apply.shader = self.load_plugin_shader("apply_exposure.frag.glsl")
+        self.target_lum.shader = self.load_plugin_shader(
+            "generate_luminance.frag.glsl")
+        self.target_analyze.shader = self.load_plugin_shader(
+            "analyze_brightness.frag.glsl")
+        self.target_apply.shader = self.load_plugin_shader(
+            "apply_exposure.frag.glsl")
 
         # Keep shader as reference, required when resizing
-        self.mip_shader = self.load_plugin_shader("downscale_luminance.frag.glsl")
+        self.mip_shader = self.load_plugin_shader(
+            "downscale_luminance.frag.glsl")
         for target in self.mip_targets:
             target.shader = self.mip_shader

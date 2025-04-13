@@ -46,7 +46,13 @@ def download_file(url, chunk_size=100 * 1024):
         # Import progressbar library
         from metadrive.render_pipeline.rplibs.progressbar import FileTransferSpeed, ETA, ProgressBar, Percentage
         from metadrive.render_pipeline.rplibs.progressbar import Bar
-        widgets = ['\tDownloading: ', FileTransferSpeed(), ' ', Bar(), Percentage(), '   ', ETA()]
+        widgets = [
+            '\tDownloading: ',
+            FileTransferSpeed(), ' ',
+            Bar(),
+            Percentage(), '   ',
+            ETA()
+        ]
         file_content = []
         bytes_read = 0
 
@@ -134,7 +140,9 @@ def download_submodule(author, module_name, dest_path, ignore_list):
                 if ignore in rel_name:
                     break
             else:
-                with zip_handle.open(fname, "r") as source, open(rel_name, "wb") as dest:
+                with zip_handle.open(fname,
+                                     "r") as source, open(rel_name,
+                                                          "wb") as dest:
                     shutil.copyfileobj(source, dest)
                 num_files += 1
 

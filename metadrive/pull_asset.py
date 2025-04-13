@@ -15,10 +15,12 @@ from metadrive.engine.logger import get_logger
 from metadrive.version import asset_version
 
 ROOT_DIR = Path(__file__).parent
-ASSET_URL = "https://github.com/metadriverse/metadrive/releases/download/MetaDrive-{}/assets.zip".format(VERSION)
+ASSET_URL = "https://github.com/metadriverse/metadrive/releases/download/MetaDrive-{}/assets.zip".format(
+    VERSION)
 
 
 class MyProgressBar():
+
     def __init__(self):
         self.pbar = None
 
@@ -41,10 +43,8 @@ def _is_asset_version_file_ready():
 
 def wait_asset_lock():
     logger = get_logger()
-    logger.info(
-        "Another instance of this program is already running. "
-        "Wait for the asset pulling finished from another program..."
-    )
+    logger.info("Another instance of this program is already running. "
+                "Wait for the asset pulling finished from another program...")
     if not _is_asset_version_file_ready():
         import time
         while not _is_asset_version_file_ready():
@@ -64,10 +64,8 @@ def pull_asset(update):
     if _is_asset_version_file_ready() and not update:
         logger.warning(
             "Fail to update assets. Assets already exists, version: {}. Expected version: {}. "
-            "To overwrite existing assets and update, add flag '--update' and rerun this script".format(
-                asset_version(), VERSION
-            )
-        )
+            "To overwrite existing assets and update, add flag '--update' and rerun this script"
+            .format(asset_version(), VERSION))
         return
 
     lock = filelock.FileLock(lock_path, timeout=1)
@@ -77,26 +75,28 @@ def pull_asset(update):
         with lock:
             # Download assets
             logger.info("Pull assets from {} to {}".format(ASSET_URL, zip_path))
-            extra_arg = [MyProgressBar()] if logger.level == logging.INFO else []
+            extra_arg = [MyProgressBar()
+                        ] if logger.level == logging.INFO else []
             urllib.request.urlretrieve(ASSET_URL, zip_path, *extra_arg)
 
             # Prepare for extraction
             if os.path.exists(assets_folder):
-                logger.info("Remove existing assets. Files: {}".format(os.listdir(assets_folder)))
+                logger.info("Remove existing assets. Files: {}".format(
+                    os.listdir(assets_folder)))
                 shutil.rmtree(assets_folder, ignore_errors=True)
             if os.path.exists(temp_assets_folder):
                 shutil.rmtree(temp_assets_folder, ignore_errors=True)
 
             # Extract to temporary directory
             logger.info("Extracting assets.")
-            shutil.unpack_archive(filename=zip_path, extract_dir=temp_assets_folder)
+            shutil.unpack_archive(filename=zip_path,
+                                  extract_dir=temp_assets_folder)
             shutil.move(str(temp_assets_folder / 'assets'), str(ROOT_DIR))
 
     except Timeout:  # Timeout will be raised if the lock can not be acquired in 1s.
         logger.info(
             "Another instance of this program is already running. "
-            "Wait for the asset pulling finished from another program..."
-        )
+            "Wait for the asset pulling finished from another program...")
         wait_asset_lock()
         logger.info("Assets are now available.")
 
@@ -111,15 +111,21 @@ def pull_asset(update):
 
     # Final check
     if not assets_folder.exists():
-        raise ValueError("Assets folder does not exist! Files: {}".format(os.listdir(ROOT_DIR)))
+        raise ValueError("Assets folder does not exist! Files: {}".format(
+            os.listdir(ROOT_DIR)))
     if not _is_asset_version_file_ready():
-        raise ValueError("Assets version misses! Files: {}".format(os.listdir(assets_folder)))
+        raise ValueError("Assets version misses! Files: {}".format(
+            os.listdir(assets_folder)))
 
-    logger.info("Successfully download assets, version: {}. MetaDrive version: {}".format(asset_version(), VERSION))
+    logger.info(
+        "Successfully download assets, version: {}. MetaDrive version: {}".
+        format(asset_version(), VERSION))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--update", action="store_true", help="Force overwrite the current assets")
+    parser.add_argument("--update",
+                        action="store_true",
+                        help="Force overwrite the current assets")
     args = parser.parse_args()
     pull_asset(args.update)

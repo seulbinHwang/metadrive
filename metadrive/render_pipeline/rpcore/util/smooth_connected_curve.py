@@ -32,6 +32,7 @@ from panda3d.core import Vec3, CurveFitter
 class SmoothConnectedCurve(object):
     """ Interface to a curve which also manages connecting the end of the
     curve with the beginning. """
+
     def __init__(self):
         self._curve = None
         self._modified = False
@@ -96,7 +97,8 @@ class SmoothConnectedCurve(object):
 
         # Duplicate curve at the beginning
         for i in range(self._border_points):
-            end_point = self._cv_points[(-i + self._border_points - 1) % len(self._cv_points)]
+            end_point = self._cv_points[(-i + self._border_points - 1) %
+                                        len(self._cv_points)]
             end_point = first_point
             fitter.add_xyz(0.0, Vec3(0, end_point[1], 0))
 
@@ -133,5 +135,8 @@ class SmoothConnectedCurve(object):
 
     def serialize(self):
         """ Returns the value of the curve as yaml list """
-        points = ["[{:5.10f},{:5.10f}]".format(float(a), float(b)) for a, b in self._cv_points]
+        points = [
+            "[{:5.10f},{:5.10f}]".format(float(a), float(b))
+            for a, b in self._cv_points
+        ]
         return "[" + ','.join(points) + "]"

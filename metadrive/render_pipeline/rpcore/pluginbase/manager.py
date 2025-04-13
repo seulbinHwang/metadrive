@@ -42,6 +42,7 @@ class PluginManager(RPObject):
     """ This class manages all plugins. It provides functionality to load plugin
     settings, trigger callbacks on plugins, initialize the plugin instances
     and much more. """
+
     def __init__(self, pipeline):
         """ Constructs a new manager with no plugins loaded. To load settings
         and plugins, call load(). """
@@ -118,13 +119,16 @@ class PluginManager(RPObject):
         if config["settings"] and len(config["settings"][0]) != 2:
             self.fatal("Invalid plugin configuration, did you miss '!!omap'?")
 
-        settings = collections.OrderedDict([(k, make_setting_from_data(v)) for k, v in config["settings"]])
+        settings = collections.OrderedDict([
+            (k, make_setting_from_data(v)) for k, v in config["settings"]
+        ])
         self.settings[plugin_id] = settings
 
         if self.requires_daytime_settings:
-            daysettings = collections.OrderedDict(
-                [(k, make_daysetting_from_data(v)) for k, v in config["daytime_settings"]]
-            )
+            daysettings = collections.OrderedDict([
+                (k, make_daysetting_from_data(v))
+                for k, v in config["daytime_settings"]
+            ])
             self.day_settings[plugin_id] = daysettings
 
     def load_setting_overrides(self, override_path):
@@ -135,7 +139,8 @@ class PluginManager(RPObject):
             self.warn("Failed to load overrides")
             return
         self.enabled_plugins = set(overrides["enabled"] or [])
-        for plugin_id, pluginsettings in iteritems(overrides["overrides"] or {}):
+        for plugin_id, pluginsettings in iteritems(overrides["overrides"] or
+                                                   {}):
             if plugin_id not in self.settings:
                 self.warn("Unkown plugin in plugin config:", plugin_id)
                 continue
@@ -155,9 +160,11 @@ class PluginManager(RPObject):
         for plugin_id, settings in iteritems(overrides["control_points"] or {}):
             for setting_id, control_points in iteritems(settings):
                 if setting_id not in self.day_settings[plugin_id]:
-                    self.warn("Unkown daytime override:", plugin_id, ":", setting_id)
+                    self.warn("Unkown daytime override:", plugin_id, ":",
+                              setting_id)
                     continue
-                self.day_settings[plugin_id][setting_id].set_control_points(control_points)
+                self.day_settings[plugin_id][setting_id].set_control_points(
+                    control_points)
 
     def trigger_hook(self, hook_name):
         """ Triggers a given hook on all plugins, effectively calling all
@@ -181,26 +188,31 @@ class PluginManager(RPObject):
         in a shader """
         for plugin_id in self.enabled_plugins:
             pluginsettings = self.settings[plugin_id]
-            self._pipeline.stage_mgr.defines["HAVE_PLUGIN_{}".format(plugin_id)] = 1
+            self._pipeline.stage_mgr.defines["HAVE_PLUGIN_{}".format(
+                plugin_id)] = 1
             for setting_id, setting in iteritems(pluginsettings):
                 if setting.shader_runtime or not setting.runtime:
                     # Only store settings which either never change, or trigger
                     # a shader reload when they change
-                    setting.add_defines(plugin_id, setting_id, self._pipeline.stage_mgr.defines)
+                    setting.add_defines(plugin_id, setting_id,
+                                        self._pipeline.stage_mgr.defines)
 
     def _load_plugin(self, plugin_id):
         """ Internal method to load a plugin """
-        plugin_class = "metadrive.render_pipeline.rpplugins.{}.plugin".format(plugin_id)
+        plugin_class = "metadrive.render_pipeline.rpplugins.{}.plugin".format(
+            plugin_id)
         module = importlib.import_module(plugin_class)
         instance = module.Plugin(self._pipeline)
         if instance.native_only and not NATIVE_CXX_LOADED:
             if plugin_id in self.enabled_plugins:
-                self.warn("Cannot load", plugin_id, "since it requires the C++ modules.")
+                self.warn("Cannot load", plugin_id,
+                          "since it requires the C++ modules.")
                 return False
         for required_plugin in instance.required_plugins:
             if required_plugin not in self.enabled_plugins:
                 if plugin_id in self.enabled_plugins:
-                    self.warn("Cannot load {} since it requires {}".format(plugin_id, required_plugin))
+                    self.warn("Cannot load {} since it requires {}".format(
+                        plugin_id, required_plugin))
                     return False
                 break
         return instance
@@ -216,12 +228,15 @@ class PluginManager(RPObject):
             return ("A" if self.is_plugin_enabled(pid) else "B") + pid
 
         for plugin_id in sorted(self.settings, key=sort_criteria):
-            output += "   {}- {}\n".format(" # " if plugin_id not in self.enabled_plugins else " ", plugin_id)
+            output += "   {}- {}\n".format(
+                " # " if plugin_id not in self.enabled_plugins else " ",
+                plugin_id)
         output += "\n\noverrides:\n"
         for plugin_id, pluginsettings in sorted(iteritems(self.settings)):
             output += " " * 4 + plugin_id + ":\n"
             for setting_id, setting_handle in iteritems(pluginsettings):
-                output += " " * 8 + "{}: {}\n".format(setting_id, setting_handle.value)
+                output += " " * 8 + "{}: {}\n".format(setting_id,
+                                                      setting_handle.value)
             output += "\n"
         with open(override_file, "w") as handle:
             handle.write(output)
@@ -258,7 +273,8 @@ class PluginManager(RPObject):
         """ Callback when a setting got changed. This will update the setting,
         and also call the callback for that setting, in case the plugin defined
         one. """
-        if plugin_id not in self.settings or setting_id not in self.settings[plugin_id]:
+        if plugin_id not in self.settings or setting_id not in self.settings[
+                plugin_id]:
             self.warn("Got invalid setting change:", plugin_id, "/", setting_id)
             return
 

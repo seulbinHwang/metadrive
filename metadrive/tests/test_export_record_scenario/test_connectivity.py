@@ -21,43 +21,52 @@ def test_search_path(render_export_env=False, render_load_env=False):
             num_scenarios=1,
             map_config={
                 BaseMap.GENERATE_TYPE: MapGenerateMethod.BIG_BLOCK_SEQUENCE,
-                BaseMap.GENERATE_CONFIG: "OSXCTrCS",  # it can be a file path / block num / block ID sequence
+                BaseMap.GENERATE_CONFIG:
+                    "OSXCTrCS",  # it can be a file path / block num / block ID sequence
                 BaseMap.LANE_WIDTH: 3.5,
                 BaseMap.LANE_NUM: 1,
                 "exit_length": 50,
             },
-            agent_policy=IDMPolicy
-        )
-    )
+            agent_policy=IDMPolicy))
     policy = lambda x: [0, 1]
     dir = None
 
     try:
-        scenarios, done_info = env.export_scenarios(policy, scenario_index=[i for i in range(1)])
+        scenarios, done_info = env.export_scenarios(
+            policy, scenario_index=[i for i in range(1)])
 
-        dir = pathlib.Path(os.path.dirname(__file__)) / "../test_component/test_export"
-        save_dataset(
-            scenario_list=list(scenarios.values()), dataset_name="reconstructed", dataset_version="v0", dataset_dir=dir
-        )
+        dir = pathlib.Path(
+            os.path.dirname(__file__)) / "../test_component/test_export"
+        save_dataset(scenario_list=list(scenarios.values()),
+                     dataset_name="reconstructed",
+                     dataset_version="v0",
+                     dataset_dir=dir)
         node_roadnet = copy.deepcopy(env.current_map.road_network)
         env.close()
 
         # Loaded Data
         env = ScenarioEnv(
-            dict(agent_policy=ReplayEgoCarPolicy, data_directory=dir, use_render=render_load_env, num_scenarios=1)
-        )
-        scenarios, done_info = env.export_scenarios(policy, scenario_index=[i for i in range(1)])
+            dict(agent_policy=ReplayEgoCarPolicy,
+                 data_directory=dir,
+                 use_render=render_load_env,
+                 num_scenarios=1))
+        scenarios, done_info = env.export_scenarios(
+            policy, scenario_index=[i for i in range(1)])
 
-        dir = pathlib.Path(os.path.dirname(__file__)) / "../test_component/test_export"
-        save_dataset(
-            scenario_list=list(scenarios.values()), dataset_name="reconstructed", dataset_version="v0", dataset_dir=dir
-        )
+        dir = pathlib.Path(
+            os.path.dirname(__file__)) / "../test_component/test_export"
+        save_dataset(scenario_list=list(scenarios.values()),
+                     dataset_name="reconstructed",
+                     dataset_version="v0",
+                     dataset_dir=dir)
         env.close()
 
         # reload
         env = ScenarioEnv(
-            dict(agent_policy=ReplayEgoCarPolicy, data_directory=dir, use_render=render_load_env, num_scenarios=1)
-        )
+            dict(agent_policy=ReplayEgoCarPolicy,
+                 data_directory=dir,
+                 use_render=render_load_env,
+                 num_scenarios=1))
         for index in range(1):
             env.reset(seed=index)
             done = False
@@ -67,14 +76,18 @@ def test_search_path(render_export_env=False, render_load_env=False):
         edge_roadnet = copy.deepcopy(env.current_map.road_network)
         all_node_lanes = node_roadnet.get_all_lanes()
         all_edge_lanes = edge_roadnet.get_all_lanes()
-        diff = (
-            set(["{}".format(l.index) if "decoration" not in l.index else "" for l in all_node_lanes]) -
-            set(["{}".format(l.index) if "decoration" not in l.index else "" for l in all_edge_lanes])
-        )
+        diff = (set([
+            "{}".format(l.index) if "decoration" not in l.index else ""
+            for l in all_node_lanes
+        ]) - set([
+            "{}".format(l.index) if "decoration" not in l.index else ""
+            for l in all_edge_lanes
+        ]))
         assert len(diff) == 0
         nodes = node_roadnet.shortest_path('>', "8S0_0_")
         print(nodes)
-        edges = edge_roadnet.shortest_path("('>', '>>', 0)", "('7C0_1_', '8S0_0_', 0)")
+        edges = edge_roadnet.shortest_path("('>', '>>', 0)",
+                                           "('7C0_1_', '8S0_0_', 0)")
 
         def process_data(input_list):
             # Initialize the output list

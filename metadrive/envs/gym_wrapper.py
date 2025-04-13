@@ -12,15 +12,21 @@ try:
         if isinstance(space, gym.spaces.Space):
             return space
         if isinstance(space, gymnasium.spaces.Box):
-            return gym.spaces.Box(low=space.low, high=space.high, shape=space.shape)
+            return gym.spaces.Box(low=space.low,
+                                  high=space.high,
+                                  shape=space.shape)
         elif isinstance(space, gymnasium.spaces.Discrete):
             return gym.spaces.Discrete(n=int(space.n), start=int(space.start))
         elif isinstance(space, gymnasium.spaces.MultiDiscrete):
             return gym.spaces.MultiDiscrete(nvec=space.nvec)
         elif isinstance(space, gymnasium.spaces.Tuple):
-            return gym.spaces.Tuple([gymnasiumToGym(subspace) for subspace in space.spaces])
+            return gym.spaces.Tuple(
+                [gymnasiumToGym(subspace) for subspace in space.spaces])
         elif isinstance(space, gymnasium.spaces.Dict):
-            return gym.spaces.Dict({key: gymnasiumToGym(subspace) for key, subspace in space.spaces.items()})
+            return gym.spaces.Dict({
+                key: gymnasiumToGym(subspace)
+                for key, subspace in space.spaces.items()
+            })
         else:
             raise ValueError(f"unsupported space: {type(space)}!")
 
@@ -31,15 +37,22 @@ try:
         if isinstance(space, gymnasium.spaces.Space):
             return space
         if isinstance(space, gym.spaces.Box):
-            return gymnasium.spaces.Box(low=space.low, high=space.high, shape=space.shape)
+            return gymnasium.spaces.Box(low=space.low,
+                                        high=space.high,
+                                        shape=space.shape)
         elif isinstance(space, gym.spaces.Discrete):
-            return gymnasium.spaces.Discrete(n=int(space.n), start=int(space.start))
+            return gymnasium.spaces.Discrete(n=int(space.n),
+                                             start=int(space.start))
         elif isinstance(space, gym.spaces.MultiDiscrete):
             return gymnasium.spaces.MultiDiscrete(nvec=space.nvec)
         elif isinstance(space, gym.spaces.Tuple):
-            return gymnasium.spaces.Tuple([gymToGymnasium(subspace) for subspace in space.spaces])
+            return gymnasium.spaces.Tuple(
+                [gymToGymnasium(subspace) for subspace in space.spaces])
         elif isinstance(space, gym.spaces.Dict):
-            return gymnasium.spaces.Dict({key: gymToGymnasium(subspace) for key, subspace in space.spaces.items()})
+            return gymnasium.spaces.Dict({
+                key: gymToGymnasium(subspace)
+                for key, subspace in space.spaces.items()
+            })
         else:
             raise ValueError(f"unsupported space: {type(space)}!")
 
@@ -50,6 +63,7 @@ try:
         """
         "inner_class": A gymnasium based Metadrive environment class
         """
+
         def was_overriden(a):
             """
             Returns if function `a` was not defined in this file
@@ -59,11 +73,14 @@ try:
             # TODO: this is a hack, but i'm not sure how to make it more robust
             return inspect.getfile(a) != inspect.getfile(createGymWrapper)
 
-        def createOverridenDefaultConfigWrapper(base: type, new_default_config: Callable) -> type:
+        def createOverridenDefaultConfigWrapper(
+                base: type, new_default_config: Callable) -> type:
             """
             Returns a class derived from the `base` class. It overrides the `default_config` classmethod, which is set to new_default_config
             """
+
             class OverridenDefaultConfigWrapper(base):
+
                 @classmethod
                 def default_config(cls):
                     return new_default_config()
@@ -71,6 +88,7 @@ try:
             return OverridenDefaultConfigWrapper
 
         class GymEnvWrapper(gym.Env):
+
             @classmethod
             def default_config(cls):
                 """
@@ -84,7 +102,9 @@ try:
                 # if there was an override, we need to provide the overriden method to the inner class.
                 if was_overriden(type(self).default_config):
                     # when inner_class's init is called, it now has access to the new default_config
-                    actual_inner_class = createOverridenDefaultConfigWrapper(inner_class, type(self).default_config)
+                    actual_inner_class = createOverridenDefaultConfigWrapper(
+                        inner_class,
+                        type(self).default_config)
                 else:
                     # otherwise, don't make a wrapper
                     actual_inner_class = inner_class
@@ -95,7 +115,10 @@ try:
             def step(self, actions):
                 o, r, tm, tc, i = self._inner.step(actions)
                 if isinstance(tm, dict) and isinstance(tc, dict):
-                    d = {j: (j in tm and tm[j]) or (j in tc and tc[j]) for j in set(list(tm.keys()) + list(tc.keys()))}
+                    d = {
+                        j: (j in tm and tm[j]) or (j in tc and tc[j])
+                        for j in set(list(tm.keys()) + list(tc.keys()))
+                    }
                 else:
                     d = tm or tc
                 return o, r, d, i
@@ -103,7 +126,9 @@ try:
             def reset(self, *, seed=None, options=None):
                 # pass non-none parameters to the reset (which may not support options or seed)
                 params = {"seed": seed, "options": options}
-                not_none_params = {k: v for k, v in params.items() if v is not None}
+                not_none_params = {
+                    k: v for k, v in params.items() if v is not None
+                }
                 obs, _ = self._inner.reset(**not_none_params)
                 return obs
 
@@ -153,4 +178,6 @@ try:
                 assert s == env.config["horizon"] and i["max_step"] and d
                 break
 except:
-    raise ValueError("Cannot import GymWrapper. Make sure you have `gym` installed via `pip install gym`")
+    raise ValueError(
+        "Cannot import GymWrapper. Make sure you have `gym` installed via `pip install gym`"
+    )

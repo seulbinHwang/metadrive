@@ -23,10 +23,9 @@ def get_armature(obj):
 
 
 def is_left_bone(bone):
-    return (
-        bone.name.endswith('_L') or bone.name.endswith('.L') or bone.name.lower().startswith('left')
-        or '.L.' in bone.name or '_L.' in bone.name or ':Left' in bone.name
-    )
+    return (bone.name.endswith('_L') or bone.name.endswith('.L') or
+            bone.name.lower().startswith('left') or '.L.' in bone.name or
+            '_L.' in bone.name or ':Left' in bone.name)
 
 
 def is_bone_matches(bone, names):

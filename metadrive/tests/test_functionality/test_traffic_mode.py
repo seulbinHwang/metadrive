@@ -4,16 +4,14 @@ from metadrive.envs.metadrive_env import MetaDriveEnv
 def test_traffic_mode(render=False):
     try:
         for mode in ["hybrid", "trigger", "respawn"]:
-            env = MetaDriveEnv(
-                {
-                    "num_scenarios": 1,
-                    "traffic_density": 0.1,
-                    "traffic_mode": mode,
-                    "start_seed": 22,
-                    "use_render": render,
-                    "map": "X",
-                }
-            )
+            env = MetaDriveEnv({
+                "num_scenarios": 1,
+                "traffic_density": 0.1,
+                "traffic_mode": mode,
+                "start_seed": 22,
+                "use_render": render,
+                "map": "X",
+            })
 
             o, _ = env.reset()
             env.agent.set_velocity([1, 0.1], 10)

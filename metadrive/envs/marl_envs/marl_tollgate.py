@@ -13,9 +13,13 @@ from metadrive.obs.state_obs import LidarStateObservation, StateObservation
 from metadrive.utils import Config, clip
 
 MATollConfig = dict(
-    spawn_roads=[Road(FirstPGBlock.NODE_2, FirstPGBlock.NODE_3), -Road(Merge.node(3, 0, 0), Merge.node(3, 0, 1))],
+    spawn_roads=[
+        Road(FirstPGBlock.NODE_2, FirstPGBlock.NODE_3),
+        -Road(Merge.node(3, 0, 0), Merge.node(3, 0, 1))
+    ],
     num_agents=40,
-    map_config=dict(exit_length=70, lane_num=3, toll_lane_num=8, toll_length=10),
+    map_config=dict(exit_length=70, lane_num=3, toll_lane_num=8,
+                    toll_length=10),
     top_down_camera_initial_x=125,
     top_down_camera_initial_y=0,
     top_down_camera_initial_z=120,
@@ -24,18 +28,19 @@ MATollConfig = dict(
     speed_reward=0.0,
     overspeed_penalty=0.5,
     vehicle_config=dict(
-        min_pass_steps=30,  # We ask the agents to stop at tollgate for at least 6s (30 steps).
+        min_pass_steps=
+        30,  # We ask the agents to stop at tollgate for at least 6s (30 steps).
         show_lidar=False,
         # "show_side_detector": True,
         # "show_lane_line_detector": True,
         side_detector=dict(num_lasers=72, distance=20),  # laser num, distance
         lane_line_detector=dict(num_lasers=4, distance=20),
         lidar=dict(num_lasers=72, distance=20),
-    )
-)
+    ))
 
 
 class StayTimeManager:
+
     def __init__(self):
         self.entry_time = {}
         self.exit_time = {}
@@ -56,7 +61,8 @@ class StayTimeManager:
                     if cur_block_id == TollGate.ID:
                         # entry
                         self.entry_time[v_id] = time_step
-                    elif (cur_block_id == Merge.ID or cur_block_id == Split.ID) and last_block_id == TollGate.ID:
+                    elif (cur_block_id == Merge.ID or cur_block_id
+                          == Split.ID) and last_block_id == TollGate.ID:
                         self.exit_time[v_id] = time_step
             else:
                 self.last_block[v_id] = cur_block_id
@@ -68,7 +74,7 @@ class TollGateStateObservation(StateObservation):
     def observation_space(self):
         # Navi info + Other states
         shape = self.ego_state_obs_dim + self.get_line_detector_dim()
-        return gym.spaces.Box(-0.0, 1.0, shape=(shape, ), dtype=np.float32)
+        return gym.spaces.Box(-0.0, 1.0, shape=(shape,), dtype=np.float32)
 
     def observe(self, vehicle):
         ego_state = self.vehicle_state(vehicle)
@@ -76,6 +82,7 @@ class TollGateStateObservation(StateObservation):
 
 
 class TollGateObservation(LidarStateObservation):
+
     def __init__(self, vehicle_config):
         super(LidarStateObservation, self).__init__(vehicle_config)
         self.state_obs = TollGateStateObservation(vehicle_config)
@@ -95,18 +102,21 @@ class TollGateObservation(LidarStateObservation):
         self.in_toll_time = 0
 
     def observe(self, vehicle):
-        cur_block_is_toll = vehicle.navigation.current_road.block_ID() == TollGate.ID
+        cur_block_is_toll = vehicle.navigation.current_road.block_ID(
+        ) == TollGate.ID
         self.in_toll_time += 1 if cur_block_is_toll else 0
         if not cur_block_is_toll:
             toll_obs = [0.0, 0.0]
         else:
             toll_obs = [
-                1.0 if cur_block_is_toll else 0.0, 1.0 if self.in_toll_time > vehicle.config["min_pass_steps"] else 0.0
+                1.0 if cur_block_is_toll else 0.0, 1.0
+                if self.in_toll_time > vehicle.config["min_pass_steps"] else 0.0
             ]
         # print(toll_obs)
         state = self.state_observe(vehicle)
         other_v_info = self.lidar_observe(vehicle)
-        ret = np.concatenate((state, np.asarray(other_v_info), np.asarray(toll_obs)))
+        ret = np.concatenate(
+            (state, np.asarray(other_v_info), np.asarray(toll_obs)))
         return ret.astype(np.float32)
 
 
@@ -117,33 +127,39 @@ class MATollGateMap(PGMap):
         length = self.config["exit_length"]
 
         parent_node_path, physics_world = self.engine.worldNP, self.engine.physics_world
-        assert len(self.road_network.graph) == 0, "These Map is not empty, please create a new map to read config"
+        assert len(
+            self.road_network.graph
+        ) == 0, "These Map is not empty, please create a new map to read config"
 
         # Build a first-block
-        last_block = FirstPGBlock(
-            self.road_network,
-            self.config[self.LANE_WIDTH],
-            self.config["lane_num"],
-            parent_node_path,
-            physics_world,
-            length=length
-        )
+        last_block = FirstPGBlock(self.road_network,
+                                  self.config[self.LANE_WIDTH],
+                                  self.config["lane_num"],
+                                  parent_node_path,
+                                  physics_world,
+                                  length=length)
         self.blocks.append(last_block)
 
-        split = Split(
-            1, last_block.get_socket(index=0), self.road_network, random_seed=1, ignore_intersection_checking=False
-        )
+        split = Split(1,
+                      last_block.get_socket(index=0),
+                      self.road_network,
+                      random_seed=1,
+                      ignore_intersection_checking=False)
         split.construct_block(
             parent_node_path, physics_world, {
-                "length": 2,
-                "lane_num": self.config["toll_lane_num"] - self.config["lane_num"],
-                "bottle_len": self.BOTTLE_LENGTH,
-            }
-        )
+                "length":
+                    2,
+                "lane_num":
+                    self.config["toll_lane_num"] - self.config["lane_num"],
+                "bottle_len":
+                    self.BOTTLE_LENGTH,
+            })
         self.blocks.append(split)
-        toll = TollGate(
-            2, split.get_socket(index=0), self.road_network, random_seed=1, ignore_intersection_checking=False
-        )
+        toll = TollGate(2,
+                        split.get_socket(index=0),
+                        self.road_network,
+                        random_seed=1,
+                        ignore_intersection_checking=False)
         toll.construct_block(parent_node_path, physics_world, {
             "length": self.config["toll_length"],
         })
@@ -151,30 +167,39 @@ class MATollGateMap(PGMap):
         self.blocks.append(toll)
 
         # Build Toll
-        merge = Merge(3, toll.get_socket(index=0), self.road_network, random_seed=1, ignore_intersection_checking=False)
+        merge = Merge(3,
+                      toll.get_socket(index=0),
+                      self.road_network,
+                      random_seed=1,
+                      ignore_intersection_checking=False)
         merge.construct_from_config(
             dict(
                 lane_num=self.config["toll_lane_num"] - self.config["lane_num"],
                 length=self.config["exit_length"],
                 bottle_len=self.BOTTLE_LENGTH,
-            ), parent_node_path, physics_world
-        )
+            ), parent_node_path, physics_world)
         self.blocks.append(merge)
 
 
 class MATollGatePGMapManager(PGMapManager):
+
     def reset(self):
         config = self.engine.global_config
         if len(self.spawned_objects) == 0:
-            _map = self.spawn_object(MATollGateMap, map_config=config["map_config"], random_seed=None)
+            _map = self.spawn_object(MATollGateMap,
+                                     map_config=config["map_config"],
+                                     random_seed=None)
         else:
-            assert len(self.spawned_objects) == 1, "It is supposed to contain one map in this manager"
+            assert len(
+                self.spawned_objects
+            ) == 1, "It is supposed to contain one map in this manager"
             _map = self.spawned_objects.values()[0]
         self.load_map(_map)
         self.current_map.spawn_roads = config["spawn_roads"]
 
 
 class MultiAgentTollgateEnv(MultiAgentMetaDrive):
+
     def __init__(self, config=None):
         super(MultiAgentTollgateEnv, self).__init__(config)
         self.stay_time_manager = StayTimeManager()
@@ -186,8 +211,10 @@ class MultiAgentTollgateEnv(MultiAgentMetaDrive):
     @staticmethod
     def default_config() -> Config:
         assert MATollConfig["vehicle_config"]["side_detector"]["num_lasers"] > 2
-        assert MATollConfig["vehicle_config"]["lane_line_detector"]["num_lasers"] > 2
-        return MultiAgentMetaDrive.default_config().update(MATollConfig, allow_add_new_key=True)
+        assert MATollConfig["vehicle_config"]["lane_line_detector"][
+            "num_lasers"] > 2
+        return MultiAgentMetaDrive.default_config().update(
+            MATollConfig, allow_add_new_key=True)
 
     def reward_function(self, vehicle_id: str):
         """
@@ -209,21 +236,26 @@ class MultiAgentTollgateEnv(MultiAgentMetaDrive):
 
         # reward for lane keeping, without it vehicle can learn to overtake but fail to keep in lane
         if self.config["use_lateral_reward"]:
-            lateral_factor = clip(1 - 2 * abs(lateral_now) / vehicle.navigation.get_current_lane_width(), 0.0, 1.0)
+            lateral_factor = clip(
+                1 - 2 * abs(lateral_now) /
+                vehicle.navigation.get_current_lane_width(), 0.0, 1.0)
         else:
             lateral_factor = 1.0
 
         reward = 0.0
-        reward += self.config["driving_reward"] * (long_now - long_last) * lateral_factor
+        reward += self.config["driving_reward"] * (long_now -
+                                                   long_last) * lateral_factor
 
         if vehicle.navigation.current_road.block_ID() == TollGate.ID:
             if vehicle.overspeed:  # Too fast!
-                reward = -self.config["overspeed_penalty"] * vehicle.speed_km_h / vehicle.max_speed_km_h
+                reward = -self.config[
+                    "overspeed_penalty"] * vehicle.speed_km_h / vehicle.max_speed_km_h
             else:
                 # Good! At very low speed
                 pass
         else:
-            reward += self.config["speed_reward"] * (vehicle.speed_km_h / vehicle.max_speed_km_h)
+            reward += self.config["speed_reward"] * (vehicle.speed_km_h /
+                                                     vehicle.max_speed_km_h)
 
         step_info["step_reward"] = reward
 
@@ -246,18 +278,22 @@ class MultiAgentTollgateEnv(MultiAgentMetaDrive):
         return ret
 
     def done_function(self, vehicle_id):
-        done, done_info = super(MultiAgentMetaDrive, self).done_function(vehicle_id)
+        done, done_info = super(MultiAgentMetaDrive,
+                                self).done_function(vehicle_id)
         if done_info["max_step"]:
             return done, done_info
 
-        if done_info[TerminationState.CRASH_VEHICLE] and (not self.config["crash_done"]):
+        if done_info[TerminationState.CRASH_VEHICLE] and (
+                not self.config["crash_done"]):
             assert done_info[TerminationState.CRASH_VEHICLE] or done_info[TerminationState.CRASH_BUILDING] or \
                    done_info[TerminationState.SUCCESS] or done_info[TerminationState.OUT_OF_ROAD]
-            if not (done_info[TerminationState.SUCCESS] or done_info[TerminationState.OUT_OF_ROAD]):
+            if not (done_info[TerminationState.SUCCESS] or
+                    done_info[TerminationState.OUT_OF_ROAD]):
                 # Does not revert done if high-priority termination happens!
                 done = False
 
-        if done_info[TerminationState.OUT_OF_ROAD] and (not self.config["out_of_road_done"]):
+        if done_info[TerminationState.OUT_OF_ROAD] and (
+                not self.config["out_of_road_done"]):
             assert done_info[TerminationState.CRASH_VEHICLE] or done_info[TerminationState.CRASH_BUILDING] or \
                    done_info[TerminationState.SUCCESS] or done_info[TerminationState.OUT_OF_ROAD]
             if not done_info[TerminationState.SUCCESS]:
@@ -278,7 +314,8 @@ class MultiAgentTollgateEnv(MultiAgentMetaDrive):
 
     def step(self, actions):
         o, r, tm, tc, i = super(MultiAgentTollgateEnv, self).step(actions)
-        self.stay_time_manager.record(self.agent_manager.active_agents, self.episode_step)
+        self.stay_time_manager.record(self.agent_manager.active_agents,
+                                      self.episode_step)
         return o, r, tm, tc, i
 
     def setup_engine(self):
@@ -298,25 +335,23 @@ def _draw():
 
 
 def _expert():
-    env = MultiAgentTollgateEnv(
-        {
-            "vehicle_config": {
-                "lidar": {
-                    "num_lasers": 240,
-                    "num_others": 4,
-                    "distance": 50
-                },
+    env = MultiAgentTollgateEnv({
+        "vehicle_config": {
+            "lidar": {
+                "num_lasers": 240,
+                "num_others": 4,
+                "distance": 50
             },
-            "save_level": 1.,
-            "use_AI_protector": True,
-            "debug_physics_world": True,
+        },
+        "save_level": 1.,
+        "use_AI_protector": True,
+        "debug_physics_world": True,
 
-            # "use_render": True,
-            "debug": True,
-            "manual_control": True,
-            "num_agents": 4,
-        }
-    )
+        # "use_render": True,
+        "debug": True,
+        "manual_control": True,
+        "num_agents": 4,
+    })
     o, _ = env.reset()
     total_r = 0
     ep_s = 0
@@ -329,10 +364,9 @@ def _expert():
         # env.render(text=d)
         if tm["__all__"]:
             print(
-                "Finish! Current step {}. Group Reward: {}. Average reward: {}".format(
-                    i, total_r, total_r / env.agent_manager.next_agent_count
-                )
-            )
+                "Finish! Current step {}. Group Reward: {}. Average reward: {}".
+                format(i, total_r,
+                       total_r / env.agent_manager.next_agent_count))
             break
         if len(env.agents) == 0:
             total_r = 0
@@ -342,24 +376,22 @@ def _expert():
 
 
 def _vis_debug_respawn():
-    env = MultiAgentTollgateEnv(
-        {
-            "horizon": 100000,
-            "vehicle_config": {
-                "lidar": {
-                    "num_lasers": 72,
-                    "num_others": 0,
-                    "distance": 40
-                },
-                "show_lidar": False,
+    env = MultiAgentTollgateEnv({
+        "horizon": 100000,
+        "vehicle_config": {
+            "lidar": {
+                "num_lasers": 72,
+                "num_others": 0,
+                "distance": 40
             },
-            "debug_physics_world": True,
-            "use_render": True,
-            "debug": False,
-            "manual_control": True,
-            "num_agents": 20,
-        }
-    )
+            "show_lidar": False,
+        },
+        "debug_physics_world": True,
+        "use_render": True,
+        "debug": False,
+        "manual_control": True,
+        "num_agents": 20,
+    })
     o, _ = env.reset()
     total_r = 0
     ep_s = 0
@@ -380,10 +412,9 @@ def _vis_debug_respawn():
         env.render(text=render_text)
         if tm["__all__"]:
             print(
-                "Finish! Current step {}. Group Reward: {}. Average reward: {}".format(
-                    i, total_r, total_r / env.agent_manager.next_agent_count
-                )
-            )
+                "Finish! Current step {}. Group Reward: {}. Average reward: {}".
+                format(i, total_r,
+                       total_r / env.agent_manager.next_agent_count))
             # break
         if len(env.agents) == 0:
             total_r = 0
@@ -393,28 +424,26 @@ def _vis_debug_respawn():
 
 
 def _vis():
-    env = MultiAgentTollgateEnv(
-        {
-            "horizon": 100000,
-            "vehicle_config": {
-                "lidar": {
-                    "num_lasers": 72,
-                    "num_others": 0,
-                    "distance": 40
-                },
-                # "show_lidar": True,
-                # "show_side_detector":True,
-                # "show_lane_line_detector":True,
+    env = MultiAgentTollgateEnv({
+        "horizon": 100000,
+        "vehicle_config": {
+            "lidar": {
+                "num_lasers": 72,
+                "num_others": 0,
+                "distance": 40
             },
-            "traffic_density": 0.,
-            "traffic_mode": "hybrid",
-            "debug": True,
-            "use_render": True,
-            # "debug": True,
-            "manual_control": True,
-            "num_agents": 18,
-        }
-    )
+            # "show_lidar": True,
+            # "show_side_detector":True,
+            # "show_lane_line_detector":True,
+        },
+        "traffic_density": 0.,
+        "traffic_mode": "hybrid",
+        "debug": True,
+        "use_render": True,
+        # "debug": True,
+        "manual_control": True,
+        "num_agents": 18,
+    })
     o, _ = env.reset()
     total_r = 0
     ep_s = 0
@@ -431,22 +460,25 @@ def _vis():
             "cam_y": env.main_camera.camera_y,
             "cam_z": env.main_camera.top_down_camera_height
         }
-        track_v = env.agent_manager.object_to_agent(env.current_track_agent.name)
+        track_v = env.agent_manager.object_to_agent(
+            env.current_track_agent.name)
         if track_v in r:
             render_text["tack_v_reward"] = r[track_v]
-        render_text["dist_to_right"] = env.current_track_agent.dist_to_right_side
+        render_text[
+            "dist_to_right"] = env.current_track_agent.dist_to_right_side
         render_text["dist_to_left"] = env.current_track_agent.dist_to_left_side
         render_text["overspeed"] = env.current_track_agent.overspeed
         render_text["lane"] = env.current_track_agent.lane_index
-        render_text["block"] = env.current_track_agent.navigation.current_road.block_ID()
+        render_text[
+            "block"] = env.current_track_agent.navigation.current_road.block_ID(
+            )
         env.render(text=render_text)
         if tm["__all__"]:
             print(info)
             print(
-                "Finish! Current step {}. Group Reward: {}. Average reward: {}".format(
-                    i, total_r, total_r / env.agent_manager.next_agent_count
-                )
-            )
+                "Finish! Current step {}. Group Reward: {}. Average reward: {}".
+                format(i, total_r,
+                       total_r / env.agent_manager.next_agent_count))
             # break
         if len(env.agents) == 0:
             total_r = 0
@@ -470,35 +502,32 @@ def _profile():
             env.reset()
         if (s + 1) % 100 == 0:
             print(
-                "Finish {}/10000 simulation steps. Time elapse: {:.4f}. Average FPS: {:.4f}".format(
-                    s + 1,
-                    time.time() - start, (s + 1) / (time.time() - start)
-                )
-            )
+                "Finish {}/10000 simulation steps. Time elapse: {:.4f}. Average FPS: {:.4f}"
+                .format(s + 1,
+                        time.time() - start, (s + 1) / (time.time() - start)))
     print(f"(MetaDriveEnv) Total Time Elapsed: {time.time() - start}")
 
 
 def _long_run():
     # Please refer to test_ma_Toll_reward_done_alignment()
     _out_of_road_penalty = 3
-    env = MultiAgentTollgateEnv(
-        {
-            "num_agents": 8,
-            "vehicle_config": {
-                "lidar": {
-                    "num_others": 8
-                }
-            },
-            **dict(
-                out_of_road_penalty=_out_of_road_penalty,
-                crash_vehicle_penalty=1.333,
-                crash_object_penalty=11,
-                crash_vehicle_cost=13,
-                crash_object_cost=17,
-                out_of_road_cost=19,
-            )
-        }
-    )
+    env = MultiAgentTollgateEnv({
+        "num_agents":
+            8,
+        "vehicle_config": {
+            "lidar": {
+                "num_others": 8
+            }
+        },
+        **dict(
+            out_of_road_penalty=_out_of_road_penalty,
+            crash_vehicle_penalty=1.333,
+            crash_object_penalty=11,
+            crash_vehicle_cost=13,
+            crash_object_cost=17,
+            out_of_road_cost=19,
+        )
+    })
     try:
         obs, _ = env.reset()
         assert env.observation_space.contains(obs)
@@ -520,13 +549,13 @@ def _long_run():
                     assert tm[kkk]
 
             if (step + 1) % 200 == 0:
-                print(
-                    "{}/{} Agents: {} {}\nO: {}\nR: {}\nD: {}\nI: {}\n\n".format(
-                        step + 1, 10000, len(env.agents), list(env.agents.keys()),
-                        {k: (oo.shape, oo.mean(), oo.min(), oo.max())
-                         for k, oo in o.items()}, r, tm, i
-                    )
-                )
+                print("{}/{} Agents: {} {}\nO: {}\nR: {}\nD: {}\nI: {}\n\n".
+                      format(
+                          step + 1, 10000, len(env.agents),
+                          list(env.agents.keys()), {
+                              k: (oo.shape, oo.mean(), oo.min(), oo.max())
+                              for k, oo in o.items()
+                          }, r, tm, i))
             if tm["__all__"]:
                 print('Current step: ', step)
                 break

@@ -8,15 +8,13 @@ import math
 import numpy as np
 
 
-def diamond_square(
-    shape: (int, int),
-    min_height: [float or int],
-    max_height: [float or int],
-    roughness: [float or int],
-    random_seed=None,
-    uint16=True,
-    minus_mean=True
-):
+def diamond_square(shape: (int, int),
+                   min_height: [float or int],
+                   max_height: [float or int],
+                   roughness: [float or int],
+                   random_seed=None,
+                   uint16=True,
+                   minus_mean=True):
     """Runs a diamond square algorithm and returns an array (or list) with the landscape
 
         An important difference (possibly) between this, and other implementations of the
@@ -96,7 +94,8 @@ def diamond_square(
     diamond_square_array[0, 0] = random.uniform(0, 1)
     diamond_square_array[working_shape[0] - 1, 0] = random.uniform(0, 1)
     diamond_square_array[0, working_shape[1] - 1] = random.uniform(0, 1)
-    diamond_square_array[working_shape[0] - 1, working_shape[1] - 1] = random.uniform(0, 1)
+    diamond_square_array[working_shape[0] - 1,
+                         working_shape[1] - 1] = random.uniform(0, 1)
 
     # do the algorithm
     for i in range(iterations):
@@ -108,7 +107,8 @@ def diamond_square(
         _square_step(diamond_square_array, step_size, r)
 
     # rescale the array to fit the min and max heights specified
-    diamond_square_array = min_height + (diamond_square_array * (max_height - min_height))
+    diamond_square_array = min_height + (diamond_square_array *
+                                         (max_height - min_height))
 
     # trim array, if needed
     final_array = diamond_square_array[:shape[0], :shape[1]]
@@ -160,7 +160,9 @@ def _get_working_shape_and_iterations(requested_shape, max_power_of_two=13):
     # failsafe: no values in the dimensions array were allowed, so print a warning and return
     # the maximum size.
     d = 2**max_power_of_two + 1
-    print("DiamondSquare Warning: Requested size was too large. Grid of size {0} returned" "".format(d))
+    print(
+        "DiamondSquare Warning: Requested size was too large. Grid of size {0} returned"
+        "".format(d))
     return (d, d), max_power_of_two
 
 
@@ -188,7 +190,8 @@ def _diamond_step(DS_array, step_size, roughness):
     for i in x_steps:
         for j in y_steps:
             if DS_array[i, j] == -1.0:
-                DS_array[i, j] = _diamond_displace(DS_array, i, j, half_step, roughness)
+                DS_array[i, j] = _diamond_displace(DS_array, i, j, half_step,
+                                                   roughness)
 
 
 def _square_step(DS_array, step_size, roughness):
@@ -225,11 +228,13 @@ def _square_step(DS_array, step_size, roughness):
 
     for i in steps_x_horiz:
         for j in steps_y_horiz:
-            DS_array[i, j] = _square_displace(DS_array, i, j, half_step, roughness)
+            DS_array[i, j] = _square_displace(DS_array, i, j, half_step,
+                                              roughness)
 
     for i in steps_x_vert:
         for j in steps_y_vert:
-            DS_array[i, j] = _square_displace(DS_array, i, j, half_step, roughness)
+            DS_array[i, j] = _square_displace(DS_array, i, j, half_step,
+                                              roughness)
 
 
 def _diamond_displace(DS_array, i, j, half_step, roughness):

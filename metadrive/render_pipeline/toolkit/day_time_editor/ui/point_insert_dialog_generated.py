@@ -10,6 +10,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_Dialog(object):
+
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(342, 197)
@@ -50,8 +51,7 @@ class Ui_Dialog(object):
                 "Dialog", "Enter the values of the point you want to insert. \n"
                 "\n"
                 "Did you know: If you dont want to enter concrete values, just click and drag anywhere on the curve to insert a new point."
-            )
-        )
+            ))
         self.label_2.setText(_translate("Dialog", "Time:"))
         self.label_3.setText(_translate("Dialog", "Value:"))
         self.ipt_time.setDisplayFormat(_translate("Dialog", "HH:mm"))

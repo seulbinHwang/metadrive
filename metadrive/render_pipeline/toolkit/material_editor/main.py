@@ -54,6 +54,7 @@ ALLOW_OUTDATED_MATERIALS = False
 
 
 class MaterialData:
+
     def __init__(self):
         self.name = ""
         self.shading_model = 0
@@ -95,15 +96,18 @@ class MaterialEditor(QMainWindow, Ui_MainWindow):
         self.on_material_selected()
 
     def init_bindings(self):
-        qt_connect(self.cb_shading_model, "currentIndexChanged", self.read_from_ui)
-        qt_connect(self.cb_material, "currentIndexChanged", self.on_material_selected)
+        qt_connect(self.cb_shading_model, "currentIndexChanged",
+                   self.read_from_ui)
+        qt_connect(self.cb_material, "currentIndexChanged",
+                   self.on_material_selected)
         qt_connect(self.cb_metallic, "stateChanged", self.read_from_ui)
 
         self.sliders = [
             (self.slider_roughness, self.lbl_roughness, 0.0, 1.0, "roughness"),
             (self.slider_specular, self.lbl_specular, 1.0, 2.51, "specular"),
             (self.slider_normal, self.lbl_normal, 0.0, 1.0, "normal_strength"),
-            (self.slider_param1, self.lbl_param1, 0.0, 1.0, "shading_model_param1"),
+            (self.slider_param1, self.lbl_param1, 0.0, 1.0,
+             "shading_model_param1"),
         ]
 
         for slider, lbl, start, end, prop in self.sliders:
@@ -125,14 +129,17 @@ class MaterialEditor(QMainWindow, Ui_MainWindow):
         self.lbl_basecolor2.setText(labels[1])
         self.lbl_basecolor3.setText(labels[2])
 
-        a, b, c = (self.basecolor_1.value() / 100.0, self.basecolor_2.value() / 100.0, self.basecolor_3.value() / 100.0)
+        a, b, c = (self.basecolor_1.value() / 100.0,
+                   self.basecolor_2.value() / 100.0,
+                   self.basecolor_3.value() / 100.0)
         rgb = self.tuple_to_basecolor(a, b, c)
         self.lbl_basecolor_val1.setText("{:0.2f}".format(a))
         self.lbl_basecolor_val2.setText("{:0.2f}".format(b))
         self.lbl_basecolor_val3.setText("{:0.2f}".format(c))
         self.lbl_color_preview.setStyleSheet(
-            "background: rgb({}, {}, {});".format(int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255))
-        )
+            "background: rgb({}, {}, {});".format(int(rgb[0] * 255),
+                                                  int(rgb[1] * 255),
+                                                  int(rgb[2] * 255)))
 
         # Shading model
         self._update_shading_model()
@@ -188,7 +195,9 @@ class MaterialEditor(QMainWindow, Ui_MainWindow):
 
     def _get_ui_basecolor_rgb(self):
         """ Extracts the RGB color which is currently edited in the UI """
-        a, b, c = (self.basecolor_1.value() / 100.0, self.basecolor_2.value() / 100.0, self.basecolor_3.value() / 100.0)
+        a, b, c = (self.basecolor_1.value() / 100.0,
+                   self.basecolor_2.value() / 100.0,
+                   self.basecolor_3.value() / 100.0)
         return self.tuple_to_basecolor(a, b, c)
 
     def update_material_list(self):
@@ -199,7 +208,8 @@ class MaterialEditor(QMainWindow, Ui_MainWindow):
                 os.remove(temp_path)
             except:
                 pass
-        NetworkCommunication.send_async(NetworkCommunication.MATERIAL_PORT, "dump_materials " + temp_path)
+        NetworkCommunication.send_async(NetworkCommunication.MATERIAL_PORT,
+                                        "dump_materials " + temp_path)
         start_time = time.time()
         while not os.path.isfile(temp_path) and time.time() - start_time < 5.0:
             time.sleep(0.5)
@@ -239,19 +249,23 @@ class MaterialEditor(QMainWindow, Ui_MainWindow):
         return material
 
     def basecolor_to_tuple(self, mat):
+
         def to_srgb(v):
             return math.pow(v, 1.0 / 2.2)
 
         if self.cb_rgb.isChecked():
             return mat.basecolor_r, mat.basecolor_g, mat.basecolor_b
         elif self.cb_srgb.isChecked():
-            return to_srgb(mat.basecolor_r), to_srgb(mat.basecolor_g), to_srgb(mat.basecolor_b)
+            return to_srgb(mat.basecolor_r), to_srgb(mat.basecolor_g), to_srgb(
+                mat.basecolor_b)
         elif self.cb_hsv.isChecked():
-            return colorsys.rgb_to_hsv(mat.basecolor_r, mat.basecolor_g, mat.basecolor_b)
+            return colorsys.rgb_to_hsv(mat.basecolor_r, mat.basecolor_g,
+                                       mat.basecolor_b)
         else:
             assert False
 
     def tuple_to_basecolor(self, a, b, c):
+
         def from_srgb(v):
             return math.pow(v, 2.2)
 
@@ -267,7 +281,8 @@ class MaterialEditor(QMainWindow, Ui_MainWindow):
     def on_material_selected(self):
         index = self.cb_material.currentIndex()
         if index < 0 or index >= len(self.materials):
-            print("Invalid material with index", index, "only have", len(self.materials), "materials")
+            print("Invalid material with index", index, "only have",
+                  len(self.materials), "materials")
             return
         self.material = self.materials[index]
         print("Loaded material", self.material.name)
@@ -287,10 +302,12 @@ class MaterialEditor(QMainWindow, Ui_MainWindow):
             self.material.shading_model_param1,
             self.material.shading_model_param2,
         )
-        NetworkCommunication.send_async(NetworkCommunication.MATERIAL_PORT, "update_material " + serialized)
+        NetworkCommunication.send_async(NetworkCommunication.MATERIAL_PORT,
+                                        "update_material " + serialized)
 
     def _update_shading_model(self):
-        name, val, optional_param = self.SHADING_MODELS[self.cb_shading_model.currentIndex()]
+        name, val, optional_param = self.SHADING_MODELS[
+            self.cb_shading_model.currentIndex()]
         if optional_param is None:
             self.slider_param1.setEnabled(False)
             self.lbl_shading_model_param1.setText("Unused")

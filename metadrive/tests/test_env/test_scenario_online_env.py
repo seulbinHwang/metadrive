@@ -11,7 +11,10 @@ from metadrive.scenario.utils import read_dataset_summary, read_scenario_data
 
 @pytest.mark.parametrize("data_directory", ["waymo", "nuscenes"])
 def test_scenario_online_env(data_directory, render=False):
-    path = pathlib.Path(AssetLoader.file_path(AssetLoader.asset_path, data_directory, unix_style=False))
+    path = pathlib.Path(
+        AssetLoader.file_path(AssetLoader.asset_path,
+                              data_directory,
+                              unix_style=False))
     summary, scenario_ids, mapping = read_dataset_summary(path)
     try:
         env = ScenarioOnlineEnv(config=dict(
@@ -30,7 +33,8 @@ def test_scenario_online_env(data_directory, render=False):
                 assert env.observation_space.contains(o)
                 if tm or tc:
                     assert info["arrive_dest"], "Can not arrive dest"
-                    print("{} track_length: ".format(env.engine.global_seed), info["track_length"])
+                    print("{} track_length: ".format(env.engine.global_seed),
+                          info["track_length"])
                     # assert info["arrive_dest"], "Can not arrive dest"
                     break
 

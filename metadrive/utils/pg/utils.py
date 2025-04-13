@@ -23,9 +23,9 @@ if TYPE_CHECKING:
     from metadrive.component.road_network.node_road_network import NodeRoadNetwork
 
 
-def block_socket_merge(
-    socket_1: "PGBlockSocket", socket_2: "PGBlockSocket", global_network: "NodeRoadNetwork", positive_merge: False
-):
+def block_socket_merge(socket_1: "PGBlockSocket", socket_2: "PGBlockSocket",
+                       global_network: "NodeRoadNetwork",
+                       positive_merge: False):
     global_network.graph[socket_1.positive_road.start_node][socket_2.negative_road.start_node] = \
         global_network.graph[socket_1.positive_road.start_node].pop(socket_1.positive_road.end_node)
 
@@ -33,13 +33,11 @@ def block_socket_merge(
         global_network.graph[socket_2.positive_road.start_node].pop(socket_2.positive_road.end_node)
 
 
-def check_lane_on_road(
-    road_network: "NodeRoadNetwork",
-    lane,
-    positive: float = 0,
-    ignored=None,
-    ignore_intersection_checking=None
-) -> bool:
+def check_lane_on_road(road_network: "NodeRoadNetwork",
+                       lane,
+                       positive: float = 0,
+                       ignored=None,
+                       ignore_intersection_checking=None) -> bool:
     """
     Calculate if the new lane intersects with other lanes in current road network
     The return Value is True when cross
@@ -63,9 +61,12 @@ def check_lane_on_road(
                 continue
             for _id, l in enumerate(lanes):
                 for i in range(1, int(lane.length), 1):
-                    sample_point = lane.position(i, positive * lane.width_at(i) / 2.0)
+                    sample_point = lane.position(
+                        i,
+                        positive * lane.width_at(i) / 2.0)
                     longitudinal, lateral = l.local_coordinates(sample_point)
-                    is_on = math.fabs(lateral) <= l.width_at(longitudinal) / 2.0 and 0 <= longitudinal <= l.length
+                    is_on = math.fabs(lateral) <= l.width_at(
+                        longitudinal) / 2.0 and 0 <= longitudinal <= l.length
                     if is_on:
                         return True
     return False
@@ -108,7 +109,9 @@ def get_straight_contour(lanes, extra_lateral) -> List:
     ret = []
     for lane, dir in [(lanes[0], -1), (lanes[-1], 1)]:
         ret.append(lane.position(0.1, dir * (lane.width / 2.0 + extra_lateral)))
-        ret.append(lane.position(lane.length - 0.1, dir * (lane.width / 2.0 + extra_lateral)))
+        ret.append(
+            lane.position(lane.length - 0.1,
+                          dir * (lane.width / 2.0 + extra_lateral)))
     return ret
 
 
@@ -123,8 +126,10 @@ def get_curve_contour(lanes, extra_lateral) -> List:
     for lane, lateral_dir in [(lanes[0], -1), (lanes[-1], 1)]:
         pi_2 = (np.pi / 2.0)
         points += [
-            lane.position(0.1, lateral_dir * (lane.width / 2.0 + extra_lateral)),
-            lane.position(lane.length - 0.1, lateral_dir * (lane.width / 2.0 + extra_lateral))
+            lane.position(0.1,
+                          lateral_dir * (lane.width / 2.0 + extra_lateral)),
+            lane.position(lane.length - 0.1,
+                          lateral_dir * (lane.width / 2.0 + extra_lateral))
         ]
         start_phase = (lane.start_phase // pi_2) * pi_2
         start_phase += pi_2 if lane.is_clockwise() else 0
@@ -132,8 +137,10 @@ def get_curve_contour(lanes, extra_lateral) -> List:
             phi = start_phase + phi_index * pi_2 * lane.direction
             if lane.direction * phi > lane.direction * lane.end_phase:
                 break
-            point = lane.center + (lane.radius - lateral_dir * (lane.width / 2.0 + extra_lateral) *
-                                   lane.direction) * np.array([math.cos(phi), math.sin(phi)])
+            point = lane.center + (
+                lane.radius - lateral_dir *
+                (lane.width / 2.0 + extra_lateral) * lane.direction) * np.array(
+                    [math.cos(phi), math.sin(phi)])
             points.append(point)
     return points
 
@@ -171,7 +178,8 @@ def ray_localization(
     assert len(position) == 2
     assert len(heading) == 2
 
-    results = engine.physics_world.static_world.rayTestAll(panda_vector(position, 1.0), panda_vector(position, -1.0))
+    results = engine.physics_world.static_world.rayTestAll(
+        panda_vector(position, 1.0), panda_vector(position, -1.0))
     lane_index_dist = []
     if results.hasHits():
         for res in results.getHits():
@@ -184,16 +192,19 @@ def ray_localization(
                 # dir = np.array([math.cos(lane_heading), math.sin(lane_heading)])
                 # dot_result = dir.dot(heading)
 
-                dot_result = math.cos(lane_heading) * heading[0] + math.sin(lane_heading) * heading[1]
+                dot_result = math.cos(lane_heading) * heading[0] + math.sin(
+                    lane_heading) * heading[1]
                 cosangle = dot_result / (
-                    norm(math.cos(lane_heading), math.sin(lane_heading)) * norm(heading[0], heading[1])
-                )
+                    norm(math.cos(lane_heading), math.sin(lane_heading)) *
+                    norm(heading[0], heading[1]))
 
                 if use_heading_filter:
                     if cosangle > 0:
-                        lane_index_dist.append((lane, lane.index, lane.distance(position)))
+                        lane_index_dist.append(
+                            (lane, lane.index, lane.distance(position)))
                 else:
-                    lane_index_dist.append((lane, lane.index, lane.distance(position)))
+                    lane_index_dist.append(
+                        (lane, lane.index, lane.distance(position)))
     # default return all result
     ret = []
     if len(lane_index_dist) > 0:
@@ -210,16 +221,14 @@ def ray_localization(
     #     return (lane, index) if not return_on_lane else (lane, index, on_lane)
 
 
-def rect_region_detection(
-    engine,
-    position: Tuple,
-    heading: float,
-    heading_direction_length: float,
-    side_direction_width: float,
-    detection_group: int,
-    height=10,
-    in_static_world=False
-):
+def rect_region_detection(engine,
+                          position: Tuple,
+                          heading: float,
+                          heading_direction_length: float,
+                          side_direction_width: float,
+                          detection_group: int,
+                          height=10,
+                          in_static_world=False):
     """
 
      ----------------------------------
@@ -244,21 +253,28 @@ def rect_region_detection(
     """
     region_detect_start = panda_vector(position, z=height)
     region_detect_end = panda_vector(position, z=-1)
-    tsFrom = TransformState.makePosHpr(region_detect_start, Vec3(panda_heading(heading), 0, 0))
-    tsTo = TransformState.makePosHpr(region_detect_end, Vec3(panda_heading(heading), 0, 0))
+    tsFrom = TransformState.makePosHpr(region_detect_start,
+                                       Vec3(panda_heading(heading), 0, 0))
+    tsTo = TransformState.makePosHpr(region_detect_end,
+                                     Vec3(panda_heading(heading), 0, 0))
 
-    shape = BulletBoxShape(Vec3(heading_direction_length / 2, side_direction_width / 2, 1))
+    shape = BulletBoxShape(
+        Vec3(heading_direction_length / 2, side_direction_width / 2, 1))
     penetration = 0.0
 
     physics_world = engine.physics_world.dynamic_world if not in_static_world else engine.physics_world.static_world
 
-    result = physics_world.sweep_test_closest(shape, tsFrom, tsTo, detection_group, penetration)
+    result = physics_world.sweep_test_closest(shape, tsFrom, tsTo,
+                                              detection_group, penetration)
     return result
 
 
-def circle_region_detection(
-    engine, position: Tuple, radius: float, detection_group: int, height=10, in_static_world=False
-):
+def circle_region_detection(engine,
+                            position: Tuple,
+                            radius: float,
+                            detection_group: int,
+                            height=10,
+                            in_static_world=False):
     """
     :param engine: BaseEngine class
     :param position: position in MetaDrive
@@ -278,19 +294,19 @@ def circle_region_detection(
 
     physics_world = engine.physics_world.dynamic_world if not in_static_world else engine.physics_world.static_world
 
-    result = physics_world.sweep_test_closest(shape, tsFrom, tsTo, detection_group, penetration)
+    result = physics_world.sweep_test_closest(shape, tsFrom, tsTo,
+                                              detection_group, penetration)
     return result
 
 
 def generate_static_box_physics_body(
-    heading_length: float,
-    side_width: float,
-    height=10,
-    ghost_node=False,
-    object_id=None,
-    type_name=MetaDriveType.INVISIBLE_WALL,
-    collision_group=CollisionGroup.InvisibleWall
-):
+        heading_length: float,
+        side_width: float,
+        height=10,
+        ghost_node=False,
+        object_id=None,
+        type_name=MetaDriveType.INVISIBLE_WALL,
+        collision_group=CollisionGroup.InvisibleWall):
     """
     Add an invisible physics wall to physics world
     You can add some building models to the same location, add make it be detected by lidar
@@ -313,7 +329,9 @@ def generate_static_box_physics_body(
     :return node_path
     """
     shape = BulletBoxShape(Vec3(heading_length / 2, side_width / 2, height))
-    body_node = BaseRigidBodyNode(object_id, type_name) if not ghost_node else BaseGhostBodyNode(object_id, type_name)
+    body_node = BaseRigidBodyNode(
+        object_id, type_name) if not ghost_node else BaseGhostBodyNode(
+            object_id, type_name)
     body_node.setActive(False)
     body_node.setKinematic(False)
     body_node.setStatic(True)
@@ -327,5 +345,5 @@ def is_same_lane_index(lane_index_1, lane_index_2):
 
 
 def is_following_lane_index(current_lane_index, next_lane_index):
-    return True if current_lane_index[1] == next_lane_index[0] and current_lane_index[-1] == next_lane_index[
-        -1] else False
+    return True if current_lane_index[1] == next_lane_index[
+        0] and current_lane_index[-1] == next_lane_index[-1] else False

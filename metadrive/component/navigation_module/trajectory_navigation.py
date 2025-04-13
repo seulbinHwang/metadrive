@@ -21,27 +21,27 @@ class TrajectoryNavigation(BaseNavigation):
     NUM_WAY_POINT = 10
     NAVI_POINT_DIST = 30  # m, used to clip value, should be greater than DISCRETE_LEN * MAX_NUM_WAY_POINT
 
-    def __init__(
-        self,
-        show_navi_mark: bool = False,
-        show_dest_mark=False,
-        show_line_to_dest=False,
-        panda_color=None,
-        name=None,
-        vehicle_config=None
-    ):
+    def __init__(self,
+                 show_navi_mark: bool = False,
+                 show_dest_mark=False,
+                 show_line_to_dest=False,
+                 panda_color=None,
+                 name=None,
+                 vehicle_config=None):
         if show_dest_mark or show_line_to_dest:
-            get_logger().warning("show_dest_mark and show_line_to_dest are not supported in TrajectoryNavigation")
-        super(TrajectoryNavigation, self).__init__(
-            show_navi_mark=show_navi_mark,
-            show_dest_mark=show_dest_mark,
-            show_line_to_dest=show_line_to_dest,
-            panda_color=panda_color,
-            name=name,
-            vehicle_config=vehicle_config
-        )
+            get_logger().warning(
+                "show_dest_mark and show_line_to_dest are not supported in TrajectoryNavigation"
+            )
+        super(TrajectoryNavigation,
+              self).__init__(show_navi_mark=show_navi_mark,
+                             show_dest_mark=show_dest_mark,
+                             show_line_to_dest=show_line_to_dest,
+                             panda_color=panda_color,
+                             name=name,
+                             vehicle_config=vehicle_config)
         if self.origin is not None:
-            self.origin.hide(CamMask.RgbCam | CamMask.Shadow | CamMask.DepthCam | CamMask.SemanticCam)
+            self.origin.hide(CamMask.RgbCam | CamMask.Shadow |
+                             CamMask.DepthCam | CamMask.SemanticCam)
 
         self._route_completion = 0
         self.checkpoints = None  # All check points
@@ -53,10 +53,13 @@ class TrajectoryNavigation(BaseNavigation):
         self._navi_point_model = None
         self._ckpt_vis_models = None
         if show_navi_mark and self._show_navi_info:
-            self._ckpt_vis_models = [NodePath(str(i)) for i in range(self.NUM_WAY_POINT)]
+            self._ckpt_vis_models = [
+                NodePath(str(i)) for i in range(self.NUM_WAY_POINT)
+            ]
             for model in self._ckpt_vis_models:
                 if self._navi_point_model is None:
-                    self._navi_point_model = AssetLoader.loader.loadModel(AssetLoader.file_path("models", "box.bam"))
+                    self._navi_point_model = AssetLoader.loader.loadModel(
+                        AssetLoader.file_path("models", "box.bam"))
                     self._navi_point_model.setScale(0.5)
                     # if self.engine.use_render_pipeline:
                     material = Material()
@@ -73,7 +76,8 @@ class TrajectoryNavigation(BaseNavigation):
         self.last_current_heading_theta_at_long = deque([0.0, 0.0], maxlen=2)
 
     def reset(self, vehicle):
-        super(TrajectoryNavigation, self).reset(current_lane=self.reference_trajectory)
+        super(TrajectoryNavigation,
+              self).reset(current_lane=self.reference_trajectory)
         self.set_route()
 
     @property
@@ -92,14 +96,16 @@ class TrajectoryNavigation(BaseNavigation):
         self.next_ref_lanes = None
         if self._dest_node_path is not None:
             check_point = self.reference_trajectory.end
-            self._dest_node_path.setPos(panda_vector(check_point[0], check_point[1], 1))
+            self._dest_node_path.setPos(
+                panda_vector(check_point[0], check_point[1], 1))
 
     def discretize_reference_trajectory(self):
         ret = []
         length = self.reference_trajectory.length
         num = int(length / self.DISCRETE_LEN)
         for i in range(num):
-            ret.append(self.reference_trajectory.position(i * self.DISCRETE_LEN, 0))
+            ret.append(
+                self.reference_trajectory.position(i * self.DISCRETE_LEN, 0))
         ret.append(self.reference_trajectory.end)
         return ret
 
@@ -111,7 +117,8 @@ class TrajectoryNavigation(BaseNavigation):
             return
 
         # Update ckpt index
-        long, lat = self.reference_trajectory.local_coordinates(ego_vehicle.position)
+        long, lat = self.reference_trajectory.local_coordinates(
+            ego_vehicle.position)
         heading_theta_at_long = self.reference_trajectory.heading_theta_at(long)
         self.last_current_heading_theta_at_long.append(heading_theta_at_long)
         self.last_current_long.append(long)
@@ -131,16 +138,22 @@ class TrajectoryNavigation(BaseNavigation):
         for k, ckpt in enumerate(ckpts[1:]):
             start = k * self.CHECK_POINT_INFO_DIM
             end = (k + 1) * self.CHECK_POINT_INFO_DIM
-            self._navi_info[start:end], lanes_heading = self._get_info_for_checkpoint(ckpt, ego_vehicle)
+            self._navi_info[
+                start:end], lanes_heading = self._get_info_for_checkpoint(
+                    ckpt, ego_vehicle)
             if self._show_navi_info and self._ckpt_vis_models is not None:
                 pos_of_goal = ckpt
-                self._ckpt_vis_models[k].setPos(panda_vector(pos_of_goal[0], pos_of_goal[1], self.MARK_HEIGHT))
+                self._ckpt_vis_models[k].setPos(
+                    panda_vector(pos_of_goal[0], pos_of_goal[1],
+                                 self.MARK_HEIGHT))
                 self._ckpt_vis_models[k].setH(self._goal_node_path.getH() + 3)
 
-        self._navi_info[end] = clip((lat / self.engine.global_config["max_lateral_dist"] + 1) / 2, 0.0, 1.0)
+        self._navi_info[end] = clip(
+            (lat / self.engine.global_config["max_lateral_dist"] + 1) / 2, 0.0,
+            1.0)
         self._navi_info[end + 1] = clip(
-            (wrap_to_pi(heading_theta_at_long - ego_vehicle.heading_theta) / np.pi + 1) / 2, 0.0, 1.0
-        )
+            (wrap_to_pi(heading_theta_at_long - ego_vehicle.heading_theta) /
+             np.pi + 1) / 2, 0.0, 1.0)
 
         # Use RC as the only criterion to determine arrival in Scenario env.
         self._route_completion = long / self.reference_trajectory.length
@@ -148,13 +161,16 @@ class TrajectoryNavigation(BaseNavigation):
         if self._show_navi_info:
             # Whether to visualize little boxes in the scene denoting the checkpoints
             pos_of_goal = ckpts[1]
-            self._goal_node_path.setPos(panda_vector(pos_of_goal[0], pos_of_goal[1], self.MARK_HEIGHT))
+            self._goal_node_path.setPos(
+                panda_vector(pos_of_goal[0], pos_of_goal[1], self.MARK_HEIGHT))
             self._goal_node_path.setH(self._goal_node_path.getH() + 3)
             # self.navi_arrow_dir = [lanes_heading1, lanes_heading2]
             dest_pos = self._dest_node_path.getPos()
-            self._draw_line_to_dest(start_position=ego_vehicle.position, end_position=(dest_pos[0], dest_pos[1]))
+            self._draw_line_to_dest(start_position=ego_vehicle.position,
+                                    end_position=(dest_pos[0], dest_pos[1]))
             navi_pos = self._goal_node_path.getPos()
-            self._draw_line_to_navi(start_position=ego_vehicle.position, end_position=(navi_pos[0], navi_pos[1]))
+            self._draw_line_to_navi(start_position=ego_vehicle.position,
+                                    end_position=(navi_pos[0], navi_pos[1]))
 
     def get_current_lateral_range(self, current_position, engine) -> float:
         return self.current_lane.width * 2
@@ -175,14 +191,15 @@ class TrajectoryNavigation(BaseNavigation):
         if dir_norm > cls.NAVI_POINT_DIST:  # if the checkpoint is too far then crop the direction vector
             dir_vec = dir_vec / dir_norm * cls.NAVI_POINT_DIST
         ckpt_in_heading, ckpt_in_rhs = ego_vehicle.convert_to_local_coordinates(
-            dir_vec, 0.0
-        )  # project to ego vehicle's coordination
+            dir_vec, 0.0)  # project to ego vehicle's coordination
 
         # Dim 1: the relative position of the checkpoint in the target vehicle's heading direction.
-        navi_information.append(clip((ckpt_in_heading / cls.NAVI_POINT_DIST + 1) / 2, 0.0, 1.0))
+        navi_information.append(
+            clip((ckpt_in_heading / cls.NAVI_POINT_DIST + 1) / 2, 0.0, 1.0))
 
         # Dim 2: the relative position of the checkpoint in the target vehicle's right hand side direction.
-        navi_information.append(clip((ckpt_in_rhs / cls.NAVI_POINT_DIST + 1) / 2, 0.0, 1.0))
+        navi_information.append(
+            clip((ckpt_in_rhs / cls.NAVI_POINT_DIST + 1) / 2, 0.0, 1.0))
 
         return navi_information
 

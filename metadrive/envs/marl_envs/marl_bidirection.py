@@ -9,9 +9,15 @@ from metadrive.utils import Config
 from metadrive.utils.math import clip
 
 MABidirectionConfig = dict(
-    spawn_roads=[Road(FirstPGBlock.NODE_2, FirstPGBlock.NODE_3), -Road(Split.node(3, 0, 0), Split.node(3, 0, 1))],
+    spawn_roads=[
+        Road(FirstPGBlock.NODE_2, FirstPGBlock.NODE_3),
+        -Road(Split.node(3, 0, 0), Split.node(3, 0, 1))
+    ],
     num_agents=20,
-    map_config=dict(exit_length=60, bottle_lane_num=4, neck_lane_num=1, neck_length=20),
+    map_config=dict(exit_length=60,
+                    bottle_lane_num=4,
+                    neck_lane_num=1,
+                    neck_length=20),
     top_down_camera_initial_x=95,
     top_down_camera_initial_y=15,
     top_down_camera_initial_z=120,
@@ -27,69 +33,88 @@ MABidirectionConfig = dict(
 
 
 class MABidirectionMap(PGMap):
+
     def _generate(self):
         length = self.config["exit_length"]
         parent_node_path, physics_world = self.engine.worldNP, self.engine.physics_world
-        assert len(self.road_network.graph) == 0, "These Map is not empty, please create a new map to read config"
+        assert len(
+            self.road_network.graph
+        ) == 0, "These Map is not empty, please create a new map to read config"
 
         # Build a first-block
-        last_block = FirstPGBlock(
-            self.road_network,
-            self.config[self.LANE_WIDTH],
-            self.config["bottle_lane_num"],
-            parent_node_path,
-            physics_world,
-            length=length
-        )
+        last_block = FirstPGBlock(self.road_network,
+                                  self.config[self.LANE_WIDTH],
+                                  self.config["bottle_lane_num"],
+                                  parent_node_path,
+                                  physics_world,
+                                  length=length)
         self.blocks.append(last_block)
 
         # Build Bidirection
-        merge = Merge(
-            1, last_block.get_socket(index=0), self.road_network, random_seed=1, ignore_intersection_checking=False
-        )
+        merge = Merge(1,
+                      last_block.get_socket(index=0),
+                      self.road_network,
+                      random_seed=1,
+                      ignore_intersection_checking=False)
         merge.construct_from_config(
-            dict(lane_num=self.config["bottle_lane_num"] - self.config["neck_lane_num"], length=3), parent_node_path,
-            physics_world
-        )
+            dict(lane_num=self.config["bottle_lane_num"] -
+                 self.config["neck_lane_num"],
+                 length=3), parent_node_path, physics_world)
         self.blocks.append(merge)
 
-        straight = Bidirection(
-            2, merge.get_socket(index=0), self.road_network, random_seed=1, ignore_intersection_checking=False
-        )
+        straight = Bidirection(2,
+                               merge.get_socket(index=0),
+                               self.road_network,
+                               random_seed=1,
+                               ignore_intersection_checking=False)
         straight.construct_block(parent_node_path, physics_world)
         self.blocks.append(straight)
 
-        split = Split(
-            3, straight.get_socket(index=0), self.road_network, random_seed=1, ignore_intersection_checking=False
-        )
+        split = Split(3,
+                      straight.get_socket(index=0),
+                      self.road_network,
+                      random_seed=1,
+                      ignore_intersection_checking=False)
         split.construct_from_config(
             {
-                "length": self.config["exit_length"],
-                "lane_num": self.config["bottle_lane_num"] - self.config["neck_lane_num"]
-            }, parent_node_path, physics_world
-        )
+                "length":
+                    self.config["exit_length"],
+                "lane_num":
+                    self.config["bottle_lane_num"] -
+                    self.config["neck_lane_num"]
+            }, parent_node_path, physics_world)
         self.blocks.append(split)
 
 
 class MABidirectionPGMapManager(PGMapManager):
+
     def reset(self):
         config = self.engine.global_config
         if len(self.spawned_objects) == 0:
-            _map = self.spawn_object(MABidirectionMap, map_config=config["map_config"], random_seed=None)
+            _map = self.spawn_object(MABidirectionMap,
+                                     map_config=config["map_config"],
+                                     random_seed=None)
         else:
-            assert len(self.spawned_objects) == 1, "It is supposed to contain one map in this manager"
+            assert len(
+                self.spawned_objects
+            ) == 1, "It is supposed to contain one map in this manager"
             _map = self.spawned_objects.values()[0]
         self.load_map(_map)
         self.current_map.spawn_roads = config["spawn_roads"]
 
 
 class MultiAgentBidirectionEnv(MultiAgentMetaDrive):
+
     @staticmethod
     def default_config() -> Config:
-        assert MABidirectionConfig["vehicle_config"]["side_detector"]["num_lasers"] > 2
-        assert MABidirectionConfig["vehicle_config"]["lane_line_detector"]["num_lasers"] > 2
-        MABidirectionConfig["map_config"]["lane_num"] = MABidirectionConfig["map_config"]["bottle_lane_num"]
-        return MultiAgentMetaDrive.default_config().update(MABidirectionConfig, allow_add_new_key=True)
+        assert MABidirectionConfig["vehicle_config"]["side_detector"][
+            "num_lasers"] > 2
+        assert MABidirectionConfig["vehicle_config"]["lane_line_detector"][
+            "num_lasers"] > 2
+        MABidirectionConfig["map_config"]["lane_num"] = MABidirectionConfig[
+            "map_config"]["bottle_lane_num"]
+        return MultiAgentMetaDrive.default_config().update(
+            MABidirectionConfig, allow_add_new_key=True)
 
     def reward_function(self, vehicle_id: str):
         """
@@ -111,13 +136,17 @@ class MultiAgentBidirectionEnv(MultiAgentMetaDrive):
 
         # reward for lane keeping, without it vehicle can learn to overtake but fail to keep in lane
         if self.config["use_lateral"]:
-            lateral_factor = clip(1 - 2 * abs(lateral_now) / vehicle.navigation.get_current_lane_width(), 0.0, 1.0)
+            lateral_factor = clip(
+                1 - 2 * abs(lateral_now) /
+                vehicle.navigation.get_current_lane_width(), 0.0, 1.0)
         else:
             lateral_factor = 1.0
 
         reward = 0.0
-        reward += self.config["driving_reward"] * (long_now - long_last) * lateral_factor
-        reward += self.config["speed_reward"] * (vehicle.speed_km_h / vehicle.max_speed_km_h)
+        reward += self.config["driving_reward"] * (long_now -
+                                                   long_last) * lateral_factor
+        reward += self.config["speed_reward"] * (vehicle.speed_km_h /
+                                                 vehicle.max_speed_km_h)
 
         step_info["step_reward"] = reward
 
@@ -134,7 +163,8 @@ class MultiAgentBidirectionEnv(MultiAgentMetaDrive):
     def _is_out_of_road(self, vehicle):
         # A specified function to determine whether this vehicle should be done.
         # return vehicle.on_yellow_continuous_line or (not vehicle.on_lane) or vehicle.crash_sidewalk
-        ret = vehicle.on_white_continuous_line or (not vehicle.on_lane) or vehicle.crash_sidewalk
+        ret = vehicle.on_white_continuous_line or (
+            not vehicle.on_lane) or vehicle.crash_sidewalk
         if self.config["cross_yellow_line_done"]:
             ret = ret or vehicle.on_yellow_continuous_line
         return ret
@@ -156,25 +186,23 @@ def _draw():
 
 
 def _expert():
-    env = MultiAgentBidirectionEnv(
-        {
-            "vehicle_config": {
-                "lidar": {
-                    "num_lasers": 240,
-                    "num_others": 4,
-                    "distance": 50
-                },
+    env = MultiAgentBidirectionEnv({
+        "vehicle_config": {
+            "lidar": {
+                "num_lasers": 240,
+                "num_others": 4,
+                "distance": 50
             },
-            "use_AI_protector": True,
-            "save_level": 1.,
-            "debug_physics_world": True,
+        },
+        "use_AI_protector": True,
+        "save_level": 1.,
+        "debug_physics_world": True,
 
-            # "use_render": True,
-            "debug": True,
-            "manual_control": True,
-            "num_agents": 4,
-        }
-    )
+        # "use_render": True,
+        "debug": True,
+        "manual_control": True,
+        "num_agents": 4,
+    })
     o, _ = env.reset()
     total_r = 0
     ep_s = 0
@@ -187,10 +215,9 @@ def _expert():
         # env.render(text=d)
         if tm["__all__"]:
             print(
-                "Finish! Current step {}. Group Reward: {}. Average reward: {}".format(
-                    i, total_r, total_r / env.agent_manager.next_agent_count
-                )
-            )
+                "Finish! Current step {}. Group Reward: {}. Average reward: {}".
+                format(i, total_r,
+                       total_r / env.agent_manager.next_agent_count))
             break
         if len(env.agents) == 0:
             total_r = 0
@@ -200,24 +227,22 @@ def _expert():
 
 
 def _vis_debug_respawn():
-    env = MultiAgentBidirectionEnv(
-        {
-            "horizon": 100000,
-            "vehicle_config": {
-                "lidar": {
-                    "num_lasers": 72,
-                    "num_others": 0,
-                    "distance": 40
-                },
-                "show_lidar": False,
+    env = MultiAgentBidirectionEnv({
+        "horizon": 100000,
+        "vehicle_config": {
+            "lidar": {
+                "num_lasers": 72,
+                "num_others": 0,
+                "distance": 40
             },
-            "debug_physics_world": True,
-            "use_render": True,
-            "debug": False,
-            "manual_control": True,
-            "num_agents": 20,
-        }
-    )
+            "show_lidar": False,
+        },
+        "debug_physics_world": True,
+        "use_render": True,
+        "debug": False,
+        "manual_control": True,
+        "num_agents": 20,
+    })
     o, _ = env.reset()
     total_r = 0
     ep_s = 0
@@ -238,10 +263,9 @@ def _vis_debug_respawn():
         env.render(text=render_text)
         if tm["__all__"]:
             print(
-                "Finish! Current step {}. Group Reward: {}. Average reward: {}".format(
-                    i, total_r, total_r / env.agent_manager.next_agent_count
-                )
-            )
+                "Finish! Current step {}. Group Reward: {}. Average reward: {}".
+                format(i, total_r,
+                       total_r / env.agent_manager.next_agent_count))
             # break
         if len(env.agents) == 0:
             total_r = 0
@@ -251,23 +275,21 @@ def _vis_debug_respawn():
 
 
 def _vis():
-    env = MultiAgentBidirectionEnv(
-        {
-            "horizon": 100000,
-            "vehicle_config": {
-                "lidar": {
-                    "num_lasers": 72,
-                    "num_others": 0,
-                    "distance": 40
-                },
-                "show_lidar": False,
+    env = MultiAgentBidirectionEnv({
+        "horizon": 100000,
+        "vehicle_config": {
+            "lidar": {
+                "num_lasers": 72,
+                "num_others": 0,
+                "distance": 40
             },
-            "use_render": True,
-            # "debug": True,
-            "manual_control": True,
-            "num_agents": 20,
-        }
-    )
+            "show_lidar": False,
+        },
+        "use_render": True,
+        # "debug": True,
+        "manual_control": True,
+        "num_agents": 20,
+    })
     o, _ = env.reset()
     total_r = 0
     ep_s = 0
@@ -278,24 +300,31 @@ def _vis():
         ep_s += 1
         # d.update({"total_r": total_r, "episode length": ep_s})
         render_text = {
-            "total_r": total_r,
-            "episode length": ep_s,
-            "cam_x": env.main_camera.camera_x,
-            "cam_y": env.main_camera.camera_y,
-            "cam_z": env.main_camera.top_down_camera_height,
-            "current_track_v": env.agent_manager.object_to_agent(env.current_track_agent.name)
+            "total_r":
+                total_r,
+            "episode length":
+                ep_s,
+            "cam_x":
+                env.main_camera.camera_x,
+            "cam_y":
+                env.main_camera.camera_y,
+            "cam_z":
+                env.main_camera.top_down_camera_height,
+            "current_track_v":
+                env.agent_manager.object_to_agent(env.current_track_agent.name)
         }
-        track_v = env.agent_manager.object_to_agent(env.current_track_agent.name)
+        track_v = env.agent_manager.object_to_agent(
+            env.current_track_agent.name)
         render_text["tack_v_reward"] = r[track_v]
-        render_text["dist_to_right"] = env.current_track_agent.dist_to_right_side
+        render_text[
+            "dist_to_right"] = env.current_track_agent.dist_to_right_side
         render_text["dist_to_left"] = env.current_track_agent.dist_to_left_side
         env.render(text=render_text)
         if tm["__all__"]:
             print(
-                "Finish! Current step {}. Group Reward: {}. Average reward: {}".format(
-                    i, total_r, total_r / env.agent_manager.next_agent_count
-                )
-            )
+                "Finish! Current step {}. Group Reward: {}. Average reward: {}".
+                format(i, total_r,
+                       total_r / env.agent_manager.next_agent_count))
             # break
         if len(env.agents) == 0:
             total_r = 0
@@ -319,35 +348,32 @@ def _profile():
             env.reset()
         if (s + 1) % 100 == 0:
             print(
-                "Finish {}/10000 simulation steps. Time elapse: {:.4f}. Average FPS: {:.4f}".format(
-                    s + 1,
-                    time.time() - start, (s + 1) / (time.time() - start)
-                )
-            )
+                "Finish {}/10000 simulation steps. Time elapse: {:.4f}. Average FPS: {:.4f}"
+                .format(s + 1,
+                        time.time() - start, (s + 1) / (time.time() - start)))
     print(f"(MetaDriveEnv) Total Time Elapse: {time.time() - start}")
 
 
 def _long_run():
     # Please refer to test_ma_Bidirection_reward_done_alignment()
     _out_of_road_penalty = 3
-    env = MultiAgentBidirectionEnv(
-        {
-            "num_agents": 8,
-            "vehicle_config": {
-                "lidar": {
-                    "num_others": 8
-                }
-            },
-            **dict(
-                out_of_road_penalty=_out_of_road_penalty,
-                crash_vehicle_penalty=1.333,
-                crash_object_penalty=11,
-                crash_vehicle_cost=13,
-                crash_object_cost=17,
-                out_of_road_cost=19,
-            )
-        }
-    )
+    env = MultiAgentBidirectionEnv({
+        "num_agents":
+            8,
+        "vehicle_config": {
+            "lidar": {
+                "num_others": 8
+            }
+        },
+        **dict(
+            out_of_road_penalty=_out_of_road_penalty,
+            crash_vehicle_penalty=1.333,
+            crash_object_penalty=11,
+            crash_vehicle_cost=13,
+            crash_object_cost=17,
+            out_of_road_cost=19,
+        )
+    })
     try:
         obs, _ = env.reset()
         assert env.observation_space.contains(obs)
@@ -369,13 +395,13 @@ def _long_run():
                     assert tm[kkk]
 
             if (step + 1) % 200 == 0:
-                print(
-                    "{}/{} Agents: {} {}\nO: {}\nR: {}\nD: {}\nI: {}\n\n".format(
-                        step + 1, 10000, len(env.agents), list(env.agents.keys()),
-                        {k: (oo.shape, oo.mean(), oo.min(), oo.max())
-                         for k, oo in o.items()}, r, d, i
-                    )
-                )
+                print("{}/{} Agents: {} {}\nO: {}\nR: {}\nD: {}\nI: {}\n\n".
+                      format(
+                          step + 1, 10000, len(env.agents),
+                          list(env.agents.keys()), {
+                              k: (oo.shape, oo.mean(), oo.min(), oo.max())
+                              for k, oo in o.items()
+                          }, r, d, i))
             if tm["__all__"]:
                 print('Current step: ', step)
                 break

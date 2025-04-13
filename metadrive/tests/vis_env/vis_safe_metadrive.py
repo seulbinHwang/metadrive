@@ -3,19 +3,17 @@ from metadrive.utils import setup_logger
 
 if __name__ == "__main__":
     setup_logger(True)
-    env = SafeMetaDriveEnv(
-        {
-            "use_render": True,
-            "manual_control": True,
-            "num_scenarios": 1,
-            "show_coordinates": True,
-            "map": "CCCC",
-            "accident_prob": 1.0,
-            "vehicle_config": {
-                "show_lidar": True
-            }
+    env = SafeMetaDriveEnv({
+        "use_render": True,
+        "manual_control": True,
+        "num_scenarios": 1,
+        "show_coordinates": True,
+        "map": "CCCC",
+        "accident_prob": 1.0,
+        "vehicle_config": {
+            "show_lidar": True
         }
-    )
+    })
 
     o, _ = env.reset()
     # print("vehicle num", len(env.engine.traffic_manager.vehicles))

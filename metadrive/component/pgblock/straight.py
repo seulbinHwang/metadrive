@@ -18,12 +18,16 @@ class Straight(PGBlock):
     PARAMETER_SPACE = ParameterSpace(BlockParameterSpace.STRAIGHT)
 
     def _try_plug_into_previous_block(self) -> bool:
-        self.set_part_idx(0)  # only one part in simple block like straight, and curve
+        self.set_part_idx(
+            0)  # only one part in simple block like straight, and curve
         para = self.get_config()
         length = para[Parameter.length]
         basic_lane = self.positive_basic_lane
-        assert isinstance(basic_lane, StraightLane), "Straight road can only connect straight type"
-        new_lane = ExtendStraightLane(basic_lane, length, [PGLineType.BROKEN, PGLineType.SIDE])
+        assert isinstance(
+            basic_lane,
+            StraightLane), "Straight road can only connect straight type"
+        new_lane = ExtendStraightLane(basic_lane, length,
+                                      [PGLineType.BROKEN, PGLineType.SIDE])
         start = self.pre_block_socket.positive_road.end_node
         end = self.add_road_node()
         socket = Road(start, end)
@@ -38,8 +42,7 @@ class Straight(PGBlock):
             self._global_network,
             ignore_intersection_checking=self.ignore_intersection_checking,
             side_lane_line_type=self.side_lane_line_type,
-            center_line_type=self.center_line_type
-        )
+            center_line_type=self.center_line_type)
         if not self.remove_negative_lanes:
             # create negative road
             no_cross = CreateAdverseRoad(
@@ -48,8 +51,7 @@ class Straight(PGBlock):
                 self._global_network,
                 ignore_intersection_checking=self.ignore_intersection_checking,
                 side_lane_line_type=self.side_lane_line_type,
-                center_line_type=self.center_line_type
-            ) and no_cross
+                center_line_type=self.center_line_type) and no_cross
 
         self.add_sockets(PGBlockSocket(socket, _socket))
         return no_cross

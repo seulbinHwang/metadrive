@@ -43,8 +43,8 @@ class FlagUsedCellsStage(RenderStage):
         self.target.prepare_buffer()
 
         self.cell_grid_flags = Image.create_2d_array(
-            "CellGridFlags", 0, 0, self._pipeline.settings["lighting.culling_grid_slices"], "R8"
-        )
+            "CellGridFlags", 0, 0,
+            self._pipeline.settings["lighting.culling_grid_slices"], "R8")
         self.target.set_shader_input("cellGridFlags", self.cell_grid_flags)
 
     def update(self):

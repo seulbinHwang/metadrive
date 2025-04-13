@@ -5,21 +5,19 @@ from metadrive.envs.metadrive_env import MetaDriveEnv
 
 def test_coordinates_shift():
     try:
-        env = MetaDriveEnv(
-            {
-                "num_scenarios": 100,
-                "traffic_density": .0,
-                "traffic_mode": "trigger",
-                "start_seed": 22,
-                # "manual_control": True,
-                # "use_render": True,
-                "decision_repeat": 5,
-                "norm_pixel": True,
-                "pstats": True,
-                # "discrete_action": True,
-                "map": "SSSSSS",
-            }
-        )
+        env = MetaDriveEnv({
+            "num_scenarios": 100,
+            "traffic_density": .0,
+            "traffic_mode": "trigger",
+            "start_seed": 22,
+            # "manual_control": True,
+            # "use_render": True,
+            "decision_repeat": 5,
+            "norm_pixel": True,
+            "pstats": True,
+            # "discrete_action": True,
+            "map": "SSSSSS",
+        })
         env.reset()
         env.agent.set_velocity([1, 0], 10)
         # print(env.agent.speed)
@@ -32,8 +30,10 @@ def test_coordinates_shift():
                     break
                 p = pos.pop()
             p = np.asarray(p)
-            heading, side = env.agent.convert_to_local_coordinates(p, env.agent.position)
-            recover_pos = env.agent.convert_to_world_coordinates([heading, side], env.agent.position)
+            heading, side = env.agent.convert_to_local_coordinates(
+                p, env.agent.position)
+            recover_pos = env.agent.convert_to_world_coordinates(
+                [heading, side], env.agent.position)
             if abs(recover_pos[0] - p[0]) + abs(recover_pos[1] - p[1]) > 0.1:
                 raise ValueError("vehicle coordinates convert error!")
             if tm:

@@ -120,12 +120,14 @@ class AbstractLane(MetaDriveType):
         Returns: a list of 2D points representing Polygon
 
         """
-        raise NotImplementedError("Overwrite this function to allow getting polygon for this lane")
+        raise NotImplementedError(
+            "Overwrite this function to allow getting polygon for this lane")
 
     @property
     def shapely_polygon(self):
         """Return the polygon in shapely.geometry.Polygon"""
         if self._shapely_polygon is None:
             assert self.polygon is not None
-            self._shapely_polygon = geometry.Polygon(geometry.LineString(self.polygon))
+            self._shapely_polygon = geometry.Polygon(
+                geometry.LineString(self.polygon))
         return self._shapely_polygon

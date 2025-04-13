@@ -57,7 +57,8 @@ class PGTrafficManager(BaseManager):
         :return: List of Traffic vehicles
         """
         map = self.current_map
-        logging.debug("load scene {}".format("Use random traffic" if self.random_traffic else ""))
+        logging.debug("load scene {}".format(
+            "Use random traffic" if self.random_traffic else ""))
 
         # update vehicle list
         self.block_triggered_vehicles = []
@@ -67,7 +68,9 @@ class PGTrafficManager(BaseManager):
             return
         self.respawn_lanes = self._get_available_respawn_lanes(map)
 
-        logging.debug(f"Resetting Traffic Manager with mode {self.mode} and density {traffic_density}")
+        logging.debug(
+            f"Resetting Traffic Manager with mode {self.mode} and density {traffic_density}"
+        )
 
         if self.mode in {TrafficMode.Basic, TrafficMode.Respawn}:
             self._create_basic_vehicles(map, traffic_density)
@@ -88,9 +91,11 @@ class PGTrafficManager(BaseManager):
                 if len(self.block_triggered_vehicles) > 0:
                     ego_lane_idx = v.lane_index[:-1]
                     ego_road = Road(ego_lane_idx[0], ego_lane_idx[1])
-                    if ego_road == self.block_triggered_vehicles[-1].trigger_road:
+                    if ego_road == self.block_triggered_vehicles[
+                            -1].trigger_road:
                         block_vehicles = self.block_triggered_vehicles.pop()
-                        self._traffic_vehicles += list(self.get_objects(block_vehicles.vehicles).values())
+                        self._traffic_vehicles += list(
+                            self.get_objects(block_vehicles.vehicles).values())
 
         for v in self._traffic_vehicles:
             p = self.engine.get_policy(v.name)
@@ -114,13 +119,19 @@ class PGTrafficManager(BaseManager):
 
             # Spawn new vehicles to replace the removed one
             if self.mode in {TrafficMode.Respawn, TrafficMode.Hybrid}:
-                lane = self.respawn_lanes[self.np_random.randint(0, len(self.respawn_lanes))]
+                lane = self.respawn_lanes[self.np_random.randint(
+                    0, len(self.respawn_lanes))]
                 lane_idx = lane.index
                 long = self.np_random.rand() * lane.length / 2
-                traffic_v_config = {"spawn_lane_index": lane_idx, "spawn_longitude": long}
-                new_v = self.spawn_object(vehicle_type, vehicle_config=traffic_v_config)
+                traffic_v_config = {
+                    "spawn_lane_index": lane_idx,
+                    "spawn_longitude": long
+                }
+                new_v = self.spawn_object(vehicle_type,
+                                          vehicle_config=traffic_v_config)
                 from metadrive.policy.idm_policy import IDMPolicy
-                self.add_policy(new_v.id, IDMPolicy, new_v, self.generate_seed())
+                self.add_policy(new_v.id, IDMPolicy, new_v,
+                                self.generate_seed())
                 self._traffic_vehicles.append(new_v)
 
         return dict()
@@ -142,7 +153,9 @@ class PGTrafficManager(BaseManager):
         """
         if self.mode in {TrafficMode.Basic, TrafficMode.Respawn}:
             return len(self._traffic_vehicles)
-        return sum(len(block_vehicle_set.vehicles) for block_vehicle_set in self.block_triggered_vehicles)
+        return sum(
+            len(block_vehicle_set.vehicles)
+            for block_vehicle_set in self.block_triggered_vehicles)
 
     def get_global_states(self) -> Dict:
         """
@@ -163,19 +176,22 @@ class PGTrafficManager(BaseManager):
         active_obj = copy.copy(self.engine.agent_manager._active_objects)
         pending_obj = copy.copy(self.engine.agent_manager._pending_objects)
         dying_obj = copy.copy(self.engine.agent_manager._dying_objects)
-        states[TARGET_VEHICLES] = {k: v.get_state() for k, v in active_obj.items()}
-        states[TARGET_VEHICLES] = merge_dicts(
-            states[TARGET_VEHICLES], {k: v.get_state()
-                                      for k, v in pending_obj.items()}, allow_new_keys=True
-        )
-        states[TARGET_VEHICLES] = merge_dicts(
-            states[TARGET_VEHICLES], {k: v_count[0].get_state()
-                                      for k, v_count in dying_obj.items()},
-            allow_new_keys=True
-        )
+        states[TARGET_VEHICLES] = {
+            k: v.get_state() for k, v in active_obj.items()
+        }
+        states[TARGET_VEHICLES] = merge_dicts(states[TARGET_VEHICLES], {
+            k: v.get_state() for k, v in pending_obj.items()
+        },
+                                              allow_new_keys=True)
+        states[TARGET_VEHICLES] = merge_dicts(states[TARGET_VEHICLES], {
+            k: v_count[0].get_state() for k, v_count in dying_obj.items()
+        },
+                                              allow_new_keys=True)
 
-        states[OBJECT_TO_AGENT] = copy.deepcopy(self.engine.agent_manager._object_to_agent)
-        states[AGENT_TO_OBJECT] = copy.deepcopy(self.engine.agent_manager._agent_to_object)
+        states[OBJECT_TO_AGENT] = copy.deepcopy(
+            self.engine.agent_manager._object_to_agent)
+        states[AGENT_TO_OBJECT] = copy.deepcopy(
+            self.engine.agent_manager._agent_to_object)
         return states
 
     def get_global_init_states(self) -> Dict:
@@ -208,7 +224,11 @@ class PGTrafficManager(BaseManager):
         vehicle_longs = [i * self.VEHICLE_GAP for i in range(total_num)]
         # Only choose given number of vehicles
         for long in vehicle_longs:
-            random_vehicle_config = {"spawn_lane_index": lane.index, "spawn_longitude": long, "enable_reverse": False}
+            random_vehicle_config = {
+                "spawn_lane_index": lane.index,
+                "spawn_longitude": long,
+                "enable_reverse": False
+            }
             potential_vehicle_configs.append(random_vehicle_config)
         return potential_vehicle_configs
 
@@ -219,19 +239,27 @@ class PGTrafficManager(BaseManager):
             total_num = int(lane.length / self.VEHICLE_GAP)
             vehicle_longs = [i * self.VEHICLE_GAP for i in range(total_num)]
             self.np_random.shuffle(vehicle_longs)
-            for long in vehicle_longs[:int(np.ceil(traffic_density * len(vehicle_longs)))]:
+            for long in vehicle_longs[:int(
+                    np.ceil(traffic_density * len(vehicle_longs)))]:
                 # if self.np_random.rand() > traffic_density and abs(lane.length - InRampOnStraight.RAMP_LEN) > 0.1:
                 #     # Do special handling for ramp, and there must be vehicles created there
                 #     continue
                 vehicle_type = self.random_vehicle_type()
-                traffic_v_config = {"spawn_lane_index": lane.index, "spawn_longitude": long}
-                traffic_v_config.update(self.engine.global_config["traffic_vehicle_config"])
-                random_v = self.spawn_object(vehicle_type, vehicle_config=traffic_v_config)
+                traffic_v_config = {
+                    "spawn_lane_index": lane.index,
+                    "spawn_longitude": long
+                }
+                traffic_v_config.update(
+                    self.engine.global_config["traffic_vehicle_config"])
+                random_v = self.spawn_object(vehicle_type,
+                                             vehicle_config=traffic_v_config)
                 from metadrive.policy.idm_policy import IDMPolicy
-                self.add_policy(random_v.id, IDMPolicy, random_v, self.generate_seed())
+                self.add_policy(random_v.id, IDMPolicy, random_v,
+                                self.generate_seed())
                 self._traffic_vehicles.append(random_v)
 
-    def _create_trigger_vehicles(self, map: BaseMap, traffic_density: float) -> None:
+    def _create_trigger_vehicles(self, map: BaseMap,
+                                 traffic_density: float) -> None:
         """
         Trigger mode, vehicles will be triggered only once, and disappear when arriving destination
         :param map: Map
@@ -243,39 +271,52 @@ class PGTrafficManager(BaseManager):
 
             # Propose candidate locations for spawning new vehicles
             trigger_lanes = block.get_intermediate_spawn_lanes()
-            if self.engine.global_config["need_inverse_traffic"] and block.ID in ["S", "C", "r", "R"]:
+            if self.engine.global_config[
+                    "need_inverse_traffic"] and block.ID in [
+                        "S", "C", "r", "R"
+                    ]:
                 neg_lanes = block.block_network.get_negative_lanes()
                 self.np_random.shuffle(neg_lanes)
                 trigger_lanes += neg_lanes
             potential_vehicle_configs = []
             for lanes in trigger_lanes:
                 for l in lanes:
-                    if hasattr(self.engine, "object_manager") and l in self.engine.object_manager.accident_lanes:
+                    if hasattr(
+                            self.engine, "object_manager"
+                    ) and l in self.engine.object_manager.accident_lanes:
                         continue
-                    potential_vehicle_configs += self._propose_vehicle_configs(l)
+                    potential_vehicle_configs += self._propose_vehicle_configs(
+                        l)
 
             # How many vehicles should we spawn in this block?
-            total_length = sum([lane.length for lanes in trigger_lanes for lane in lanes])
-            total_spawn_points = int(math.floor(total_length / self.VEHICLE_GAP))
-            total_vehicles = int(math.floor(total_spawn_points * traffic_density))
+            total_length = sum(
+                [lane.length for lanes in trigger_lanes for lane in lanes])
+            total_spawn_points = int(math.floor(total_length /
+                                                self.VEHICLE_GAP))
+            total_vehicles = int(
+                math.floor(total_spawn_points * traffic_density))
 
             # Generate vehicles!
             vehicles_on_block = []
             self.np_random.shuffle(potential_vehicle_configs)
-            selected = potential_vehicle_configs[:min(total_vehicles, len(potential_vehicle_configs))]
+            selected = potential_vehicle_configs[:min(
+                total_vehicles, len(potential_vehicle_configs))]
             # print("We have {} candidates! We are spawning {} vehicles!".format(total_vehicles, len(selected)))
 
             from metadrive.policy.idm_policy import IDMPolicy
             for v_config in selected:
                 vehicle_type = self.random_vehicle_type()
-                v_config.update(self.engine.global_config["traffic_vehicle_config"])
-                random_v = self.spawn_object(vehicle_type, vehicle_config=v_config)
+                v_config.update(
+                    self.engine.global_config["traffic_vehicle_config"])
+                random_v = self.spawn_object(vehicle_type,
+                                             vehicle_config=v_config)
                 seed = self.generate_seed()
                 self.add_policy(random_v.id, IDMPolicy, random_v, seed)
                 vehicles_on_block.append(random_v.name)
 
             trigger_road = block.pre_block_socket.positive_road
-            block_vehicles = BlockVehicles(trigger_road=trigger_road, vehicles=vehicles_on_block)
+            block_vehicles = BlockVehicles(trigger_road=trigger_road,
+                                           vehicles=vehicles_on_block)
 
             self.block_triggered_vehicles.append(block_vehicles)
             vehicle_num += len(vehicles_on_block)
@@ -302,7 +343,8 @@ class PGTrafficManager(BaseManager):
 
     def random_vehicle_type(self):
         from metadrive.component.vehicle.vehicle_type import random_vehicle_type
-        vehicle_type = random_vehicle_type(self.np_random, [0.2, 0.3, 0.3, 0.2, 0.0])
+        vehicle_type = random_vehicle_type(self.np_random,
+                                           [0.2, 0.3, 0.3, 0.2, 0.0])
         return vehicle_type
 
     def destroy(self) -> None:
@@ -330,7 +372,9 @@ class PGTrafficManager(BaseManager):
 
     @property
     def vehicles(self):
-        return list(self.engine.get_objects(filter=lambda o: isinstance(o, BaseVehicle)).values())
+        return list(
+            self.engine.get_objects(
+                filter=lambda o: isinstance(o, BaseVehicle)).values())
 
     @property
     def traffic_vehicles(self):
@@ -349,17 +393,21 @@ class PGTrafficManager(BaseManager):
         ret["_traffic_vehicles"] = [v.name for v in self._traffic_vehicles]
         flat = []
         for b_v in self.block_triggered_vehicles:
-            flat.append((b_v.trigger_road.start_node, b_v.trigger_road.end_node, b_v.vehicles))
+            flat.append((b_v.trigger_road.start_node, b_v.trigger_road.end_node,
+                         b_v.vehicles))
         ret["block_triggered_vehicles"] = flat
         return ret
 
     def set_state(self, state: dict, old_name_to_current=None):
         super(PGTrafficManager, self).set_state(state, old_name_to_current)
         self._traffic_vehicles = list(
-            self.get_objects([old_name_to_current[name] for name in state["_traffic_vehicles"]]).values()
-        )
+            self.get_objects([
+                old_name_to_current[name] for name in state["_traffic_vehicles"]
+            ]).values())
         self.block_triggered_vehicles = [
-            BlockVehicles(trigger_road=Road(s, e), vehicles=[old_name_to_current[name] for name in v])
+            BlockVehicles(trigger_road=Road(s, e),
+                          vehicles=[old_name_to_current[name]
+                                    for name in v])
             for s, e, v in state["block_triggered_vehicles"]
         ]
 
@@ -369,35 +417,47 @@ TrafficManager = PGTrafficManager
 
 
 class MixedPGTrafficManager(PGTrafficManager):
+
     def _create_basic_vehicles(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def _create_trigger_vehicles(self, map: BaseMap, traffic_density: float) -> None:
+    def _create_trigger_vehicles(self, map: BaseMap,
+                                 traffic_density: float) -> None:
         vehicle_num = 0
         for block in map.blocks[1:]:
 
             # Propose candidate locations for spawning new vehicles
             trigger_lanes = block.get_intermediate_spawn_lanes()
-            if self.engine.global_config["need_inverse_traffic"] and block.ID in ["S", "C", "r", "R"]:
+            if self.engine.global_config[
+                    "need_inverse_traffic"] and block.ID in [
+                        "S", "C", "r", "R"
+                    ]:
                 neg_lanes = block.block_network.get_negative_lanes()
                 self.np_random.shuffle(neg_lanes)
                 trigger_lanes += neg_lanes
             potential_vehicle_configs = []
             for lanes in trigger_lanes:
                 for l in lanes:
-                    if hasattr(self.engine, "object_manager") and l in self.engine.object_manager.accident_lanes:
+                    if hasattr(
+                            self.engine, "object_manager"
+                    ) and l in self.engine.object_manager.accident_lanes:
                         continue
-                    potential_vehicle_configs += self._propose_vehicle_configs(l)
+                    potential_vehicle_configs += self._propose_vehicle_configs(
+                        l)
 
             # How many vehicles should we spawn in this block?
-            total_length = sum([lane.length for lanes in trigger_lanes for lane in lanes])
-            total_spawn_points = int(math.floor(total_length / self.VEHICLE_GAP))
-            total_vehicles = int(math.floor(total_spawn_points * traffic_density))
+            total_length = sum(
+                [lane.length for lanes in trigger_lanes for lane in lanes])
+            total_spawn_points = int(math.floor(total_length /
+                                                self.VEHICLE_GAP))
+            total_vehicles = int(
+                math.floor(total_spawn_points * traffic_density))
 
             # Generate vehicles!
             vehicles_on_block = []
             self.np_random.shuffle(potential_vehicle_configs)
-            selected = potential_vehicle_configs[:min(total_vehicles, len(potential_vehicle_configs))]
+            selected = potential_vehicle_configs[:min(
+                total_vehicles, len(potential_vehicle_configs))]
 
             from metadrive.policy.idm_policy import IDMPolicy
             from metadrive.policy.expert_policy import ExpertPolicy
@@ -405,17 +465,23 @@ class MixedPGTrafficManager(PGTrafficManager):
             # print("Current seed: ", self.engine.global_random_seed)
             for v_config in selected:
                 vehicle_type = self.random_vehicle_type()
-                v_config.update(self.engine.global_config["traffic_vehicle_config"])
-                random_v = self.spawn_object(vehicle_type, vehicle_config=v_config)
-                if self.np_random.random() < self.engine.global_config["rl_agent_ratio"]:
+                v_config.update(
+                    self.engine.global_config["traffic_vehicle_config"])
+                random_v = self.spawn_object(vehicle_type,
+                                             vehicle_config=v_config)
+                if self.np_random.random(
+                ) < self.engine.global_config["rl_agent_ratio"]:
                     # print("Vehicle {} is assigned with RL policy!".format(random_v.id))
-                    self.add_policy(random_v.id, ExpertPolicy, random_v, self.generate_seed())
+                    self.add_policy(random_v.id, ExpertPolicy, random_v,
+                                    self.generate_seed())
                 else:
-                    self.add_policy(random_v.id, IDMPolicy, random_v, self.generate_seed())
+                    self.add_policy(random_v.id, IDMPolicy, random_v,
+                                    self.generate_seed())
                 vehicles_on_block.append(random_v.name)
 
             trigger_road = block.pre_block_socket.positive_road
-            block_vehicles = BlockVehicles(trigger_road=trigger_road, vehicles=vehicles_on_block)
+            block_vehicles = BlockVehicles(trigger_road=trigger_road,
+                                           vehicles=vehicles_on_block)
 
             self.block_triggered_vehicles.append(block_vehicles)
             vehicle_num += len(vehicles_on_block)

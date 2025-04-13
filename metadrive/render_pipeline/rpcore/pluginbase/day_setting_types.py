@@ -46,6 +46,7 @@ def make_daysetting_from_data(data):
 
 class BaseType(RPObject):
     """ Base setting type for all setting types """
+
     def __init__(self, data):
         self.type = data.pop("type")
         self.label = data.pop("label").strip()
@@ -100,7 +101,13 @@ class ScalarType(BaseType):
 
     def format(self, value):
         """ Formats a given value, attaching the appropriate metric unit """
-        metric = {"degree": u'\N{DEGREE SIGN}', "percent": u'%', "meter": u'm', "klux": u' L', "none": ''}[self.unit]
+        metric = {
+            "degree": u'\N{DEGREE SIGN}',
+            "percent": u'%',
+            "meter": u'm',
+            "klux": u' L',
+            "none": ''
+        }[self.unit]
         if self.unit == "percent":
             value *= 100.0
         return u"{:3.1f}{}".format(value, metric)
@@ -110,13 +117,15 @@ class ScalarType(BaseType):
         if self.logarithmic_factor != 1.0:
             exp_mult = exp(self.logarithmic_factor * value * 4.0) - 1
             exp_div = exp(self.logarithmic_factor * 4.0) - 1
-            return exp_mult / exp_div * (self.maxvalue - self.minvalue) + self.minvalue
+            return exp_mult / exp_div * (self.maxvalue -
+                                         self.minvalue) + self.minvalue
         else:
             return value * (self.maxvalue - self.minvalue) + self.minvalue
 
     def get_linear_value(self, scaled_value):
         """ Linearizes a scaled value """
-        result = (scaled_value - self.minvalue) / (self.maxvalue - self.minvalue)
+        result = (scaled_value - self.minvalue) / (self.maxvalue -
+                                                   self.minvalue)
         if self.logarithmic_factor != 1.0:
             result *= exp(self.logarithmic_factor * 4.0) - 1
             result = log(result + 1.0) / (4.0 * self.logarithmic_factor)

@@ -2,7 +2,8 @@ from panda3d.core import Shader, Texture, ConfigVariableBool, NodePath, ShaderAt
 from direct.showbase.ShowBase import ShowBase, loadPrcFileData
 
 loadPrcFileData("", "textures-power-2 none")
-immutableTextureStore = ConfigVariableBool("gl-immutable-texture-storage", False)
+immutableTextureStore = ConfigVariableBool("gl-immutable-texture-storage",
+                                           False)
 immutableTextureStore.setValue(True)
 print("immutable texture storage", immutableTextureStore.getValue())
 

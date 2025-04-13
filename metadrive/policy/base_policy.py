@@ -40,7 +40,8 @@ class BasePolicy(Randomizable, Configurable):
         assert self._debug_mark is not None
         assert self._mark_update_task_name is not None
         pos = self.control_object.origin.getPos()
-        height = getattr(self.control_object, "HEIGHT") if hasattr(self.control_object, "HEIGHT") else 2
+        height = getattr(self.control_object, "HEIGHT") if hasattr(
+            self.control_object, "HEIGHT") else 2
         self._debug_mark.setPos(pos[0], pos[1], height + 0.5)
         return task.cont
 
@@ -83,7 +84,7 @@ class BasePolicy(Randomizable, Configurable):
         """
         It defines the input space of this class of policy. This will be the action space for the agent.
         """
-        return gym.spaces.Box(-1.0, 1.0, shape=(2, ), dtype=np.float32)
+        return gym.spaces.Box(-1.0, 1.0, shape=(2,), dtype=np.float32)
 
     def get_state(self):
         return self.get_action_info()
@@ -96,7 +97,8 @@ class BasePolicy(Randomizable, Configurable):
         if not self.engine.global_config["show_policy_mark"]:
             return
         if self.DEBUG_MARK_MODEL is None:
-            self.DEBUG_MARK_MODEL = AssetLoader.loader.loadModel(AssetLoader.file_path("models", "box.bam"))
+            self.DEBUG_MARK_MODEL = AssetLoader.loader.loadModel(
+                AssetLoader.file_path("models", "box.bam"))
             self.DEBUG_MARK_MODEL.setScale(0.5)
             self.DEBUG_MARK_MODEL.show(CamMask.MainCam)
             self.DEBUG_MARK_MODEL.hprInterval(5, (360, 0, 0)).loop()
@@ -114,7 +116,9 @@ class BasePolicy(Randomizable, Configurable):
 
         self._debug_mark.reparentTo(self.engine.origin)
         pos = self.control_object.origin.getPos()
-        height = getattr(self.control_object, "HEIGHT") if hasattr(self.control_object, "HEIGHT") else 2
+        height = getattr(self.control_object, "HEIGHT") if hasattr(
+            self.control_object, "HEIGHT") else 2
         self._debug_mark.setPos(pos[0], pos[1], height + 0.5)
         self._mark_update_task_name = self._get_task_name()
-        self.engine.taskMgr.add(self._sync_debug_mark, self._mark_update_task_name)
+        self.engine.taskMgr.add(self._sync_debug_mark,
+                                self._mark_update_task_name)

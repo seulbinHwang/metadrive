@@ -17,7 +17,8 @@ def test_config_consistency_2():
     try:
         env.reset()
         assert env.current_map.config["config"] == the_config
-        assert all([v.config["config"] == the_config for v in env.maps.values()])
+        assert all(
+            [v.config["config"] == the_config for v in env.maps.values()])
         assert env.config["map_config"]["config"] == the_config
     finally:
         env.close()
@@ -27,7 +28,8 @@ def test_config_consistency_2():
     try:
         env.reset()
         assert env.current_map.config["config"] == the_config
-        assert all([v.config["config"] == the_config for v in env.maps.values()])
+        assert all(
+            [v.config["config"] == the_config for v in env.maps.values()])
         assert env.config["map_config"]["config"] == the_config
     finally:
         env.close()
@@ -37,17 +39,23 @@ def test_config_consistency_2():
     try:
         env.reset()
         assert env.current_map.config["config"] == the_config
-        assert all([v.config["config"] == the_config for v in env.maps.values()])
+        assert all(
+            [v.config["config"] == the_config for v in env.maps.values()])
         assert env.config["map_config"]["config"] == the_config
     finally:
         env.close()
 
     the_config = "OO"
-    env = MetaDriveEnv({"map_config": {"config": the_config, "type": "block_sequence"}})
+    env = MetaDriveEnv(
+        {"map_config": {
+            "config": the_config,
+            "type": "block_sequence"
+        }})
     try:
         env.reset()
         assert env.current_map.config["config"] == the_config
-        assert all([v.config["config"] == the_config for v in env.maps.values()])
+        assert all(
+            [v.config["config"] == the_config for v in env.maps.values()])
         assert env.config["map_config"]["config"] == the_config
     finally:
         env.close()

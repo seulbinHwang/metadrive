@@ -39,8 +39,7 @@ class Curve(PGBlock):
             np.deg2rad(angle),
             direction,
             width=basic_lane.width,
-            line_types=(PGLineType.BROKEN, self.side_lane_line_type)
-        )
+            line_types=(PGLineType.BROKEN, self.side_lane_line_type))
         no_cross = CreateRoadFrom(
             curve,
             lane_num,
@@ -49,8 +48,7 @@ class Curve(PGBlock):
             self._global_network,
             ignore_intersection_checking=self.ignore_intersection_checking,
             side_lane_line_type=self.side_lane_line_type,
-            center_line_type=self.center_line_type
-        )
+            center_line_type=self.center_line_type)
         if not self.remove_negative_lanes:
             no_cross = CreateAdverseRoad(
                 positive_road,
@@ -58,8 +56,7 @@ class Curve(PGBlock):
                 self._global_network,
                 ignore_intersection_checking=self.ignore_intersection_checking,
                 side_lane_line_type=self.side_lane_line_type,
-                center_line_type=self.center_line_type
-            ) and no_cross
+                center_line_type=self.center_line_type) and no_cross
 
         # part 2
         start_node = end_node
@@ -73,8 +70,7 @@ class Curve(PGBlock):
             self._global_network,
             ignore_intersection_checking=self.ignore_intersection_checking,
             side_lane_line_type=self.side_lane_line_type,
-            center_line_type=self.center_line_type
-        ) and no_cross
+            center_line_type=self.center_line_type) and no_cross
         if not self.remove_negative_lanes:
             no_cross = CreateAdverseRoad(
                 positive_road,
@@ -82,8 +78,7 @@ class Curve(PGBlock):
                 self._global_network,
                 ignore_intersection_checking=self.ignore_intersection_checking,
                 side_lane_line_type=self.side_lane_line_type,
-                center_line_type=self.center_line_type
-            ) and no_cross
+                center_line_type=self.center_line_type) and no_cross
 
         # common properties
         self.add_sockets(self.create_socket_from_positive_road(positive_road))

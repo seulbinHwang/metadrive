@@ -35,7 +35,8 @@ class Plugin(BasePlugin):
 
     name = "Sky Occlusion"
     author = "tobspr <tobias.springer1@gmail.com>"
-    description = ("This plugin adds support for sky occlusion, computing " "occlusion based on the sky visibility.")
+    description = ("This plugin adds support for sky occlusion, computing "
+                   "occlusion based on the sky visibility.")
     version = "0.2 beta"
 
     def on_stage_setup(self):
@@ -51,8 +52,11 @@ class Plugin(BasePlugin):
 
     def on_post_stage_setup(self):
         if self.is_plugin_enabled("env_probes"):
-            self.get_plugin_instance("env_probes").capture_stage.required_inputs.append("SkyAOCapturePosition")
-            self.get_plugin_instance("env_probes").capture_stage.required_pipes.append("SkyAOHeight")
+            self.get_plugin_instance(
+                "env_probes").capture_stage.required_inputs.append(
+                    "SkyAOCapturePosition")
+            self.get_plugin_instance(
+                "env_probes").capture_stage.required_pipes.append("SkyAOHeight")
 
     def on_pipeline_created(self):
         pass

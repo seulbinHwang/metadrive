@@ -10,6 +10,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_MainWindow(object):
+
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(973, 632)
@@ -18,7 +19,8 @@ class Ui_MainWindow(object):
         palette = QtGui.QPalette()
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText, brush)
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Button, brush)
@@ -39,10 +41,12 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.BrightText, brush)
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.BrightText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.ButtonText, brush)
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.ButtonText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Base, brush)
@@ -54,16 +58,20 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Shadow, brush)
         brush = QtGui.QBrush(QtGui.QColor(21, 21, 21))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.AlternateBase, brush)
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.AlternateBase,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.ToolTipBase, brush)
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.ToolTipBase,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.ToolTipText, brush)
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.ToolTipText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.WindowText, brush)
+        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.WindowText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Button, brush)
@@ -72,7 +80,8 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Light, brush)
         brush = QtGui.QBrush(QtGui.QColor(52, 52, 52))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Midlight, brush)
+        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Midlight,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(21, 21, 21))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Dark, brush)
@@ -84,10 +93,12 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Text, brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.BrightText, brush)
+        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.BrightText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ButtonText, brush)
+        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ButtonText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Base, brush)
@@ -99,16 +110,20 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Shadow, brush)
         brush = QtGui.QBrush(QtGui.QColor(21, 21, 21))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.AlternateBase, brush)
+        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.AlternateBase,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ToolTipBase, brush)
+        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ToolTipBase,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ToolTipText, brush)
+        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ToolTipText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(21, 21, 21))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.WindowText, brush)
+        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.WindowText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Button, brush)
@@ -117,7 +132,8 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Light, brush)
         brush = QtGui.QBrush(QtGui.QColor(52, 52, 52))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Midlight, brush)
+        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Midlight,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(21, 21, 21))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Dark, brush)
@@ -129,10 +145,12 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Text, brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.BrightText, brush)
+        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.BrightText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(21, 21, 21))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ButtonText, brush)
+        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ButtonText,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Base, brush)
@@ -144,16 +162,20 @@ class Ui_MainWindow(object):
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Shadow, brush)
         brush = QtGui.QBrush(QtGui.QColor(42, 42, 42))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.AlternateBase, brush)
+        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.AlternateBase,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ToolTipBase, brush)
+        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ToolTipBase,
+                         brush)
         brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ToolTipText, brush)
+        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ToolTipText,
+                         brush)
         MainWindow.setPalette(palette)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/res/res/icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/res/res/icon.png"), QtGui.QIcon.Normal,
+                       QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
         MainWindow.setAutoFillBackground(False)
         MainWindow.setStyleSheet(
@@ -196,13 +218,13 @@ class Ui_MainWindow(object):
             "                      QScrollBar::sub-page:vertical {\n"
             "                        background: #ddd;\n"
             "                    }\n"
-            ""
-        )
+            "")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.frame_current_setting = QtWidgets.QFrame(self.centralwidget)
         self.frame_current_setting.setGeometry(QtCore.QRect(350, 80, 641, 551))
-        self.frame_current_setting.setStyleSheet("QFrame { background: #e5e5e5;}")
+        self.frame_current_setting.setStyleSheet(
+            "QFrame { background: #e5e5e5;}")
         self.frame_current_setting.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.frame_current_setting.setFrameShadow(QtWidgets.QFrame.Plain)
         self.frame_current_setting.setObjectName("frame_current_setting")
@@ -214,36 +236,38 @@ class Ui_MainWindow(object):
         font.setBold(False)
         font.setWeight(37)
         self.lbl_current_setting.setFont(font)
-        self.lbl_current_setting.setStyleSheet("color: #555; border: 0;  font-size: 15px; text-transform: uppercase;")
+        self.lbl_current_setting.setStyleSheet(
+            "color: #555; border: 0;  font-size: 15px; text-transform: uppercase;"
+        )
         self.lbl_current_setting.setObjectName("lbl_current_setting")
         self.btn_reset = QtWidgets.QPushButton(self.frame_current_setting)
         self.btn_reset.setGeometry(QtCore.QRect(500, 14, 101, 31))
-        self.btn_reset.setStyleSheet(
-            "QPushButton {\n"
-            "color: #eee;\n"
-            "background: #666;\n"
-            "border: 0; \n"
-            "}\n"
-            "\n"
-            "QPushButton:hover {\n"
-            "    background: #555;\n"
-            "}\n"
-            "\n"
-            "QPushButton:pressed {\n"
-            "    background: #111;\n"
-            "}"
-        )
+        self.btn_reset.setStyleSheet("QPushButton {\n"
+                                     "color: #eee;\n"
+                                     "background: #666;\n"
+                                     "border: 0; \n"
+                                     "}\n"
+                                     "\n"
+                                     "QPushButton:hover {\n"
+                                     "    background: #555;\n"
+                                     "}\n"
+                                     "\n"
+                                     "QPushButton:pressed {\n"
+                                     "    background: #111;\n"
+                                     "}")
         self.btn_reset.setObjectName("btn_reset")
         self.frame_3 = QtWidgets.QFrame(self.frame_current_setting)
         self.frame_3.setGeometry(QtCore.QRect(20, 94, 581, 441))
-        self.frame_3.setStyleSheet("QFrame {\n" "}")
+        self.frame_3.setStyleSheet("QFrame {\n"
+                                   "}")
         self.frame_3.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame_3.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_3.setObjectName("frame_3")
         self.verticalLayoutWidget = QtWidgets.QWidget(self.frame_3)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(0, 0, 571, 441))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
-        self.prefab_edit_widget = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        self.prefab_edit_widget = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget)
         self.prefab_edit_widget.setContentsMargins(0, 0, 0, 0)
         self.prefab_edit_widget.setSpacing(0)
         self.prefab_edit_widget.setObjectName("prefab_edit_widget")
@@ -257,23 +281,22 @@ class Ui_MainWindow(object):
         self.lbl_setting_desc.setStyleSheet("color: #888;")
         self.lbl_setting_desc.setWordWrap(True)
         self.lbl_setting_desc.setObjectName("lbl_setting_desc")
-        self.btn_insert_point = QtWidgets.QPushButton(self.frame_current_setting)
+        self.btn_insert_point = QtWidgets.QPushButton(
+            self.frame_current_setting)
         self.btn_insert_point.setGeometry(QtCore.QRect(368, 14, 131, 31))
-        self.btn_insert_point.setStyleSheet(
-            "QPushButton {\n"
-            "color: #eee;\n"
-            "background: #666;\n"
-            "border: 0; \n"
-            "}\n"
-            "\n"
-            "QPushButton:hover {\n"
-            "    background: #555;\n"
-            "}\n"
-            "\n"
-            "QPushButton:pressed {\n"
-            "    background: #111;\n"
-            "}"
-        )
+        self.btn_insert_point.setStyleSheet("QPushButton {\n"
+                                            "color: #eee;\n"
+                                            "background: #666;\n"
+                                            "border: 0; \n"
+                                            "}\n"
+                                            "\n"
+                                            "QPushButton:hover {\n"
+                                            "    background: #555;\n"
+                                            "}\n"
+                                            "\n"
+                                            "QPushButton:pressed {\n"
+                                            "    background: #111;\n"
+                                            "}")
         self.btn_insert_point.setObjectName("btn_insert_point")
         self.frame_2 = QtWidgets.QFrame(self.centralwidget)
         self.frame_2.setGeometry(QtCore.QRect(-1, 80, 351, 551))
@@ -283,48 +306,51 @@ class Ui_MainWindow(object):
         self.frame_2.setObjectName("frame_2")
         self.settings_tree = QtWidgets.QTreeWidget(self.frame_2)
         self.settings_tree.setGeometry(QtCore.QRect(14, 20, 311, 511))
-        self.settings_tree.setStyleSheet(
-            "QTreeWidget::item {\n"
-            "padding: 7px 7px 6px;\n"
-            "background: #ddd;\n"
-            "outline: 0 !important;\n"
-            "margin-bottom: 1px;\n"
-            "margin-right: 0px;\n"
-            "color: #777;\n"
-            "border: 0;\n"
-            "border-radius: 0;\n"
-            "}\n"
-            "\n"
-            "QTreeWidget::item:hover {\n"
-            "background: #ccc;\n"
-            "}\n"
-            "\n"
-            "QTreeWidget::item:selected {\n"
-            "background: #555;\n"
-            "color: #eee;\n"
-            "}\n"
-            "\n"
-            "QTreeWidget {\n"
-            "padding: 0;\n"
-            "color: #eee;\n"
-            "background: transparent;\n"
-            "\n"
-            "}\n"
-            "\n"
-            "* {\n"
-            "outline: 0;\n"
-            "}\n"
-            "\n"
-            ""
-        )
+        self.settings_tree.setStyleSheet("QTreeWidget::item {\n"
+                                         "padding: 7px 7px 6px;\n"
+                                         "background: #ddd;\n"
+                                         "outline: 0 !important;\n"
+                                         "margin-bottom: 1px;\n"
+                                         "margin-right: 0px;\n"
+                                         "color: #777;\n"
+                                         "border: 0;\n"
+                                         "border-radius: 0;\n"
+                                         "}\n"
+                                         "\n"
+                                         "QTreeWidget::item:hover {\n"
+                                         "background: #ccc;\n"
+                                         "}\n"
+                                         "\n"
+                                         "QTreeWidget::item:selected {\n"
+                                         "background: #555;\n"
+                                         "color: #eee;\n"
+                                         "}\n"
+                                         "\n"
+                                         "QTreeWidget {\n"
+                                         "padding: 0;\n"
+                                         "color: #eee;\n"
+                                         "background: transparent;\n"
+                                         "\n"
+                                         "}\n"
+                                         "\n"
+                                         "* {\n"
+                                         "outline: 0;\n"
+                                         "}\n"
+                                         "\n"
+                                         "")
         self.settings_tree.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.settings_tree.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.settings_tree.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.settings_tree.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.settings_tree.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAsNeeded)
+        self.settings_tree.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAsNeeded)
+        self.settings_tree.setEditTriggers(
+            QtWidgets.QAbstractItemView.NoEditTriggers)
         self.settings_tree.setProperty("showDropIndicator", False)
         self.settings_tree.setAlternatingRowColors(False)
-        self.settings_tree.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.settings_tree.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
+        self.settings_tree.setSelectionBehavior(
+            QtWidgets.QAbstractItemView.SelectRows)
+        self.settings_tree.setVerticalScrollMode(
+            QtWidgets.QAbstractItemView.ScrollPerPixel)
         self.settings_tree.setIndentation(18)
         self.settings_tree.setRootIsDecorated(True)
         self.settings_tree.setUniformRowHeights(False)
@@ -339,10 +365,10 @@ class Ui_MainWindow(object):
         item_1 = QtWidgets.QTreeWidgetItem(item_0)
         item_1 = QtWidgets.QTreeWidgetItem(item_0)
         item_0 = QtWidgets.QTreeWidgetItem(self.settings_tree)
-        item_0.setFlags(
-            QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsUserCheckable
-            | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsTristate
-        )
+        item_0.setFlags(QtCore.Qt.ItemIsSelectable |
+                        QtCore.Qt.ItemIsDragEnabled |
+                        QtCore.Qt.ItemIsUserCheckable |
+                        QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsTristate)
         item_1 = QtWidgets.QTreeWidgetItem(item_0)
         self.settings_tree.header().setVisible(False)
         self.settings_tree.header().setCascadingSectionResizes(False)
@@ -350,7 +376,10 @@ class Ui_MainWindow(object):
         self.settings_tree.header().setStretchLastSection(False)
         self.frame_4 = QtWidgets.QFrame(self.centralwidget)
         self.frame_4.setGeometry(QtCore.QRect(420, 10, 551, 61))
-        self.frame_4.setStyleSheet("QFrame {\n" "    background: #fff;\n" "}\n" "")
+        self.frame_4.setStyleSheet("QFrame {\n"
+                                   "    background: #fff;\n"
+                                   "}\n"
+                                   "")
         self.frame_4.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.frame_4.setFrameShadow(QtWidgets.QFrame.Plain)
         self.frame_4.setObjectName("frame_4")
@@ -404,7 +433,8 @@ class Ui_MainWindow(object):
         self.label_8.setObjectName("label_8")
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setGeometry(QtCore.QRect(20, 35, 261, 31))
-        self.label.setStyleSheet("font-size: 20px; color: #2aa877;\n" "font-weight: 100;")
+        self.label.setStyleSheet("font-size: 20px; color: #2aa877;\n"
+                                 "font-weight: 100;")
         self.label.setObjectName("label")
         self.time_float_label = QtWidgets.QLabel(self.centralwidget)
         self.time_float_label.setGeometry(QtCore.QRect(350, 47, 41, 18))
@@ -428,7 +458,9 @@ class Ui_MainWindow(object):
         self.time_label.setObjectName("time_label")
         self.label_9 = QtWidgets.QLabel(self.centralwidget)
         self.label_9.setGeometry(QtCore.QRect(20, 16, 261, 31))
-        self.label_9.setStyleSheet("font-size: 13px;\n" "color: #aaa;\n" "font-weight: 600;")
+        self.label_9.setStyleSheet("font-size: 13px;\n"
+                                   "color: #aaa;\n"
+                                   "font-weight: 600;")
         self.label_9.setObjectName("label_9")
         self.frame_2.raise_()
         self.frame_current_setting.raise_()
@@ -445,30 +477,43 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Day Time Editor"))
-        self.lbl_current_setting.setText(_translate("MainWindow", "Occlusion Strength"))
+        self.lbl_current_setting.setText(
+            _translate("MainWindow", "Occlusion Strength"))
         self.btn_reset.setText(_translate("MainWindow", "Reset curve"))
         self.lbl_setting_desc.setText(
             _translate(
                 "MainWindow",
                 "Description: Some Description about the setting, to give the user a rough idea what this does. This description may be so long, it can even go into the next line."
-            )
-        )
-        self.btn_insert_point.setText(_translate("MainWindow", "Insert point from data"))
+            ))
+        self.btn_insert_point.setText(
+            _translate("MainWindow", "Insert point from data"))
         self.settings_tree.setSortingEnabled(False)
-        self.settings_tree.headerItem().setText(0, _translate("MainWindow", "Setting"))
-        self.settings_tree.headerItem().setText(1, _translate("MainWindow", "Value"))
+        self.settings_tree.headerItem().setText(
+            0, _translate("MainWindow", "Setting"))
+        self.settings_tree.headerItem().setText(
+            1, _translate("MainWindow", "Value"))
         __sortingEnabled = self.settings_tree.isSortingEnabled()
         self.settings_tree.setSortingEnabled(False)
-        self.settings_tree.topLevelItem(0).setText(0, _translate("MainWindow", "Scattering"))
-        self.settings_tree.topLevelItem(0).child(0).setText(0, _translate("MainWindow", "Sun Height"))
-        self.settings_tree.topLevelItem(0).child(0).setText(1, _translate("MainWindow", "0,4"))
-        self.settings_tree.topLevelItem(0).child(1).setText(0, _translate("MainWindow", "Sun Color"))
-        self.settings_tree.topLevelItem(0).child(1).setText(1, _translate("MainWindow", "[128, 255, 100]"))
-        self.settings_tree.topLevelItem(0).child(2).setText(0, _translate("MainWindow", "Sun Angle"))
-        self.settings_tree.topLevelItem(0).child(2).setText(1, _translate("MainWindow", "180 °"))
-        self.settings_tree.topLevelItem(1).setText(0, _translate("MainWindow", "Ambient Occlusion"))
-        self.settings_tree.topLevelItem(1).child(0).setText(0, _translate("MainWindow", "Occlusion Strength"))
-        self.settings_tree.topLevelItem(1).child(0).setText(1, _translate("MainWindow", "0.5"))
+        self.settings_tree.topLevelItem(0).setText(
+            0, _translate("MainWindow", "Scattering"))
+        self.settings_tree.topLevelItem(0).child(0).setText(
+            0, _translate("MainWindow", "Sun Height"))
+        self.settings_tree.topLevelItem(0).child(0).setText(
+            1, _translate("MainWindow", "0,4"))
+        self.settings_tree.topLevelItem(0).child(1).setText(
+            0, _translate("MainWindow", "Sun Color"))
+        self.settings_tree.topLevelItem(0).child(1).setText(
+            1, _translate("MainWindow", "[128, 255, 100]"))
+        self.settings_tree.topLevelItem(0).child(2).setText(
+            0, _translate("MainWindow", "Sun Angle"))
+        self.settings_tree.topLevelItem(0).child(2).setText(
+            1, _translate("MainWindow", "180 °"))
+        self.settings_tree.topLevelItem(1).setText(
+            0, _translate("MainWindow", "Ambient Occlusion"))
+        self.settings_tree.topLevelItem(1).child(0).setText(
+            0, _translate("MainWindow", "Occlusion Strength"))
+        self.settings_tree.topLevelItem(1).child(0).setText(
+            1, _translate("MainWindow", "0.5"))
         self.settings_tree.setSortingEnabled(__sortingEnabled)
         self.label.setText(_translate("MainWindow", "TIME OF DAY EDITOR"))
         self.time_float_label.setText(_translate("MainWindow", "0.486"))

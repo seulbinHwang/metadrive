@@ -19,9 +19,17 @@ from . import spec
 
 
 class VertexMixin(object):
-    def make_vertex(
-        self, obj_matrix, gltf_primitive, mesh, polygon, vertex, vertex_id, loop_id, use_smooth=False, can_merge=False
-    ):
+
+    def make_vertex(self,
+                    obj_matrix,
+                    gltf_primitive,
+                    mesh,
+                    polygon,
+                    vertex,
+                    vertex_id,
+                    loop_id,
+                    use_smooth=False,
+                    can_merge=False):
         # CO
         co = vertex.co
         if not self._z_up:
@@ -39,7 +47,8 @@ class VertexMixin(object):
         if can_merge and not self._pose_freeze:
             normal = obj_matrix.to_euler().to_matrix() @ normal
 
-        self._buffer.write(gltf_primitive['attributes']['NORMAL'], *tuple(normal))
+        self._buffer.write(gltf_primitive['attributes']['NORMAL'],
+                           *tuple(normal))
 
         # shape keys
         for i, sk_name in enumerate(gltf_primitive['extras']['targetNames']):
@@ -48,20 +57,19 @@ class VertexMixin(object):
             if not self._z_up:
                 sk_co = self._matrix @ sk_co
 
-            self._buffer.write(gltf_primitive['targets'][i]['POSITION'], *tuple(sk_co - co))
+            self._buffer.write(gltf_primitive['targets'][i]['POSITION'],
+                               *tuple(sk_co - co))
 
     def _write_uv(self, gltf_primitive, uv_id, u, v):
         texcoord = 'TEXCOORD_{}'.format(uv_id)
         if texcoord not in gltf_primitive['attributes']:
-            channel = self._buffer.add_channel(
-                {
-                    'componentType': spec.TYPE_FLOAT,
-                    'type': 'VEC2',
-                    'extras': {
-                        'reference': texcoord,
-                    },
-                }
-            )
+            channel = self._buffer.add_channel({
+                'componentType': spec.TYPE_FLOAT,
+                'type': 'VEC2',
+                'extras': {
+                    'reference': texcoord,
+                },
+            })
             gltf_primitive['attributes'][texcoord] = channel['bufferView']
 
         self._buffer.write(gltf_primitive['attributes'][texcoord], u, 1 - v)
@@ -75,15 +83,13 @@ class VertexMixin(object):
         x, y, z = t
 
         if 'TANGENT' not in gltf_primitive['attributes']:
-            channel = self._buffer.add_channel(
-                {
-                    'componentType': spec.TYPE_FLOAT,
-                    'type': 'VEC4',
-                    'extras': {
-                        'reference': 'TANGENT',
-                    },
-                }
-            )
+            channel = self._buffer.add_channel({
+                'componentType': spec.TYPE_FLOAT,
+                'type': 'VEC4',
+                'extras': {
+                    'reference': 'TANGENT',
+                },
+            })
             gltf_primitive['attributes']['TANGENT'] = channel['bufferView']
 
         self._buffer.write(gltf_primitive['attributes']['TANGENT'], x, y, z, s)
@@ -102,15 +108,13 @@ class VertexMixin(object):
                 if self._output.endswith('.vrm'):
                     ctype = spec.TYPE_UNSIGNED_SHORT
 
-                channel = self._buffer.add_channel(
-                    {
-                        'componentType': ctype,
-                        'type': 'VEC4',
-                        'extras': {
-                            'reference': joints,
-                        },
-                    }
-                )
+                channel = self._buffer.add_channel({
+                    'componentType': ctype,
+                    'type': 'VEC4',
+                    'extras': {
+                        'reference': joints,
+                    },
+                })
                 gltf_primitive['attributes'][joints] = channel['bufferView']
 
             # write 4 joints
@@ -121,15 +125,13 @@ class VertexMixin(object):
             # prepare weights buffer channel
             weights = 'WEIGHTS_{}'.format(i)
             if weights not in gltf_primitive['attributes']:
-                channel = self._buffer.add_channel(
-                    {
-                        'componentType': spec.TYPE_FLOAT,
-                        'type': 'VEC4',
-                        'extras': {
-                            'reference': weights,
-                        },
-                    }
-                )
+                channel = self._buffer.add_channel({
+                    'componentType': spec.TYPE_FLOAT,
+                    'type': 'VEC4',
+                    'extras': {
+                        'reference': weights,
+                    },
+                })
                 gltf_primitive['attributes'][weights] = channel['bufferView']
 
             # write 4 weights

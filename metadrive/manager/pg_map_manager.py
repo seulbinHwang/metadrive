@@ -20,11 +20,17 @@ class PGMapManager(BaseManager):
         # for pgmaps
         start_seed = self.start_seed = self.engine.global_config["start_seed"]
         env_num = self.env_num = self.engine.global_config["num_scenarios"]
-        self.maps = {_seed: None for _seed in range(start_seed, start_seed + env_num)}
+        self.maps = {
+            _seed: None for _seed in range(start_seed, start_seed + env_num)
+        }
 
     def spawn_object(self, object_class, *args, **kwargs):
         # Note: Map instance should not be reused / recycled.
-        map = self.engine.spawn_object(object_class, auto_fill_random_seed=False, force_spawn=True, *args, **kwargs)
+        map = self.engine.spawn_object(object_class,
+                                       auto_fill_random_seed=False,
+                                       force_spawn=True,
+                                       *args,
+                                       **kwargs)
         self.engine._spawned_objects.pop(map.id)
         return map
 
@@ -57,7 +63,9 @@ class PGMapManager(BaseManager):
             map_config = config["map_config"]
             map_config.update({"seed": current_seed})
             map_config = self.add_random_to_map(map_config)
-            map = self.spawn_object(PGMap, map_config=map_config, random_seed=None)
+            map = self.spawn_object(PGMap,
+                                    map_config=map_config,
+                                    random_seed=None)
             self.current_map = map
             if self.engine.global_config["store_map"]:
                 self.maps[current_seed] = map
@@ -67,10 +75,12 @@ class PGMapManager(BaseManager):
 
     def add_random_to_map(self, map_config):
         if self.engine.global_config["random_lane_width"]:
-            map_config[PGMap.LANE_WIDTH
-                       ] = self.np_random.rand() * (PGMap.MAX_LANE_WIDTH - PGMap.MIN_LANE_WIDTH) + PGMap.MIN_LANE_WIDTH
+            map_config[PGMap.LANE_WIDTH] = self.np_random.rand() * (
+                PGMap.MAX_LANE_WIDTH -
+                PGMap.MIN_LANE_WIDTH) + PGMap.MIN_LANE_WIDTH
         if self.engine.global_config["random_lane_num"]:
-            map_config[PGMap.LANE_NUM] = self.np_random.randint(PGMap.MIN_LANE_NUM, PGMap.MAX_LANE_NUM + 1)
+            map_config[PGMap.LANE_NUM] = self.np_random.randint(
+                PGMap.MIN_LANE_NUM, PGMap.MAX_LANE_NUM + 1)
         return map_config
 
     def generate_all_maps(self):
@@ -85,7 +95,9 @@ class PGMapManager(BaseManager):
                 map_config = config["map_config"]
                 map_config.update({"seed": current_seed})
                 map_config = self.add_random_to_map(map_config)
-                map = self.spawn_object(PGMap, map_config=map_config, random_seed=None)
+                map = self.spawn_object(PGMap,
+                                        map_config=map_config,
+                                        random_seed=None)
                 self.maps[current_seed] = map
                 map.detach_from_world()
 
@@ -96,7 +108,8 @@ class PGMapManager(BaseManager):
         if file_name is None:
             start_seed = self.engine.global_config["start_seed"]
             end_seed = start_seed + self.engine.global_config["num_scenarios"]
-            file_name = "{}_{}_{}.json".format(start_seed, end_seed, get_time_str())
+            file_name = "{}_{}_{}.json".format(start_seed, end_seed,
+                                               get_time_str())
         self.generate_all_maps()
         ret = {}
         for seed, map in tqdm(self.maps.items(), desc="Dump maps"):
@@ -114,10 +127,8 @@ class PGMapManager(BaseManager):
         start_seed = min(map_seeds)
         map_num = len(map_seeds)
         assert self.env_num == map_num and start_seed == self.engine.global_config[
-            "start_seed"
-        ], "The environment num and start seed in config: {}, {} must be the same as the env num and start seed: {}, {} in the loaded file".format(
-            self.env_num, self.start_seed, map_num, start_seed
-        )
+            "start_seed"], "The environment num and start seed in config: {}, {} must be the same as the env num and start seed: {}, {} in the loaded file".format(
+                self.env_num, self.start_seed, map_num, start_seed)
 
         for i in tqdm(range(self.env_num), desc="Load maps"):
             loaded_seed = i + start_seed
@@ -126,7 +137,9 @@ class PGMapManager(BaseManager):
             map_config = map_data["map_config"]
             map_config[PGMap.GENERATE_TYPE] = MapGenerateMethod.PG_MAP_FILE
             map_config[PGMap.GENERATE_CONFIG] = block_sequence
-            map = self.spawn_object(PGMap, map_config=map_config, random_seed=None)
+            map = self.spawn_object(PGMap,
+                                    map_config=map_config,
+                                    random_seed=None)
             self.maps[i + self.start_seed] = map
             map.detach_from_world()
         self.reset()
@@ -142,4 +155,6 @@ class PGMapManager(BaseManager):
                 m.destroy()
         start_seed = self.start_seed = self.engine.global_config["start_seed"]
         env_num = self.env_num = self.engine.global_config["num_scenarios"]
-        self.maps = {_seed: None for _seed in range(start_seed, start_seed + env_num)}
+        self.maps = {
+            _seed: None for _seed in range(start_seed, start_seed + env_num)
+        }

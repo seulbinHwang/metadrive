@@ -36,25 +36,27 @@ class TopDownMultiChannel(TopDownObservation):
     # CHANNEL_NAMES = ["road_network", "traffic_flow", "target_vehicle", "navigation", "past_pos"]
     CHANNEL_NAMES = ["road_network", "traffic_flow", "navigation", "past_pos"]
 
-    def __init__(
-        self,
-        vehicle_config,
-        onscreen,
-        clip_rgb: bool,
-        frame_stack: int = 5,
-        post_stack: int = 5,
-        frame_skip: int = 5,
-        resolution=None,
-        max_distance=50
-    ):
-        super(TopDownMultiChannel, self).__init__(
-            vehicle_config, clip_rgb, onscreen=onscreen, resolution=resolution, max_distance=max_distance
-        )
+    def __init__(self,
+                 vehicle_config,
+                 onscreen,
+                 clip_rgb: bool,
+                 frame_stack: int = 5,
+                 post_stack: int = 5,
+                 frame_skip: int = 5,
+                 resolution=None,
+                 max_distance=50):
+        super(TopDownMultiChannel, self).__init__(vehicle_config,
+                                                  clip_rgb,
+                                                  onscreen=onscreen,
+                                                  resolution=resolution,
+                                                  max_distance=max_distance)
         self.num_stacks = 2 + frame_stack
-        self.stack_traffic_flow = deque([], maxlen=(frame_stack - 1) * frame_skip + 1)
-        self.stack_past_pos = deque(
-            [], maxlen=(post_stack - 1) * frame_skip + 1
-        )  # In the coordination of target vehicle
+        self.stack_traffic_flow = deque([],
+                                        maxlen=(frame_stack - 1) * frame_skip +
+                                        1)
+        self.stack_past_pos = deque([],
+                                    maxlen=(post_stack - 1) * frame_skip +
+                                    1)  # In the coordination of target vehicle
         self.frame_stack = frame_stack
         self.frame_skip = frame_skip
         self._should_fill_stack = True
@@ -65,14 +67,20 @@ class TopDownMultiChannel(TopDownObservation):
     def init_obs_window(self):
         names = self.CHANNEL_NAMES.copy()
         names.remove("past_pos")
-        self.obs_window = ObservationWindowMultiChannel(names, (self.max_distance, self.max_distance), self.resolution)
+        self.obs_window = ObservationWindowMultiChannel(
+            names, (self.max_distance, self.max_distance), self.resolution)
 
     def init_canvas(self):
-        self.canvas_background = WorldSurface(self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
-        self.canvas_navigation = WorldSurface(self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
-        self.canvas_road_network = WorldSurface(self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
-        self.canvas_runtime = WorldSurface(self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
-        self.canvas_ego = WorldSurface(self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
+        self.canvas_background = WorldSurface(
+            self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
+        self.canvas_navigation = WorldSurface(
+            self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
+        self.canvas_road_network = WorldSurface(
+            self.MAP_RESOLUTION, 0, pygame.Surface(self.MAP_RESOLUTION))
+        self.canvas_runtime = WorldSurface(self.MAP_RESOLUTION, 0,
+                                           pygame.Surface(self.MAP_RESOLUTION))
+        self.canvas_ego = WorldSurface(self.MAP_RESOLUTION, 0,
+                                       pygame.Surface(self.MAP_RESOLUTION))
         self.canvas_past_pos = pygame.Surface(self.resolution)  # A local view
 
     def reset(self, env, vehicle=None):
@@ -121,38 +129,45 @@ class TopDownMultiChannel(TopDownObservation):
             # TODO: draw edge network navigation
             pass
         elif isinstance(self.target_vehicle.navigation, TrajectoryNavigation):
-            self.draw_navigation_trajectory(self.canvas_background, (64, 64, 64))
+            self.draw_navigation_trajectory(self.canvas_background,
+                                            (64, 64, 64))
 
         if isinstance(self.road_network, NodeRoadNetwork):
             for _from in self.road_network.graph.keys():
                 decoration = True if _from == Decoration.start else False
                 for _to in self.road_network.graph[_from].keys():
                     for l in self.road_network.graph[_from][_to]:
-                        two_side = True if l is self.road_network.graph[_from][_to][-1] or decoration else False
+                        two_side = True if l is self.road_network.graph[_from][
+                            _to][-1] or decoration else False
                         LaneGraphics.LANE_LINE_WIDTH = 0.5
-                        LaneGraphics.display(l, self.canvas_background, two_side)
+                        LaneGraphics.display(l, self.canvas_background,
+                                             two_side)
         elif hasattr(self.engine, "map_manager"):
-            for data in self.engine.map_manager.current_map.blocks[-1].map_data.values():
+            for data in self.engine.map_manager.current_map.blocks[
+                    -1].map_data.values():
                 if ScenarioDescription.POLYLINE in data:
                     LaneGraphics.display_scenario_line(
-                        data[ScenarioDescription.POLYLINE], data[ScenarioDescription.TYPE], self.canvas_background
-                    )
+                        data[ScenarioDescription.POLYLINE],
+                        data[ScenarioDescription.TYPE], self.canvas_background)
 
         self.canvas_road_network.blit(self.canvas_background, (0, 0))
         self.obs_window.reset(self.canvas_runtime)
         self._should_draw_map = False
 
     def _refresh(self, canvas, pos, clip_size):
-        canvas.set_clip((pos[0] - clip_size[0] / 2, pos[1] - clip_size[1] / 2, clip_size[0], clip_size[1]))
+        canvas.set_clip((pos[0] - clip_size[0] / 2, pos[1] - clip_size[1] / 2,
+                         clip_size[0], clip_size[1]))
         canvas.fill(COLOR_BLACK)
 
     def draw_scene(self):
         # Set the active area that can be modify to accelerate
-        assert len(self.engine.agents) == 1, "Don't support multi-agent top-down observation yet!"
+        assert len(self.engine.agents
+                  ) == 1, "Don't support multi-agent top-down observation yet!"
         vehicle = self.engine.agents[DEFAULT_AGENT]
         pos = self.canvas_runtime.pos2pix(*vehicle.position)
 
-        clip_size = (int(self.obs_window.get_size()[0] * 1.1), int(self.obs_window.get_size()[0] * 1.1))
+        clip_size = (int(self.obs_window.get_size()[0] * 1.1),
+                     int(self.obs_window.get_size()[0] * 1.1))
 
         # self._refresh(self.canvas_ego, pos, clip_size)
         self._refresh(self.canvas_runtime, pos, clip_size)
@@ -164,13 +179,17 @@ class TopDownMultiChannel(TopDownObservation):
         ego_heading = vehicle.heading_theta
         ego_heading = ego_heading if abs(ego_heading) > 2 * np.pi / 180 else 0
 
-        for v in self.engine.get_objects(lambda o: isinstance(o, BaseVehicle) or isinstance(o, BaseTrafficParticipant)
-                                         ).values():
+        for v in self.engine.get_objects(
+                lambda o: isinstance(o, BaseVehicle) or isinstance(
+                    o, BaseTrafficParticipant)).values():
             if v is vehicle:
                 continue
             h = v.heading_theta
             h = h if abs(h) > 2 * np.pi / 180 else 0
-            ObjectGraphics.display(object=v, surface=self.canvas_runtime, heading=h, color=ObjectGraphics.BLUE)
+            ObjectGraphics.display(object=v,
+                                   surface=self.canvas_runtime,
+                                   heading=h,
+                                   color=ObjectGraphics.BLUE)
 
         raw_pos = vehicle.position
         self.stack_past_pos.append(raw_pos)
@@ -184,10 +203,10 @@ class TopDownMultiChannel(TopDownObservation):
             # p = pygame.math.Vector2(p)
             p = p.rotate(np.rad2deg(ego_heading) + 90)
             p = (p[1], p[0])
-            p = (
-                clip(p[0] + self.resolution[0] / 2, -self.resolution[0],
-                     self.resolution[0]), clip(p[1] + self.resolution[1] / 2, -self.resolution[1], self.resolution[1])
-            )
+            p = (clip(p[0] + self.resolution[0] / 2, -self.resolution[0],
+                      self.resolution[0]),
+                 clip(p[1] + self.resolution[1] / 2, -self.resolution[1],
+                      self.resolution[1]))
             # p = self.canvas_background.pos2pix(p[0], p[1])
             self.canvas_past_pos.fill((255, 255, 255), (p, (1, 1)))
             # pygame.draw.circle(self.canvas_past_pos, (255, 255, 255), p, radius=1)
@@ -200,8 +219,7 @@ class TopDownMultiChannel(TopDownObservation):
                 # navigation=self.canvas_navigation,
             ),
             position=pos,
-            heading=vehicle.heading_theta
-        )
+            heading=vehicle.heading_theta)
         ret["past_pos"] = self.canvas_past_pos
         return ret
 
@@ -211,9 +229,16 @@ class TopDownMultiChannel(TopDownObservation):
         h = vehicle.top_down_length * self.scaling
         position = (self.resolution[0] / 2, self.resolution[1] / 2)
         angle = 90
-        box = [pygame.math.Vector2(p) for p in [(-h / 2, -w / 2), (-h / 2, w / 2), (h / 2, w / 2), (h / 2, -w / 2)]]
+        box = [
+            pygame.math.Vector2(p)
+            for p in [(-h / 2, -w / 2), (-h / 2, w / 2), (h / 2,
+                                                          w / 2), (h / 2,
+                                                                   -w / 2)]
+        ]
         box_rotate = [p.rotate(angle) + position for p in box]
-        pygame.draw.polygon(self.canvas_past_pos, color=(128, 128, 128), points=box_rotate)
+        pygame.draw.polygon(self.canvas_past_pos,
+                            color=(128, 128, 128),
+                            points=box_rotate)
 
     def get_observation_window(self):
         ret = self.obs_window.get_observation_window()
@@ -237,8 +262,12 @@ class TopDownMultiChannel(TopDownObservation):
     def observe(self, vehicle: BaseVehicle):
         self.render()
         surface_dict = self.get_observation_window()
-        surface_dict["road_network"] = pygame.transform.smoothscale(surface_dict["road_network"], self.resolution)
-        img_dict = {k: pygame.surfarray.array3d(surface) for k, surface in surface_dict.items()}
+        surface_dict["road_network"] = pygame.transform.smoothscale(
+            surface_dict["road_network"], self.resolution)
+        img_dict = {
+            k: pygame.surfarray.array3d(surface)
+            for k, surface in surface_dict.items()
+        }
 
         # Gray scale
         img_dict = {k: self._transform(img) for k, img in img_dict.items()}
@@ -287,7 +316,8 @@ class TopDownMultiChannel(TopDownObservation):
                 LaneGraphics.draw_drivable_area(lane, canvas, color=color)
 
     def draw_navigation_trajectory(self, canvas, color=(128, 128, 128)):
-        lane = PointLane(self.target_vehicle.navigation.checkpoints, DEFAULT_TRAJECTORY_LANE_WIDTH)
+        lane = PointLane(self.target_vehicle.navigation.checkpoints,
+                         DEFAULT_TRAJECTORY_LANE_WIDTH)
         LaneGraphics.draw_drivable_area(lane, canvas, color=color)
 
     def _get_stack_indices(self, length, frame_skip=None):
@@ -300,7 +330,7 @@ class TopDownMultiChannel(TopDownObservation):
 
     @property
     def observation_space(self):
-        shape = self.obs_shape + (self.num_stacks, )
+        shape = self.obs_shape + (self.num_stacks,)
         if self.norm_pixel:
             return gym.spaces.Box(-0.0, 1.0, shape=shape, dtype=np.float32)
         else:

@@ -38,8 +38,13 @@ from metadrive.render_pipeline.rpcore.util.display_shader_builder import Display
 
 class TexturePreview(DraggableWindow):
     """ Small window which provides a preview of a texture """
+
     def __init__(self, pipeline, parent):
-        DraggableWindow.__init__(self, width=1600, height=900, parent=parent, title="Texture Viewer")
+        DraggableWindow.__init__(self,
+                                 width=1600,
+                                 height=900,
+                                 parent=parent,
+                                 title="Texture Viewer")
         self._pipeline = pipeline
         self._current_tex = None
         self._mip_slider = None
@@ -72,99 +77,108 @@ class TexturePreview(DraggableWindow):
             display_w = self._width - 40
             display_h = self._height - 110
 
-        image = Sprite(
-            image=tex,
-            parent=self._content_node,
-            x=20,
-            y=90,
-            w=display_w,
-            h=display_h,
-            any_filter=False,
-            transparent=False
-        )
+        image = Sprite(image=tex,
+                       parent=self._content_node,
+                       x=20,
+                       y=90,
+                       w=display_w,
+                       h=display_h,
+                       any_filter=False,
+                       transparent=False)
         description = ""
 
         # Image size
-        description += "{:d} x {:d} x {:d}".format(tex.get_x_size(), tex.get_y_size(), tex.get_z_size())
+        description += "{:d} x {:d} x {:d}".format(tex.get_x_size(),
+                                                   tex.get_y_size(),
+                                                   tex.get_z_size())
 
         # Image type
         description += ", {:s}, {:s}".format(
             Image.format_format(tex.get_format()).upper(),
-            Image.format_component_type(tex.get_component_type()).upper()
-        )
+            Image.format_component_type(tex.get_component_type()).upper())
 
-        Text(text=description, parent=self._content_node, x=17, y=70, size=16, color=Vec3(0.6, 0.6, 0.6))
+        Text(text=description,
+             parent=self._content_node,
+             x=17,
+             y=70,
+             size=16,
+             color=Vec3(0.6, 0.6, 0.6))
 
         estimated_bytes = tex.estimate_texture_memory()
-        size_desc = "Estimated memory: {:2.2f} MB".format(estimated_bytes / (1024.0**2))
+        size_desc = "Estimated memory: {:2.2f} MB".format(estimated_bytes /
+                                                          (1024.0**2))
 
-        Text(
-            text=size_desc,
-            parent=self._content_node,
-            x=self._width - 20.0,
-            y=70,
-            size=18,
-            color=Vec3(0.34, 0.564, 0.192),
-            align="right"
-        )
+        Text(text=size_desc,
+             parent=self._content_node,
+             x=self._width - 20.0,
+             y=70,
+             size=18,
+             color=Vec3(0.34, 0.564, 0.192),
+             align="right")
 
         x_pos = len(size_desc) * 9 + 140
 
         # Slider for viewing different mipmaps
         if tex.uses_mipmaps():
             max_mips = tex.get_expected_num_mipmap_levels() - 1
-            self._mip_slider = Slider(
-                parent=self._content_node,
-                size=140,
-                min_value=0,
-                max_value=max_mips,
-                callback=self._set_mip,
-                x=x_pos,
-                y=65,
-                value=0
-            )
+            self._mip_slider = Slider(parent=self._content_node,
+                                      size=140,
+                                      min_value=0,
+                                      max_value=max_mips,
+                                      callback=self._set_mip,
+                                      x=x_pos,
+                                      y=65,
+                                      value=0)
             x_pos += 140 + 5
 
-            self._mip_text = Text(
-                text="MIP: 5", parent=self._content_node, x=x_pos, y=72, size=18, color=Vec3(1, 0.4, 0.4), may_change=1
-            )
+            self._mip_text = Text(text="MIP: 5",
+                                  parent=self._content_node,
+                                  x=x_pos,
+                                  y=72,
+                                  size=18,
+                                  color=Vec3(1, 0.4, 0.4),
+                                  may_change=1)
             x_pos += 50 + 30
 
         # Slider for viewing different Z-layers
         if tex.get_z_size() > 1:
-            self._slice_slider = Slider(
-                parent=self._content_node,
-                size=250,
-                min_value=0,
-                max_value=tex.get_z_size() - 1,
-                callback=self._set_slice,
-                x=x_pos,
-                y=65,
-                value=0
-            )
+            self._slice_slider = Slider(parent=self._content_node,
+                                        size=250,
+                                        min_value=0,
+                                        max_value=tex.get_z_size() - 1,
+                                        callback=self._set_slice,
+                                        x=x_pos,
+                                        y=65,
+                                        value=0)
             x_pos += 250 + 5
 
-            self._slice_text = Text(
-                text="Z: 5", parent=self._content_node, x=x_pos, y=72, size=18, color=Vec3(0.4, 1, 0.4), may_change=1
-            )
+            self._slice_text = Text(text="Z: 5",
+                                    parent=self._content_node,
+                                    x=x_pos,
+                                    y=72,
+                                    size=18,
+                                    color=Vec3(0.4, 1, 0.4),
+                                    may_change=1)
 
             x_pos += 50 + 30
 
         # Slider to adjust brightness
-        self._bright_slider = Slider(
-            parent=self._content_node,
-            size=140,
-            min_value=-14,
-            max_value=14,
-            callback=self._set_brightness,
-            x=x_pos,
-            y=65,
-            value=0
-        )
+        self._bright_slider = Slider(parent=self._content_node,
+                                     size=140,
+                                     min_value=-14,
+                                     max_value=14,
+                                     callback=self._set_brightness,
+                                     x=x_pos,
+                                     y=65,
+                                     value=0)
         x_pos += 140 + 5
-        self._bright_text = Text(
-            text="Bright: 1", parent=self._content_node, x=x_pos, y=72, size=18, color=Vec3(0.4, 0.4, 1), may_change=1
-        )
+        self._bright_text = Text(text="Bright: 1",
+                                 parent=self._content_node,
+                                 x=x_pos,
+                                 y=72,
+                                 size=18,
+                                 color=Vec3(0.4, 0.4, 1),
+                                 may_change=1)
         x_pos += 100 + 30
 
         # Slider to enable reinhard tonemapping
@@ -177,8 +191,7 @@ class TexturePreview(DraggableWindow):
             chb_checked=False,
             chb_callback=self._set_enable_tonemap,
             text_size=18,
-            expand_width=90
-        )
+            expand_width=90)
         x_pos += 90 + 30
 
         image.set_shader_inputs(slice=0, mipmap=0, brightness=1, tonemap=False)

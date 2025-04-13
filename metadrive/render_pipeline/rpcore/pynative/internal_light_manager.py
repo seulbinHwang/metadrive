@@ -38,6 +38,7 @@ MAX_SHADOW_SOURCES = 2048
 class InternalLightManager(object):
     """ Please refer to the native C++ implementation for docstrings and comments.
     This is just the python implementation, which does not contain documentation! """
+
     def __init__(self):
         self._lights = PointerSlotStorage(MAX_LIGHT_COUNT)
         self._shadow_sources = PointerSlotStorage(MAX_SHADOW_SOURCES)
@@ -130,10 +131,12 @@ class InternalLightManager(object):
                 if source.has_slot():
                     self._shadow_sources.free_slot(source.get_slot())
                 if source.has_region():
-                    self._shadow_manager.get_atlas().free_region(source.get_region())
+                    self._shadow_manager.get_atlas().free_region(
+                        source.get_region())
                     source.clear_region()
 
-            self.gpu_remove_consecutive_sources(light.get_shadow_source(0), light.get_num_shadow_sources())
+            self.gpu_remove_consecutive_sources(light.get_shadow_source(0),
+                                                light.get_num_shadow_sources())
 
             light.clear_shadow_sources()
 
@@ -176,22 +179,26 @@ class InternalLightManager(object):
             # sources_to_update.append(source)
             if source:
                 bounds = source.get_bounds()
-                distance_to_camera = (self._camera_pos - bounds.get_center()) - bounds.get_radius()
+                distance_to_camera = (self._camera_pos - bounds.get_center()
+                                     ) - bounds.get_radius()
                 if distance_to_camera < self._shadow_update_distance:
                     sources_to_update.append(source)
                 else:
                     if source.has_region():
-                        self._shadow_manager.get_atlas().free_region(source.get_region())
+                        self._shadow_manager.get_atlas().free_region(
+                            source.get_region())
                         source.clear_region()
 
         def get_source_score(source):
-            dist = (source.get_bounds().get_center() - self._camera_pos).length()
+            dist = (source.get_bounds().get_center() -
+                    self._camera_pos).length()
             return -dist + (10**10 if source.has_region() else 0)
 
         sorted_sources = list(sorted(sources_to_update, key=get_source_score))
 
         atlas = self._shadow_manager.get_atlas()
-        update_slots = min(len(sorted_sources), self._shadow_manager.get_num_update_slots_left())
+        update_slots = min(len(sorted_sources),
+                           self._shadow_manager.get_num_update_slots_left())
 
         for i in range(update_slots):
             if sorted_sources[i].has_region():
@@ -201,7 +208,9 @@ class InternalLightManager(object):
             source = sorted_sources[i]
 
             if not self._shadow_manager.add_update(source):
-                print("ERROR: Shadow manager ensured update slot, but slot is taken!")
+                print(
+                    "ERROR: Shadow manager ensured update slot, but slot is taken!"
+                )
                 break
 
             region_size = atlas.get_required_tiles(source.get_resolution())

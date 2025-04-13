@@ -16,8 +16,7 @@ def test_waymo_env_memory_leak(num_reset=100):
             sequential_seed=True,
             store_map=True,
             data_directory=AssetLoader.file_path("waymo", unix_style=False),
-        )
-    )
+        ))
 
     try:
         ct = time.time()
@@ -41,7 +40,8 @@ def test_waymo_env_memory_leak(num_reset=100):
 def test_waymo_map_memory_leak():
     set_log_level(logging.DEBUG)
     default_config = ScenarioEnv.default_config()
-    default_config["data_directory"] = AssetLoader.file_path("waymo", unix_style=False)
+    default_config["data_directory"] = AssetLoader.file_path("waymo",
+                                                             unix_style=False)
     default_config["num_scenarios"] = 1
 
     try:
@@ -63,7 +63,8 @@ def test_waymo_map_memory_leak():
 
         for t in range(10):
             lt = time.time()
-            m_data = engine.data_manager.get_scenario(0, should_copy=False)["map_features"]
+            m_data = engine.data_manager.get_scenario(
+                0, should_copy=False)["map_features"]
             map = ScenarioMap(map_index=0, map_data=m_data)
             map.attach_to_world(engine.render, engine.physics_world)
             map.destroy()

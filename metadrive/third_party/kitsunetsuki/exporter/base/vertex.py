@@ -20,6 +20,7 @@ from metadrive.third_party.kitsunetsuki.base.vertex import uv_equals, normal_equ
 
 
 class VertexMixin(object):
+
     def get_sharp_vertices(self, mesh):
         results = []
         if mesh.use_auto_smooth:
@@ -37,13 +38,11 @@ class VertexMixin(object):
             mesh.calc_tangents(uvmap=uv_name)
             results[uv_name] = []
             for i, loop in mesh.loops.items():
-                results[uv_name].append(
-                    (
-                        mathutils.Vector(loop.tangent),
-                        mathutils.Vector(loop.bitangent),
-                        loop.bitangent_sign,
-                    )
-                )
+                results[uv_name].append((
+                    mathutils.Vector(loop.tangent),
+                    mathutils.Vector(loop.bitangent),
+                    loop.bitangent_sign,
+                ))
             mesh.free_tangents()
 
         return results
@@ -57,7 +56,8 @@ class VertexMixin(object):
 
         uv_loop = mesh.uv_layers.active.data[loop_id]
         # if uv_equals(uv_loop.uv.to_2d(), uv) and normal_equals(vertex.normal, normal):
-        if uv_equals(uv_loop.uv.to_2d(), uv) and normal_equals(mesh.loops[loop_id].normal, normal):
+        if uv_equals(uv_loop.uv.to_2d(), uv) and normal_equals(
+                mesh.loops[loop_id].normal, normal):
             return True
 
         return False

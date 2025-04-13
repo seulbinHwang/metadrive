@@ -5,6 +5,7 @@ from metadrive.utils import Config
 
 
 class SafeMetaDriveEnv(MetaDriveEnv):
+
     def default_config(self) -> Config:
         config = super(SafeMetaDriveEnv, self).default_config()
         config.update(
@@ -17,8 +18,7 @@ class SafeMetaDriveEnv(MetaDriveEnv):
                 "cost_to_reward": False,
                 "horizon": 1000,
             },
-            allow_add_new_key=True
-        )
+            allow_add_new_key=True)
         return config
 
     def __init__(self, config=None):
@@ -30,40 +30,39 @@ class SafeMetaDriveEnv(MetaDriveEnv):
         return super(SafeMetaDriveEnv, self).reset(*args, **kwargs)
 
     def cost_function(self, vehicle_id: str):
-        cost, step_info = super(SafeMetaDriveEnv, self).cost_function(vehicle_id)
+        cost, step_info = super(SafeMetaDriveEnv,
+                                self).cost_function(vehicle_id)
         self.episode_cost += cost
         step_info["total_cost"] = self.episode_cost
         return cost, step_info
 
 
 if __name__ == "__main__":
-    env = SafeMetaDriveEnv(
-        {
-            "accident_prob": 0.5,
-            "traffic_density": 0.15,
-            # "manual_control": True,
-            "agent_policy": IDMPolicy,
-            "use_render": True,
-            # "debug": True,
-            'num_scenarios': 100,
-            "start_seed": 129,
-            # "traffic_density": 0.2,
-            # "num_scenarios": 1,
-            # # "start_seed": 187,
-            # "out_of_road_cost": 1,
-            # "debug": True,
-            # "map": "X",
-            # "cost_to_reward":True,
-            "vehicle_config": {
-                "spawn_lane_index": (FirstPGBlock.NODE_2, FirstPGBlock.NODE_3, 2),
-                # "show_lidar": True,
-                # "show_side_detector": True,
-                # "show_lane_line_detector": True,
-                # "side_detector": dict(num_lasers=2, distance=50),  # laser num, distance
-                # "lane_line_detector": dict(num_lasers=2, distance=20),  # laser num, distance
-            }
+    env = SafeMetaDriveEnv({
+        "accident_prob": 0.5,
+        "traffic_density": 0.15,
+        # "manual_control": True,
+        "agent_policy": IDMPolicy,
+        "use_render": True,
+        # "debug": True,
+        'num_scenarios': 100,
+        "start_seed": 129,
+        # "traffic_density": 0.2,
+        # "num_scenarios": 1,
+        # # "start_seed": 187,
+        # "out_of_road_cost": 1,
+        # "debug": True,
+        # "map": "X",
+        # "cost_to_reward":True,
+        "vehicle_config": {
+            "spawn_lane_index": (FirstPGBlock.NODE_2, FirstPGBlock.NODE_3, 2),
+            # "show_lidar": True,
+            # "show_side_detector": True,
+            # "show_lane_line_detector": True,
+            # "side_detector": dict(num_lasers=2, distance=50),  # laser num, distance
+            # "lane_line_detector": dict(num_lasers=2, distance=20),  # laser num, distance
         }
-    )
+    })
 
     o, _ = env.reset()
     total_cost = 0
@@ -76,8 +75,7 @@ if __name__ == "__main__":
                 "seed": env.current_seed,
                 "reward": r,
                 "total_cost": info["total_cost"],
-            }
-        )
+            })
         if info["crash_vehicle"]:
             print("crash_vehicle:cost {}, reward {}".format(info["cost"], r))
         if info["crash_object"]:

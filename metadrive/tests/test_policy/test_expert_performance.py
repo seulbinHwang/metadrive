@@ -8,7 +8,10 @@ from metadrive.constants import DEFAULT_AGENT
 from metadrive.examples import expert, get_terminal_state
 
 
-def _evaluate(env_config, num_episode, has_traffic=True, need_on_same_lane=True):
+def _evaluate(env_config,
+              num_episode,
+              has_traffic=True,
+              need_on_same_lane=True):
     s = time.time()
     np.random.seed(0)
     env_config["random_spawn_lane_index"] = False
@@ -22,22 +25,31 @@ def _evaluate(env_config, num_episode, has_traffic=True, need_on_same_lane=True)
             action = expert(env.agent, deterministic=True)
             obs, reward, terminated, truncated, info = env.step(action)
             if need_on_same_lane:
-                assert lane_idx_need_to_stay == env.agent.lane_index[-1], "Not one the same lane"
+                assert lane_idx_need_to_stay == env.agent.lane_index[
+                    -1], "Not one the same lane"
             # double check lidar
             if env.config["use_render"]:
-                env.render(text={"lane_index": env.agent.lane_index, "step": env.episode_step})
-            lidar = [True if p == 1.0 else False for p in env.observations[DEFAULT_AGENT].cloud_points]
+                env.render(text={
+                    "lane_index": env.agent.lane_index,
+                    "step": env.episode_step
+                })
+            lidar = [
+                True if p == 1.0 else False
+                for p in env.observations[DEFAULT_AGENT].cloud_points
+            ]
             if not all(lidar):
                 lidar_success = True
             ep_reward += reward
             ep_len += 1
             if terminated or truncated:
                 ep_count += 1
-                success_list.append(1 if get_terminal_state(info) == "Success" else 0)
+                success_list.append(1 if get_terminal_state(info) ==
+                                    "Success" else 0)
                 reward_list.append(ep_reward)
                 ep_reward = 0
                 ep_len = 0
-                env.config["agent_configs"]["default_agent"]["spawn_lane_index"] = (">", ">>", len(reward_list) % 3)
+                env.config["agent_configs"]["default_agent"][
+                    "spawn_lane_index"] = (">", ">>", len(reward_list) % 3)
                 lane_idx_need_to_stay = len(reward_list) % 3
                 obs, _ = env.reset()
                 if has_traffic:
@@ -70,8 +82,7 @@ def test_expert_with_traffic(plane, use_render=False):
             vehicle_config=dict(show_lidar=True),
         ),
         need_on_same_lane=False,
-        num_episode=10
-    )
+        num_episode=10)
 
     # We change the ego vehicle dynamics! So the expert is not reliable anymore!
     assert 300 < ep_reward < 350, ep_reward
@@ -92,8 +103,7 @@ def test_expert_without_traffic(render=False):
             random_traffic=False,
         ),
         num_episode=10,
-        has_traffic=False
-    )
+        has_traffic=False)
     # We change the ego vehicle dynamics! So the expert is not reliable anymore!
     assert success_rate == 1.0, success_rate
 
@@ -114,8 +124,7 @@ def test_expert_in_intersection(render=False):
             random_traffic=False,
         ),
         num_episode=10,
-        has_traffic=False
-    )
+        has_traffic=False)
     # We change the ego vehicle dynamics! So the expert is not reliable anymore!
     assert success_rate == 1.0, success_rate
 

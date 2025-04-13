@@ -10,7 +10,8 @@ asset_path = osp.join(root, "assets", "maps")
 
 
 def generate_maps(env_class, env_config, json_file_path):
-    raise DeprecationWarning("All procedural generated maps are load online now")
+    raise DeprecationWarning(
+        "All procedural generated maps are load online now")
 
     env = env_class(env_config)
     data = env.dump_all_maps()
@@ -27,5 +28,6 @@ if __name__ == '__main__':
     }
     generate_maps(
         MetaDriveEnv, to_generate_map_config,
-        osp.join(asset_path, "20210814_generated_maps_start_seed_0_num_scenarios_30000.json")
-    )
+        osp.join(
+            asset_path,
+            "20210814_generated_maps_start_seed_0_num_scenarios_30000.json"))

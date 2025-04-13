@@ -14,11 +14,16 @@ def makeGrassBlades():
     for x in range(20):
         for y in range(20):
             r = random.uniform(0, 0.4)
-            vertex.addData3f((x * 0.4) - 0.0291534 + r, (y * 0.4) + 0.0101984 + r, 0.0445018)
-            vertex.addData3f((x * 0.4) + 0.0338934 + r, (y * 0.4) + 0.041644 + r, 0.83197)
-            vertex.addData3f((x * 0.4) + 0.0304494 + r, (y * 0.4) - 0.00795362 + r, 0.360315)
-            vertex.addData3f((x * 0.4) - 0.0432457 + r, (y * 0.4) - 0.0362444 + r, 0.0416673)
-            vertex.addData3f((x * 0.4) - 0.0291534 + r, (y * 0.4) + 0.0101984 + r, 0.0445018)
+            vertex.addData3f((x * 0.4) - 0.0291534 + r,
+                             (y * 0.4) + 0.0101984 + r, 0.0445018)
+            vertex.addData3f((x * 0.4) + 0.0338934 + r,
+                             (y * 0.4) + 0.041644 + r, 0.83197)
+            vertex.addData3f((x * 0.4) + 0.0304494 + r,
+                             (y * 0.4) - 0.00795362 + r, 0.360315)
+            vertex.addData3f((x * 0.4) - 0.0432457 + r,
+                             (y * 0.4) - 0.0362444 + r, 0.0416673)
+            vertex.addData3f((x * 0.4) - 0.0291534 + r,
+                             (y * 0.4) + 0.0101984 + r, 0.0445018)
             normal.addData3f(0.493197, 0.854242, -0.164399)
             normal.addData3f(-0.859338, 0.496139, -0.124035)
             normal.addData3f(-0.759642, -0.637797, -0.127114)

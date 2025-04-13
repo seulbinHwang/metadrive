@@ -46,8 +46,10 @@ class PSSMShadowStage(RenderStage):
     @property
     def produced_pipes(self):
         return {
-            "PSSMShadowAtlas": self.target.depth_tex,
-            "PSSMShadowAtlasPCF": (self.target.depth_tex, self.make_pcf_state()),
+            "PSSMShadowAtlas":
+                self.target.depth_tex,
+            "PSSMShadowAtlasPCF":
+                (self.target.depth_tex, self.make_pcf_state()),
         }
 
     def make_pcf_state(self):
@@ -78,8 +80,8 @@ class PSSMShadowStage(RenderStage):
         # Prepare the display regions
         for i in range(self.num_splits):
             region = internal_buffer.make_display_region(
-                i / self.num_splits, i / self.num_splits + 1 / self.num_splits, 0, 1
-            )
+                i / self.num_splits, i / self.num_splits + 1 / self.num_splits,
+                0, 1)
             region.set_sort(25 + i)
             region.disable_clears()
             region.set_active(True)

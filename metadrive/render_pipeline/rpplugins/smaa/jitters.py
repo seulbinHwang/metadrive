@@ -33,12 +33,10 @@ THE SOFTWARE.
 from __future__ import division
 from panda3d.core import Vec2
 
-__all__ = ("JITTERS", )
+__all__ = ("JITTERS",)
 
 JITTERS = {
-    "still": [
-        Vec2(0.0, 0.0),
-    ],
+    "still": [Vec2(0.0, 0.0),],
     "uniform2": [
         Vec2(-0.25, -0.25),  # ll
         Vec2(0.25, 0.25),  # ur
@@ -125,6 +123,8 @@ def halton_seq(prime, index=1):
 for seq_num in [8, 16, 32, 256]:
     sequence = []
     for seq_iter in range(seq_num):
-        point = Vec2(halton_seq(2, seq_iter + 1) - 0.5, halton_seq(3, seq_iter + 1) - 0.5)
+        point = Vec2(
+            halton_seq(2, seq_iter + 1) - 0.5,
+            halton_seq(3, seq_iter + 1) - 0.5)
         sequence.append(point)
     JITTERS["halton" + str(seq_num)] = sequence

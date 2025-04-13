@@ -33,6 +33,7 @@ logger = get_logger()
 
 
 class BaseVehicleState:
+
     def __init__(self):
         self.init_state_info()
 
@@ -129,11 +130,13 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         """
         # check
         assert vehicle_config is not None, "Please specify the vehicle config."
-        assert engine_initialized(), "Please make sure game engine is successfully initialized!"
+        assert engine_initialized(
+        ), "Please make sure game engine is successfully initialized!"
 
         # NOTE: it is the game engine, not vehicle drivetrain
         # self.engine = get_engine()
-        BaseObject.__init__(self, name, random_seed, self.engine.global_config["vehicle_config"])
+        BaseObject.__init__(self, name, random_seed,
+                            self.engine.global_config["vehicle_config"])
         BaseVehicleState.__init__(self)
         self.update_config(vehicle_config)
         self.set_metadrive_type(MetaDriveType.VEHICLE)
@@ -192,7 +195,9 @@ class BaseVehicle(BaseObject, BaseVehicleState):
 
         # if self.engine.current_map is not None:
         if _calling_reset:
-            self.reset(position=position, heading=heading, vehicle_config=vehicle_config)
+            self.reset(position=position,
+                       heading=heading,
+                       vehicle_config=vehicle_config)
 
     def _init_step_info(self):
         # done info will be initialized every frame
@@ -223,7 +228,9 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         self.last_speed = self.speed  # Scalar
         self.last_heading_dir = self.heading
         if action is not None:
-            self.last_current_action.append(action)  # the real step of physics world is implemented in taskMgr.step()
+            self.last_current_action.append(
+                action
+            )  # the real step of physics world is implemented in taskMgr.step()
         # if self.increment_steering:
         #     self._set_incremental_action(action)
         # else:
@@ -239,41 +246,47 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         self.out_of_route = self._out_of_route()
         step_info = self._update_overtake_stat()
         my_policy = self.engine.get_policy(self.name)
-        step_info.update(
-            {
-                "velocity": float(self.speed),
-                "steering": float(self.steering),
-                "acceleration": float(self.throttle_brake),
-                "step_energy": step_energy,
-                "episode_energy": episode_energy,
-                "policy": my_policy.name if my_policy is not None else my_policy
-            }
-        )
+        step_info.update({
+            "velocity": float(self.speed),
+            "steering": float(self.steering),
+            "acceleration": float(self.throttle_brake),
+            "step_energy": step_energy,
+            "episode_energy": episode_energy,
+            "policy": my_policy.name if my_policy is not None else my_policy
+        })
 
-        if self.navigation is not None and hasattr(self.navigation, "navi_arrow_dir"):
+        if self.navigation is not None and hasattr(self.navigation,
+                                                   "navi_arrow_dir"):
             lanes_heading = self.navigation.navi_arrow_dir
             lane_0_heading = lanes_heading[0]
             lane_1_heading = lanes_heading[1]
             navigation_straight = False
             navigation_turn_left = False
             navigation_turn_right = False
-            if abs(wrap_to_pi(lane_0_heading - lane_1_heading)) < 10 / 180 * math.pi:
+            if abs(wrap_to_pi(lane_0_heading -
+                              lane_1_heading)) < 10 / 180 * math.pi:
                 navigation_straight = True
             else:
-                dir_0 = np.array([math.cos(lane_0_heading), math.sin(lane_0_heading), 0])
-                dir_1 = np.array([math.cos(lane_1_heading), math.sin(lane_1_heading), 0])
+                dir_0 = np.array(
+                    [math.cos(lane_0_heading),
+                     math.sin(lane_0_heading), 0])
+                dir_1 = np.array(
+                    [math.cos(lane_1_heading),
+                     math.sin(lane_1_heading), 0])
                 cross_product = np.cross(dir_1, dir_0)
                 navigation_turn_left = True if cross_product[-1] < 0 else False
                 navigation_turn_right = not navigation_turn_left
-            step_info.update(
-                {
-                    "navigation_command": "forward" if navigation_straight else
+            step_info.update({
+                "navigation_command":
+                    "forward" if navigation_straight else
                     ("left" if navigation_turn_left else "right"),
-                    "navigation_forward": navigation_straight,
-                    "navigation_left": navigation_turn_left,
-                    "navigation_right": navigation_turn_right
-                }
-            )
+                "navigation_forward":
+                    navigation_straight,
+                "navigation_left":
+                    navigation_turn_left,
+                "navigation_right":
+                    navigation_turn_right
+            })
 
         return step_info
 
@@ -288,23 +301,23 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         default: 3rd gear, try to use ae^bx to fit it, dp: (90, 8), (130, 12)
         :return: None
         """
-        distance = norm(self.last_position[0] - self.position[0], self.last_position[1] - self.position[1]) / 1000  # km
-        step_energy = 3.25 * math.pow(np.e, 0.01 * self.speed_km_h) * distance / 100
+        distance = norm(self.last_position[0] - self.position[0],
+                        self.last_position[1] - self.position[1]) / 1000  # km
+        step_energy = 3.25 * math.pow(np.e,
+                                      0.01 * self.speed_km_h) * distance / 100
         # step_energy is in Liter, we return mL
         step_energy = step_energy * 1000
         self.energy_consumption += step_energy  # L/100 km
         return step_energy, self.energy_consumption
 
-    def reset(
-        self,
-        vehicle_config=None,
-        name=None,
-        random_seed=None,
-        position: np.ndarray = None,
-        heading: float = 0.0,
-        *args,
-        **kwargs
-    ):
+    def reset(self,
+              vehicle_config=None,
+              name=None,
+              random_seed=None,
+              position: np.ndarray = None,
+              heading: float = 0.0,
+              *args,
+              **kwargs):
         """
         pos is a 2-d array, and heading is a float (unit degree)
         if pos is not None, vehicle will be reset to the position
@@ -337,15 +350,20 @@ class BaseVehicle(BaseObject, BaseVehicleState):
             # spawn_lane_index has second priority
             map = self.engine.current_map
             if map is None:
-                logger.warning("No map is provided. Set vehicle to position (0, 0) with heading 0")
+                logger.warning(
+                    "No map is provided. Set vehicle to position (0, 0) with heading 0"
+                )
                 position = [0, 0]
                 heading = 0
             else:
-                lane = map.road_network.get_lane(self.config["spawn_lane_index"])
-                position = lane.position(self.config["spawn_longitude"], self.config["spawn_lateral"])
+                lane = map.road_network.get_lane(
+                    self.config["spawn_lane_index"])
+                position = lane.position(self.config["spawn_longitude"],
+                                         self.config["spawn_lateral"])
                 heading = lane.heading_theta_at(self.config["spawn_longitude"])
         else:
-            assert self.config["spawn_position_heading"] is not None, "At least setting one initialization method"
+            assert self.config[
+                "spawn_position_heading"] is not None, "At least setting one initialization method"
             position = self.config["spawn_position_heading"][0]
             heading = self.config["spawn_position_heading"][1]
 
@@ -390,11 +408,14 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         self.front_vehicles = set()
         self.back_vehicles = set()
         self.expert_takeover = False
-        if self.config["navigation_module"] and self.engine.current_map is not None:
+        if self.config[
+                "navigation_module"] and self.engine.current_map is not None:
             assert self.navigation
 
         if self.config["spawn_velocity"] is not None:
-            self.set_velocity(self.config["spawn_velocity"], in_local_frame=self.config["spawn_velocity_car_frame"])
+            self.set_velocity(
+                self.config["spawn_velocity"],
+                in_local_frame=self.config["spawn_velocity_car_frame"])
 
         # clean lights
         if self.config["light"]:
@@ -426,9 +447,12 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         if self.light is None:
             self._light_models = []
             for y in [-1, 1]:
-                light_model = self.loader.loadModel(AssetLoader.file_path("models", "sphere.egg"))
+                light_model = self.loader.loadModel(
+                    AssetLoader.file_path("models", "sphere.egg"))
                 light_model.reparentTo(self.origin)
-                light_model.setPos(self.LIGHT_POSITION[0] * y, self.LIGHT_POSITION[1], self.LIGHT_POSITION[2])
+                light_model.setPos(self.LIGHT_POSITION[0] * y,
+                                   self.LIGHT_POSITION[1],
+                                   self.LIGHT_POSITION[2])
                 light_model.setScale(0.13, 0.05, 0.13)
                 material = Material()
                 material.setBaseColor((1, 1, 1, 1))
@@ -450,7 +474,8 @@ class BaseVehicle(BaseObject, BaseVehicleState):
                 self._light_direction_queue = []
 
     def _update_light_pos(self, task):
-        pos = self.convert_to_world_coordinates([self.LENGTH / 2, 0], self.position)
+        pos = self.convert_to_world_coordinates([self.LENGTH / 2, 0],
+                                                self.position)
         self.light.set_pos(*pos, self.get_z())
         self._light_direction_queue.append([*self.heading, 0])
         idx = min(len(self._light_direction_queue), 50)
@@ -499,10 +524,12 @@ class BaseVehicle(BaseObject, BaseVehicleState):
                 if self.speed_km_h > self.max_speed_km_h:
                     self.system.applyEngineForce(0.0, wheel_index)
                 else:
-                    self.system.applyEngineForce(max_engine_force * throttle_brake, wheel_index)
+                    self.system.applyEngineForce(
+                        max_engine_force * throttle_brake, wheel_index)
             else:
                 if self.enable_reverse:
-                    self.system.applyEngineForce(max_engine_force * throttle_brake, wheel_index)
+                    self.system.applyEngineForce(
+                        max_engine_force * throttle_brake, wheel_index)
                     self.system.setBrake(0, wheel_index)
                 else:
                     DEADZONE = 0.01
@@ -510,19 +537,22 @@ class BaseVehicle(BaseObject, BaseVehicleState):
                     # Speed m/s in car's heading:
                     heading = self.heading
                     velocity = self.velocity
-                    speed_in_heading = velocity[0] * heading[0] + velocity[1] * heading[1]
+                    speed_in_heading = velocity[0] * heading[0] + velocity[
+                        1] * heading[1]
 
                     if speed_in_heading < DEADZONE:
                         self.system.applyEngineForce(0.0, wheel_index)
                         self.system.setBrake(2, wheel_index)
                     else:
                         self.system.applyEngineForce(0.0, wheel_index)
-                        self.system.setBrake(abs(throttle_brake) * max_brake_force, wheel_index)
+                        self.system.setBrake(
+                            abs(throttle_brake) * max_brake_force, wheel_index)
 
     """---------------------------------------- vehicle info ----------------------------------------------"""
 
     def update_dist_to_left_right(self):
-        self.dist_to_left_side, self.dist_to_right_side = self._dist_to_route_left_right()
+        self.dist_to_left_side, self.dist_to_right_side = self._dist_to_route_left_right(
+        )
 
     def _dist_to_route_left_right(self, navigation=None):
         if navigation is None:
@@ -530,9 +560,12 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         if navigation is None or navigation.current_ref_lanes is None:
             return 0, 0
         current_reference_lane = navigation.current_ref_lanes[0]
-        _, lateral_to_reference = current_reference_lane.local_coordinates(self.position)
-        lateral_to_left = lateral_to_reference + navigation.get_current_lane_width() / 2
-        lateral_to_right = navigation.get_current_lateral_range(self.position, self.engine) - lateral_to_left
+        _, lateral_to_reference = current_reference_lane.local_coordinates(
+            self.position)
+        lateral_to_left = lateral_to_reference + navigation.get_current_lane_width(
+        ) / 2
+        lateral_to_right = navigation.get_current_lateral_range(
+            self.position, self.engine) - lateral_to_left
         return lateral_to_left, lateral_to_right
 
     # @property
@@ -555,8 +588,7 @@ class BaseVehicle(BaseObject, BaseVehicleState):
     def chassis_velocity_direction(self):
         raise DeprecationWarning(
             "This API returns the direction of velocity which is approximately heading direction. "
-            "Deprecate it and make things easy"
-        )
+            "Deprecate it and make things easy")
         # direction = self.system.getForwardVector()
         # return np.asarray([direction[0], direction[1]])
 
@@ -565,25 +597,27 @@ class BaseVehicle(BaseObject, BaseVehicleState):
     def heading_diff(self, target_lane):
         lateral = None
         if isinstance(target_lane, StraightLane):
-            lateral = np.asarray(get_vertical_vector(target_lane.end - target_lane.start)[1])
+            lateral = np.asarray(
+                get_vertical_vector(target_lane.end - target_lane.start)[1])
         elif isinstance(target_lane, CircularLane):
             if not target_lane.is_clockwise():
                 lateral = self.position - target_lane.center
             else:
                 lateral = target_lane.center - self.position
         elif isinstance(target_lane, PointLane):
-            lateral = target_lane.lateral_direction(target_lane.local_coordinates(self.position)[0])
+            lateral = target_lane.lateral_direction(
+                target_lane.local_coordinates(self.position)[0])
 
         lateral_norm = norm(lateral[0], lateral[1])
         forward_direction = self.heading
         # print(f"Old forward direction: {self.forward_direction}, new heading {self.heading}")
-        forward_direction_norm = norm(forward_direction[0], forward_direction[1])
+        forward_direction_norm = norm(forward_direction[0],
+                                      forward_direction[1])
         if not lateral_norm * forward_direction_norm:
             return 0
-        cos = (
-            (forward_direction[0] * lateral[0] + forward_direction[1] * lateral[1]) /
-            (lateral_norm * forward_direction_norm)
-        )
+        cos = ((forward_direction[0] * lateral[0] +
+                forward_direction[1] * lateral[1]) /
+               (lateral_norm * forward_direction_norm))
         # return cos
         # Normalize to 0, 1
         return clip(cos, -1.0, 1.0) / 2 + 0.5
@@ -595,7 +629,8 @@ class BaseVehicle(BaseObject, BaseVehicleState):
             return np.nan
         if not lane:
             lane = self.lane
-        return lane.local_coordinates(vehicle.position)[0] - lane.local_coordinates(self.position)[0]
+        return lane.local_coordinates(
+            vehicle.position)[0] - lane.local_coordinates(self.position)[0]
 
     """-------------------------------------- for vehicle making ------------------------------------------"""
 
@@ -622,11 +657,14 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         chassis = BaseRigidBodyNode(self.name, MetaDriveType.VEHICLE)
         self._node_path_list.append(chassis)
 
-        chassis_shape = BulletBoxShape(Vec3(self.WIDTH / 2, self.LENGTH / 2, self.HEIGHT / 2))
+        chassis_shape = BulletBoxShape(
+            Vec3(self.WIDTH / 2, self.LENGTH / 2, self.HEIGHT / 2))
         ts = TransformState.makePos(Vec3(0, 0, self.HEIGHT / 2))
         chassis.addShape(chassis_shape, ts)
         chassis.setDeactivationEnabled(False)
-        chassis.notifyCollisions(True)  # advance collision check, do callback in pg_collision_callback
+        chassis.notifyCollisions(
+            True
+        )  # advance collision check, do callback in pg_collision_callback
 
         physics_world = get_engine().physics_world
         vehicle_chassis = BulletVehicle(physics_world.dynamic_world, chassis)
@@ -637,18 +675,20 @@ class BaseVehicle(BaseObject, BaseVehicleState):
     def _add_visualization(self):
         if self.render:
             [path, scale, offset, HPR] = self.path
-            should_update = (path not in BaseVehicle.model_collection) or (self.config["scale"] is not None)
+            should_update = (path not in BaseVehicle.model_collection) or (
+                self.config["scale"] is not None)
 
             if should_update:
-                car_model = self.loader.loadModel(AssetLoader.file_path("models", path))
+                car_model = self.loader.loadModel(
+                    AssetLoader.file_path("models", path))
                 car_model.setTwoSided(False)
                 extra_offset_z = -self.TIRE_RADIUS - self.CHASSIS_TO_WHEEL_AXIS
                 if self.config['scale'] is not None:
-                    offset = (
-                        offset[0] * self.config['scale'][0], offset[1] * self.config['scale'][1],
-                        offset[2] * self.config['scale'][2]
-                    )
-                    scale = (self.config['scale'][0], self.config['scale'][1], self.config['scale'][2])
+                    offset = (offset[0] * self.config['scale'][0],
+                              offset[1] * self.config['scale'][1],
+                              offset[2] * self.config['scale'][2])
+                    scale = (self.config['scale'][0], self.config['scale'][1],
+                             self.config['scale'][2])
 
                     # A quick workaround here.
                     # The model position is set to height/2 in ScenarioMapManager.
@@ -658,7 +698,8 @@ class BaseVehicle(BaseObject, BaseVehicleState):
                 car_model.setScale(scale)
                 # model default, face to y
                 car_model.setHpr(*HPR)
-                car_model.setPos(offset[0], offset[1], offset[2] + extra_offset_z)
+                car_model.setPos(offset[0], offset[1],
+                                 offset[2] + extra_offset_z)
                 BaseVehicle.model_collection[path] = car_model
             else:
                 car_model = BaseVehicle.model_collection[path]
@@ -666,12 +707,9 @@ class BaseVehicle(BaseObject, BaseVehicleState):
             if self.config["random_color"]:
                 material = Material()
                 material.setBaseColor(
-                    (
-                        self.panda_color[0] * self.MATERIAL_COLOR_COEFF,
-                        self.panda_color[1] * self.MATERIAL_COLOR_COEFF,
-                        self.panda_color[2] * self.MATERIAL_COLOR_COEFF, 0.
-                    )
-                )
+                    (self.panda_color[0] * self.MATERIAL_COLOR_COEFF,
+                     self.panda_color[1] * self.MATERIAL_COLOR_COEFF,
+                     self.panda_color[2] * self.MATERIAL_COLOR_COEFF, 0.))
                 material.setMetallic(self.MATERIAL_METAL_COEFF)
                 material.setSpecular(self.MATERIAL_SPECULAR_COLOR)
                 material.setRefractiveIndex(1.5)
@@ -687,9 +725,14 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         axis_height = self.TIRE_RADIUS - self.CHASSIS_TO_WHEEL_AXIS
         radius = self.TIRE_RADIUS
         wheels = []
-        for k, pos in enumerate([Vec3(lateral, f_l, axis_height), Vec3(-lateral, f_l, axis_height),
-                                 Vec3(lateral, r_l, axis_height), Vec3(-lateral, r_l, axis_height)]):
-            wheel = self._add_wheel(pos, radius, True if k < 2 else False, True if k == 0 or k == 2 else False)
+        for k, pos in enumerate([
+                Vec3(lateral, f_l, axis_height),
+                Vec3(-lateral, f_l, axis_height),
+                Vec3(lateral, r_l, axis_height),
+                Vec3(-lateral, r_l, axis_height)
+        ]):
+            wheel = self._add_wheel(pos, radius, True if k < 2 else False,
+                                    True if k == 0 or k == 2 else False)
             wheels.append(wheel)
         return wheels
 
@@ -699,11 +742,14 @@ class BaseVehicle(BaseObject, BaseVehicleState):
 
         if self.render:
             model = 'right_tire_front.gltf' if front else 'right_tire_back.gltf'
-            model_path = AssetLoader.file_path("models", os.path.dirname(self.path[0]), model)
+            model_path = AssetLoader.file_path("models",
+                                               os.path.dirname(self.path[0]),
+                                               model)
             wheel_model = self.loader.loadModel(model_path)
             wheel_model.setTwoSided(self.TIRE_TWO_SIDED)
             wheel_model.reparentTo(wheel_np)
-            wheel_model.set_scale(1 * self.TIRE_MODEL_CORRECT if left else -1 * self.TIRE_MODEL_CORRECT)
+            wheel_model.set_scale(1 * self.TIRE_MODEL_CORRECT if left else -1 *
+                                  self.TIRE_MODEL_CORRECT)
         wheel = self.system.createWheel()
         wheel.setNode(wheel_np.node())
         wheel.setChassisConnectionPointCs(pos)
@@ -716,13 +762,15 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         wheel.setSuspensionStiffness(self.SUSPENSION_STIFFNESS)
         wheel.setWheelsDampingRelaxation(4.8)
         wheel.setWheelsDampingCompression(1.2)
-        wheel_friction = self.config["wheel_friction"] if not self.config["no_wheel_friction"] else 0
+        wheel_friction = self.config[
+            "wheel_friction"] if not self.config["no_wheel_friction"] else 0
         wheel.setFrictionSlip(wheel_friction)
         wheel.setRollInfluence(0.5)
         return wheel
 
     def add_navigation(self):
-        if self.navigation is not None or self.config["navigation_module"] is None or self.engine.current_map is None:
+        if self.navigation is not None or self.config[
+                "navigation_module"] is None or self.engine.current_map is None:
             return
         navi = self.config["navigation_module"]
         self.navigation = navi(
@@ -732,8 +780,7 @@ class BaseVehicle(BaseObject, BaseVehicleState):
             show_line_to_dest=self.config["show_line_to_dest"],
             panda_color=self.panda_color,
             name=self.name,
-            vehicle_config=self.config
-        )
+            vehicle_config=self.config)
 
     def reset_navigation(self):
         """
@@ -752,8 +799,10 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         """
         Check States and filter to update info
         """
-        result_1 = self.engine.physics_world.static_world.contactTest(self.chassis.node(), True)
-        result_2 = self.engine.physics_world.dynamic_world.contactTest(self.chassis.node(), True)
+        result_1 = self.engine.physics_world.static_world.contactTest(
+            self.chassis.node(), True)
+        result_2 = self.engine.physics_world.dynamic_world.contactTest(
+            self.chassis.node(), True)
         contacts = set()
         for contact in result_1.getContacts() + result_2.getContacts():
             node0 = contact.getNode0()
@@ -771,7 +820,8 @@ class BaseVehicle(BaseObject, BaseVehicleState):
             elif name == MetaDriveType.TRAFFIC_LIGHT:
                 light = get_object_from_node(node)
                 if light.status == MetaDriveType.LIGHT_GREEN:
-                    raise ValueError("Green light should not be in the contact test!")
+                    raise ValueError(
+                        "Green light should not be in the contact test!")
                     self.green_light = True
                 elif light.status == MetaDriveType.LIGHT_RED:
                     self.red_light = True
@@ -781,7 +831,8 @@ class BaseVehicle(BaseObject, BaseVehicleState):
                     # unknown didn't add
                     continue
                 else:
-                    raise ValueError("Unknown light status: {}".format(light.status))
+                    raise ValueError("Unknown light status: {}".format(
+                        light.status))
                 name = light.status
             # they work with the function in collision_callback.py to double-check the collision
             elif name == MetaDriveType.VEHICLE:
@@ -804,17 +855,21 @@ class BaseVehicle(BaseObject, BaseVehicleState):
             self.LENGTH,
             self.WIDTH,
             CollisionGroup.Sidewalk,
-            in_static_world=False  # Sidewalk will be hosted in the dynamic_world. So here we set to False.
+            in_static_world=
+            False  # Sidewalk will be hosted in the dynamic_world. So here we set to False.
         )
-        if res.hasHit() and res.getNode().getName() == MetaDriveType.BOUNDARY_LINE:
+        if res.hasHit() and res.getNode().getName(
+        ) == MetaDriveType.BOUNDARY_LINE:
             self.crash_sidewalk = True
             contacts.add(MetaDriveType.BOUNDARY_LINE)
 
-        elif res.hasHit() and res.getNode().getName() == MetaDriveType.BOUNDARY_SIDEWALK:
+        elif res.hasHit() and res.getNode().getName(
+        ) == MetaDriveType.BOUNDARY_SIDEWALK:
             self.crash_sidewalk = True
             contacts.add(MetaDriveType.BOUNDARY_SIDEWALK)
 
-        elif res.hasHit() and res.getNode().getName() == MetaDriveType.GUARDRAIL:
+        elif res.hasHit() and res.getNode().getName(
+        ) == MetaDriveType.GUARDRAIL:
             self.crash_sidewalk = True
             contacts.add(MetaDriveType.GUARDRAIL)
 
@@ -823,16 +878,15 @@ class BaseVehicle(BaseObject, BaseVehicleState):
 
         # only for visualization detection
         if self.render:
-            debug_static_world = self.engine.global_config["debug_static_world"] and self.engine.global_config["debug"]
-            res = rect_region_detection(
-                self.engine,
-                self.position,
-                np.rad2deg(self.heading_theta),
-                self.LENGTH,
-                self.WIDTH,
-                CollisionGroup.LaneSurface,
-                in_static_world=not debug_static_world
-            )
+            debug_static_world = self.engine.global_config[
+                "debug_static_world"] and self.engine.global_config["debug"]
+            res = rect_region_detection(self.engine,
+                                        self.position,
+                                        np.rad2deg(self.heading_theta),
+                                        self.LENGTH,
+                                        self.WIDTH,
+                                        CollisionGroup.LaneSurface,
+                                        in_static_world=not debug_static_world)
             if not res.hasHit():
                 contacts.add(MetaDriveType.GROUND)
             else:
@@ -879,20 +933,18 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         Fetch more information
         """
         state = super(BaseVehicle, self).get_state()
-        state.update(
-            {
-                "steering": self.steering,
-                "throttle_brake": self.throttle_brake,
-                "crash_vehicle": self.crash_vehicle,
-                "crash_object": self.crash_object,
-                "crash_building": self.crash_building,
-                "crash_sidewalk": self.crash_sidewalk,
-                "size": (self.LENGTH, self.WIDTH, self.HEIGHT),
-                "length": self.LENGTH,
-                "width": self.WIDTH,
-                "height": self.HEIGHT,
-            }
-        )
+        state.update({
+            "steering": self.steering,
+            "throttle_brake": self.throttle_brake,
+            "crash_vehicle": self.crash_vehicle,
+            "crash_object": self.crash_object,
+            "crash_building": self.crash_building,
+            "crash_sidewalk": self.crash_sidewalk,
+            "size": (self.LENGTH, self.WIDTH, self.HEIGHT),
+            "length": self.LENGTH,
+            "width": self.WIDTH,
+            "height": self.HEIGHT,
+        })
         if self.navigation is not None:
             state.update(self.navigation.get_state())
         return state
@@ -913,24 +965,24 @@ class BaseVehicle(BaseObject, BaseVehicleState):
 
         mass = self.config["mass"] if self.config["mass"] else self.MASS
 
-        ret = dict(
-            max_engine_force=max_engine_force,
-            max_brake_force=max_brake_force,
-            wheel_friction=wheel_friction,
-            max_steering=max_steering,
-            mass=mass
-        )
+        ret = dict(max_engine_force=max_engine_force,
+                   max_brake_force=max_brake_force,
+                   wheel_friction=wheel_friction,
+                   max_steering=max_steering,
+                   mass=mass)
         return ret
 
     def _update_overtake_stat(self):
-        lidar_available = self.config["lidar"]["num_lasers"] > 0 and self.config["lidar"]["distance"] > 0
+        lidar_available = self.config["lidar"][
+            "num_lasers"] > 0 and self.config["lidar"]["distance"] > 0
         if self.config["overtake_stat"] and lidar_available:
             surrounding_vs = self.lidar.get_surrounding_vehicles()
             routing = self.navigation
             ckpt_idx = routing._target_checkpoints_index
             for surrounding_v in surrounding_vs:
-                if surrounding_v.lane_index[:-1] == (routing.checkpoints[ckpt_idx[0]], routing.checkpoints[ckpt_idx[1]
-                                                                                                           ]):
+                if surrounding_v.lane_index[:-1] == (
+                        routing.checkpoints[ckpt_idx[0]],
+                        routing.checkpoints[ckpt_idx[1]]):
                     if self.lane.local_coordinates(self.position)[0] - \
                             self.lane.local_coordinates(surrounding_v.position)[0] < 0:
                         self.front_vehicles.add(surrounding_v)
@@ -967,8 +1019,7 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         return self._replay_done if hasattr(self, "_replay_done") else (
             self.crash_building or self.crash_vehicle or
             # self.on_white_continuous_line or
-            self.on_yellow_continuous_line
-        )
+            self.on_yellow_continuous_line)
 
     @property
     def current_action(self):
@@ -984,9 +1035,11 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         super(BaseVehicle, self).detach_from_world(physics_world)
 
     def attach_to_world(self, parent_node_path, physics_world):
-        if self.config["show_navi_mark"] and self.config["navigation_module"] and self.navigation is not None:
+        if self.config["show_navi_mark"] and self.config[
+                "navigation_module"] and self.navigation is not None:
             self.navigation.attach_to_world(self.engine)
-        super(BaseVehicle, self).attach_to_world(parent_node_path, physics_world)
+        super(BaseVehicle, self).attach_to_world(parent_node_path,
+                                                 physics_world)
 
     def set_break_down(self, break_down=True):
         self.break_down = break_down
@@ -1002,11 +1055,13 @@ class BaseVehicle(BaseObject, BaseVehicleState):
 
     @property
     def top_down_length(self):
-        return self.config["top_down_length"] if self.config["top_down_length"] else self.LENGTH
+        return self.config["top_down_length"] if self.config[
+            "top_down_length"] else self.LENGTH
 
     @property
     def top_down_width(self):
-        return self.config["top_down_width"] if self.config["top_down_width"] else self.WIDTH
+        return self.config["top_down_width"] if self.config[
+            "top_down_width"] else self.WIDTH
 
     @property
     def lane(self):
@@ -1033,10 +1088,12 @@ class BaseVehicle(BaseObject, BaseVehicleState):
     """------------------------------------------- overwrite -------------------------------------------------"""
 
     def convert_to_world_coordinates(self, vector, origin):
-        return super(BaseVehicle, self).convert_to_world_coordinates([-vector[-1], vector[0]], origin)
+        return super(BaseVehicle, self).convert_to_world_coordinates(
+            [-vector[-1], vector[0]], origin)
 
     def convert_to_local_coordinates(self, vector, origin):
-        ret = super(BaseVehicle, self).convert_to_local_coordinates(vector, origin)
+        ret = super(BaseVehicle,
+                    self).convert_to_local_coordinates(vector, origin)
         return np.array([ret[1], -ret[0]])
 
     @property
@@ -1049,7 +1106,8 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         :param heading_theta: float in rad
         :param in_rad: when set to True, heading theta should be in rad, otherwise, in degree
         """
-        super(BaseVehicle, self).set_heading_theta(heading_theta - np.pi / 2, in_rad)
+        super(BaseVehicle, self).set_heading_theta(heading_theta - np.pi / 2,
+                                                   in_rad)
         self.last_heading_dir = self.heading
 
     @property
@@ -1081,9 +1139,12 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         self.coordinates_debug_np.hide(CamMask.AllOn)
         self.coordinates_debug_np.show(CamMask.MainCam)
         # 90 degrees offset
-        x = self.engine._draw_line_3d([0, 0, height], [0, 2, height], [1, 1, 1, 1], 3)
-        y = self.engine._draw_line_3d([0, 0, height], [-1, 0, height], [1, 1, 1, 1], 3)
-        z = self.engine._draw_line_3d([0, 0, height], [0, 0, height + 0.5], [1, 1, 1, 1], 3)
+        x = self.engine._draw_line_3d([0, 0, height], [0, 2, height],
+                                      [1, 1, 1, 1], 3)
+        y = self.engine._draw_line_3d([0, 0, height], [-1, 0, height],
+                                      [1, 1, 1, 1], 3)
+        z = self.engine._draw_line_3d([0, 0, height], [0, 0, height + 0.5],
+                                      [1, 1, 1, 1], 3)
         x.reparentTo(self.coordinates_debug_np)
         y.reparentTo(self.coordinates_debug_np)
         z.reparentTo(self.coordinates_debug_np)

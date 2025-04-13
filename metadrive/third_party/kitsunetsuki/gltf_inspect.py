@@ -23,12 +23,21 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('input', type=str, help='Input .gltf file path.')
-    parser.add_argument('--extras', action='store_true', required=False, help="Shows node's extras.")
+    parser.add_argument('--extras',
+                        action='store_true',
+                        required=False,
+                        help="Shows node's extras.")
 
     return parser.parse_args()
 
 
-def print_node(gltf_data, node_id, joints=None, skeletons=None, indent=1, parent_node=None, extras=None):
+def print_node(gltf_data,
+               node_id,
+               joints=None,
+               skeletons=None,
+               indent=1,
+               parent_node=None,
+               extras=None):
     gltf_node = gltf_data['nodes'][node_id]
 
     type_ = 'N'
@@ -39,11 +48,13 @@ def print_node(gltf_data, node_id, joints=None, skeletons=None, indent=1, parent
         if sum(gltf_node['translation']) != 0:
             matrix += 'T'
     if 'rotation' in gltf_node:
-        if not (gltf_node['rotation'][0] == 0 and gltf_node['rotation'][1] == 0 and gltf_node['rotation'][2] == 0
-                and gltf_node['rotation'][3] == 1):
+        if not (gltf_node['rotation'][0] == 0 and gltf_node['rotation'][1] == 0
+                and gltf_node['rotation'][2] == 0 and
+                gltf_node['rotation'][3] == 1):
             matrix += 'R'
     if 'scale' in gltf_node:
-        if not (gltf_node['scale'][0] == 1 and gltf_node['scale'][1] == 1 and gltf_node['scale'][2] == 1):
+        if not (gltf_node['scale'][0] == 1 and gltf_node['scale'][1] == 1 and
+                gltf_node['scale'][2] == 1):
             matrix += 'S'
     if 'matrix' in gltf_node:
         matrix += 'M'
@@ -65,13 +76,17 @@ def print_node(gltf_data, node_id, joints=None, skeletons=None, indent=1, parent
         if 'skin' in gltf_node:
             skin_id = gltf_node['skin']
             gltf_skin = gltf_data['skins'][skin_id]
-            v = '{} ({} joints)'.format(gltf_skin.get('name', 'SKIN #{}'.format(skin_id)), len(gltf_skin['joints']))
+            v = '{} ({} joints)'.format(
+                gltf_skin.get('name', 'SKIN #{}'.format(skin_id)),
+                len(gltf_skin['joints']))
             refs.append(('skin', v))
 
             if 'skeleton' in gltf_skin:
                 skeleton_id = gltf_skin['skeleton']
                 gltf_skeleton = gltf_data['nodes'][skeleton_id]
-                v = '{}'.format(gltf_skeleton.get('name', 'SKELETON #{}'.format(skeleton_id)))
+                v = '{}'.format(
+                    gltf_skeleton.get('name',
+                                      'SKELETON #{}'.format(skeleton_id)))
                 refs.append(('skeleton', v))
 
         if 'mesh' in gltf_node:
@@ -89,7 +104,8 @@ def print_node(gltf_data, node_id, joints=None, skeletons=None, indent=1, parent
             if node_id == vrm_bone['node']:
                 vrm_extra.append('VRM bone: {}'.format(vrm_bone['bone']))
 
-        for group in gltf_data['extensions']['VRM']['secondaryAnimation']['boneGroups']:
+        for group in gltf_data['extensions']['VRM']['secondaryAnimation'][
+                'boneGroups']:
             if node_id in group['bones']:
                 vrm_extra.append('bonegroup')
                 break
@@ -118,9 +134,12 @@ def print_node(gltf_data, node_id, joints=None, skeletons=None, indent=1, parent
             print('   {}  {}: {}'.format(is_, k, v))
 
     for child_node_id in gltf_node.get('children', []):
-        print_node(
-            gltf_data, child_node_id, joints=joints, skeletons=skeletons, indent=indent + 1, parent_node=gltf_node
-        )
+        print_node(gltf_data,
+                   child_node_id,
+                   joints=joints,
+                   skeletons=skeletons,
+                   indent=indent + 1,
+                   parent_node=gltf_node)
 
 
 def print_scene(gltf_data, scene_id, extras=False):
@@ -139,12 +158,17 @@ def print_scene(gltf_data, scene_id, extras=False):
         joints |= set(gltf_skin['joints'])
         # search for the root bone
         for joint_id in gltf_skin['joints']:
-            if parents.get(joint_id) not in gltf_skin['joints']:  # no parent bone
+            if parents.get(
+                    joint_id) not in gltf_skin['joints']:  # no parent bone
                 skeletons.add(joint_id)  # mark root bone as skeleton
                 break
 
     for node_id in gltf_scene['nodes']:
-        print_node(gltf_data, node_id, joints=joints, skeletons=skeletons, extras=extras)
+        print_node(gltf_data,
+                   node_id,
+                   joints=joints,
+                   skeletons=skeletons,
+                   extras=extras)
 
 
 def print_anim(gltf_data, gltf_anim):
@@ -160,9 +184,12 @@ def print_anim(gltf_data, gltf_anim):
 def print_mat(gltf_data, gltf_mat):
     tex_ids = []
     if 'baseColorTexture' in gltf_mat.get('pbrMetallicRoughness', {}):
-        tex_ids.append(('Color', gltf_mat['pbrMetallicRoughness']['baseColorTexture']['index']))
+        tex_ids.append(
+            ('Color',
+             gltf_mat['pbrMetallicRoughness']['baseColorTexture']['index']))
     if 'metallicRoughnessTexture' in gltf_mat.get('pbrMetallicRoughness', {}):
-        tex_ids.append(('MetRough', gltf_mat['pbrMetallicRoughness']['metallicRoughnessTexture']['index']))
+        tex_ids.append(('MetRough', gltf_mat['pbrMetallicRoughness']
+                        ['metallicRoughnessTexture']['index']))
     if 'normalTexture' in gltf_mat:
         tex_ids.append(('Norm', gltf_mat['normalTexture']['index']))
     if 'emissiveTexture' in gltf_mat:

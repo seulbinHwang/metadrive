@@ -1,4 +1,5 @@
 class Token(object):
+
     def __init__(self, start_mark, end_mark):
         self.start_mark = start_mark
         self.end_mark = end_mark
@@ -6,7 +7,8 @@ class Token(object):
     def __repr__(self):
         attributes = [key for key in self.__dict__ if not key.endswith('_mark')]
         attributes.sort()
-        arguments = ', '.join(['%s=%r' % (key, getattr(self, key)) for key in attributes])
+        arguments = ', '.join(
+            ['%s=%r' % (key, getattr(self, key)) for key in attributes])
         return '%s(%s)' % (self.__class__.__name__, arguments)
 
 

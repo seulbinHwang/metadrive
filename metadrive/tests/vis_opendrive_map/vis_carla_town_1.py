@@ -10,7 +10,8 @@ if __name__ == "__main__":
 
     # load map
     initialize_asset_loader(engine)
-    map = load_opendrive_map(AssetLoader.file_path("carla", "CARLA_town01.xodr", unix_style=False))
+    map = load_opendrive_map(
+        AssetLoader.file_path("carla", "CARLA_town01.xodr", unix_style=False))
     global_network = OpenDriveRoadNetwork()
     i = 0
     blocks = []
@@ -26,7 +27,8 @@ if __name__ == "__main__":
     lanes = [lane_info.lane for lane_info in global_network.graph.values()]
 
     res_x_min, res_x_max, res_y_min, res_y_max = global_network.bounding_box
-    engine.camera.setPos((res_x_min + res_x_max) / 2, -(res_y_min + res_y_max) / 2, 700)
+    engine.camera.setPos((res_x_min + res_x_max) / 2,
+                         -(res_y_min + res_y_max) / 2, 700)
 
     while True:
         engine.taskMgr.step()

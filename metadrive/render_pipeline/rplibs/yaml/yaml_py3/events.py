@@ -2,17 +2,23 @@
 
 
 class Event(object):
+
     def __init__(self, start_mark=None, end_mark=None):
         self.start_mark = start_mark
         self.end_mark = end_mark
 
     def __repr__(self):
-        attributes = [key for key in ['anchor', 'tag', 'implicit', 'value'] if hasattr(self, key)]
-        arguments = ', '.join(['%s=%r' % (key, getattr(self, key)) for key in attributes])
+        attributes = [
+            key for key in ['anchor', 'tag', 'implicit', 'value']
+            if hasattr(self, key)
+        ]
+        arguments = ', '.join(
+            ['%s=%r' % (key, getattr(self, key)) for key in attributes])
         return '%s(%s)' % (self.__class__.__name__, arguments)
 
 
 class NodeEvent(Event):
+
     def __init__(self, anchor, start_mark=None, end_mark=None):
         self.anchor = anchor
         self.start_mark = start_mark
@@ -20,7 +26,14 @@ class NodeEvent(Event):
 
 
 class CollectionStartEvent(NodeEvent):
-    def __init__(self, anchor, tag, implicit, start_mark=None, end_mark=None, flow_style=None):
+
+    def __init__(self,
+                 anchor,
+                 tag,
+                 implicit,
+                 start_mark=None,
+                 end_mark=None,
+                 flow_style=None):
         self.anchor = anchor
         self.tag = tag
         self.implicit = implicit
@@ -37,6 +50,7 @@ class CollectionEndEvent(Event):
 
 
 class StreamStartEvent(Event):
+
     def __init__(self, start_mark=None, end_mark=None, encoding=None):
         self.start_mark = start_mark
         self.end_mark = end_mark
@@ -48,7 +62,13 @@ class StreamEndEvent(Event):
 
 
 class DocumentStartEvent(Event):
-    def __init__(self, start_mark=None, end_mark=None, explicit=None, version=None, tags=None):
+
+    def __init__(self,
+                 start_mark=None,
+                 end_mark=None,
+                 explicit=None,
+                 version=None,
+                 tags=None):
         self.start_mark = start_mark
         self.end_mark = end_mark
         self.explicit = explicit
@@ -57,6 +77,7 @@ class DocumentStartEvent(Event):
 
 
 class DocumentEndEvent(Event):
+
     def __init__(self, start_mark=None, end_mark=None, explicit=None):
         self.start_mark = start_mark
         self.end_mark = end_mark
@@ -68,7 +89,15 @@ class AliasEvent(NodeEvent):
 
 
 class ScalarEvent(NodeEvent):
-    def __init__(self, anchor, tag, implicit, value, start_mark=None, end_mark=None, style=None):
+
+    def __init__(self,
+                 anchor,
+                 tag,
+                 implicit,
+                 value,
+                 start_mark=None,
+                 end_mark=None,
+                 style=None):
         self.anchor = anchor
         self.tag = tag
         self.implicit = implicit

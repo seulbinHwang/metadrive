@@ -10,6 +10,7 @@ import array
 
 
 class ModelMaker:
+
     @property
     def segments(self):
         return self._segments
@@ -86,9 +87,8 @@ class ModelMaker:
         """
         return self._vert_ranges
 
-    def __init__(
-        self, segments, inverted, vertex_color, has_uvs, tex_units, tex_offset, tex_rotation, tex_scale, surface_ids
-    ):
+    def __init__(self, segments, inverted, vertex_color, has_uvs, tex_units,
+                 tex_offset, tex_rotation, tex_scale, surface_ids):
         """
         This class generates model primitives with the given parameters, common to
         all primitive types:
@@ -154,7 +154,8 @@ class ModelMaker:
 
     def _average_normals(self, index1, index2, verts):
 
-        normal = (verts[index1]["normal"] + verts[index2]["normal"]).normalized()
+        normal = (verts[index1]["normal"] +
+                  verts[index2]["normal"]).normalized()
         verts[index1]["normal"] = normal
         verts[index2]["normal"] = normal
 

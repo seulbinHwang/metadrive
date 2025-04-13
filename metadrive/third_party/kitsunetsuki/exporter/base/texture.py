@@ -17,93 +17,112 @@ from metadrive.third_party.kitsunetsuki.base.material import get_root_node, get_
 
 
 class TextureMixin(object):
+
     def get_diffuse(self, material, shader):
         for i in ('Color', 'Alpha'):
             # Image Texture [Color/Alpha] -> [Socket] Principled BSDF
-            node = get_from_node(
-                material.node_tree, 'TEX_IMAGE', to_node=shader, from_socket_name=i, to_socket_name='Base Color'
-            )
+            node = get_from_node(material.node_tree,
+                                 'TEX_IMAGE',
+                                 to_node=shader,
+                                 from_socket_name=i,
+                                 to_socket_name='Base Color')
             if node:
                 return node
 
     def get_normal_map(self, material, shader):
         # Normal Map [Normal] -> [Normal] Principled BSDF
-        normal_map = get_from_node(
-            material.node_tree, 'NORMAL_MAP', to_node=shader, from_socket_name='Normal', to_socket_name='Normal'
-        )
+        normal_map = get_from_node(material.node_tree,
+                                   'NORMAL_MAP',
+                                   to_node=shader,
+                                   from_socket_name='Normal',
+                                   to_socket_name='Normal')
         if normal_map:
             # Image Texture [Color] -> [Color] Normal Map
-            return get_from_node(
-                material.node_tree, 'TEX_IMAGE', to_node=normal_map, from_socket_name='Color', to_socket_name='Color'
-            )
+            return get_from_node(material.node_tree,
+                                 'TEX_IMAGE',
+                                 to_node=normal_map,
+                                 from_socket_name='Color',
+                                 to_socket_name='Color')
 
     def get_emission_map(self, material, shader):
         # emission map pipeline
         # Image Texture [Color] -> [Emission Strength] Principled BSDF
         if shader.inputs['Emission Strength'].is_linked:
-            node = get_from_node(
-                material.node_tree,
-                'TEX_IMAGE',
-                to_node=shader,
-                from_socket_name='Color',
-                to_socket_name='Emission Strength'
-            )
+            node = get_from_node(material.node_tree,
+                                 'TEX_IMAGE',
+                                 to_node=shader,
+                                 from_socket_name='Color',
+                                 to_socket_name='Emission Strength')
             if node:
                 return node
 
         # emission color pipeline
         # Mix RGB [Color] -> [Emission] Principled BSDF
-        mix_node = get_from_node(
-            material.node_tree, 'MIX_RGB', to_node=shader, from_socket_name='Color', to_socket_name='Emission'
-        )
+        mix_node = get_from_node(material.node_tree,
+                                 'MIX_RGB',
+                                 to_node=shader,
+                                 from_socket_name='Color',
+                                 to_socket_name='Emission')
         if mix_node:
             # Image Texture [Color] -> [Color1/Color2] Mix
             for input_ in mix_node.inputs:
                 if input_.name.startswith('Color') and input_.is_linked:
-                    return get_from_node(
-                        material.node_tree,
-                        'TEX_IMAGE',
-                        to_node=mix_node,
-                        from_socket_name='Color',
-                        to_socket_name=input_.name
-                    )
+                    return get_from_node(material.node_tree,
+                                         'TEX_IMAGE',
+                                         to_node=mix_node,
+                                         from_socket_name='Color',
+                                         to_socket_name=input_.name)
         else:
             # Image Texture [Color] -> [Emission] Principled BSDF
-            return get_from_node(
-                material.node_tree, 'TEX_IMAGE', to_node=shader, from_socket_name='Color', to_socket_name='Emission'
-            )
+            return get_from_node(material.node_tree,
+                                 'TEX_IMAGE',
+                                 to_node=shader,
+                                 from_socket_name='Color',
+                                 to_socket_name='Emission')
 
     def get_specular_map(self, material, shader):
         # Math [Value] -> [Specular] Principled BSDF
-        math_node = get_from_node(
-            material.node_tree, 'MATH', to_node=shader, from_socket_name='Value', to_socket_name='Specular'
-        )
+        math_node = get_from_node(material.node_tree,
+                                  'MATH',
+                                  to_node=shader,
+                                  from_socket_name='Value',
+                                  to_socket_name='Specular')
         if math_node:
             # Image Texture [Color] -> [Input] Math
-            return get_from_node(
-                material.node_tree, 'TEX_IMAGE', to_node=math_node, from_socket_name='Color', to_socket_name='Value'
-            )
+            return get_from_node(material.node_tree,
+                                 'TEX_IMAGE',
+                                 to_node=math_node,
+                                 from_socket_name='Color',
+                                 to_socket_name='Value')
         else:
             # Image Texture [Color] -> [Specular] Principled BSDF
-            return get_from_node(
-                material.node_tree, 'TEX_IMAGE', to_node=shader, from_socket_name='Color', to_socket_name='Specular'
-            )
+            return get_from_node(material.node_tree,
+                                 'TEX_IMAGE',
+                                 to_node=shader,
+                                 from_socket_name='Color',
+                                 to_socket_name='Specular')
 
     def get_roughness_map(self, material, shader):
         # Math [Value] -> [Roughness] Principled BSDF
-        math_node = get_from_node(
-            material.node_tree, 'MATH', to_node=shader, from_socket_name='Value', to_socket_name='Roughness'
-        )
+        math_node = get_from_node(material.node_tree,
+                                  'MATH',
+                                  to_node=shader,
+                                  from_socket_name='Value',
+                                  to_socket_name='Roughness')
         if math_node:
             # Image Texture [Color] -> [Input] Math
-            return get_from_node(
-                material.node_tree, 'TEX_IMAGE', to_node=math_node, from_socket_name='Color', to_socket_name='Value'
-            )
+            return get_from_node(material.node_tree,
+                                 'TEX_IMAGE',
+                                 to_node=math_node,
+                                 from_socket_name='Color',
+                                 to_socket_name='Value')
         else:
             # Image Texture [Color] -> [Roughness] Principled BSDF
-            return get_from_node(
-                material.node_tree, 'TEX_IMAGE', to_node=shader, from_socket_name='Color', to_socket_name='Roughness'
-            )
+            return get_from_node(material.node_tree,
+                                 'TEX_IMAGE',
+                                 to_node=shader,
+                                 from_socket_name='Color',
+                                 to_socket_name='Roughness')
 
     def get_parallax_map(self, material, shader):
         return
@@ -124,18 +143,17 @@ class TextureMixin(object):
         if material.node_tree is not None:
             output = get_root_node(material.node_tree, 'OUTPUT_MATERIAL')
             if output:
-                shader = get_from_node(
-                    material.node_tree,
-                    'BSDF_PRINCIPLED',
-                    to_node=output,
-                    from_socket_name='BSDF',
-                    to_socket_name='Surface'
-                )
+                shader = get_from_node(material.node_tree,
+                                       'BSDF_PRINCIPLED',
+                                       to_node=output,
+                                       from_socket_name='BSDF',
+                                       to_socket_name='Surface')
 
         if shader:
             image_textures = self.get_images(material, shader)
             last_texid = 0
-            for i, (type_, image_texture) in enumerate(reversed(image_textures)):
+            for i, (type_,
+                    image_texture) in enumerate(reversed(image_textures)):
                 if image_texture is not None:
                     last_texid = len(image_textures) - i - 1
                     break
@@ -144,13 +162,13 @@ class TextureMixin(object):
                 if image_texture is None:
                     if self._empty_textures:  # fill empty slot
                         result = self.make_empty_texture(type_)
-                        results.append((type_, ) + result)
+                        results.append((type_,) + result)
                     elif self._render_type == 'rp':
                         break
 
                 elif image_texture:
                     result = self.make_texture(type_, image_texture)
-                    results.append((type_, ) + result)
+                    results.append((type_,) + result)
 
                 if i >= last_texid and self._render_type == 'rp':
                     break

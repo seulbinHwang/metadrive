@@ -35,19 +35,18 @@ except ImportError:
 
 
 class DrivingCallbacks(DefaultCallbacks):
-    def on_episode_start(
-        self, *, worker: RolloutWorker, base_env: BaseEnv, policies: Dict[str, Policy], episode: MultiAgentEpisode,
-        env_index: int, **kwargs
-    ):
+
+    def on_episode_start(self, *, worker: RolloutWorker, base_env: BaseEnv,
+                         policies: Dict[str, Policy],
+                         episode: MultiAgentEpisode, env_index: int, **kwargs):
         episode.user_data["velocity"] = []
         episode.user_data["steering"] = []
         episode.user_data["step_reward"] = []
         episode.user_data["acceleration"] = []
         episode.user_data["cost"] = []
 
-    def on_episode_step(
-        self, *, worker: RolloutWorker, base_env: BaseEnv, episode: MultiAgentEpisode, env_index: int, **kwargs
-    ):
+    def on_episode_step(self, *, worker: RolloutWorker, base_env: BaseEnv,
+                        episode: MultiAgentEpisode, env_index: int, **kwargs):
         info = episode.last_info_for()
         if info is not None:
             episode.user_data["velocity"].append(info["velocity"])
@@ -56,10 +55,9 @@ class DrivingCallbacks(DefaultCallbacks):
             episode.user_data["acceleration"].append(info["acceleration"])
             episode.user_data["cost"].append(info["cost"])
 
-    def on_episode_end(
-        self, worker: RolloutWorker, base_env: BaseEnv, policies: Dict[str, Policy], episode: MultiAgentEpisode,
-        **kwargs
-    ):
+    def on_episode_end(self, worker: RolloutWorker, base_env: BaseEnv,
+                       policies: Dict[str, Policy], episode: MultiAgentEpisode,
+                       **kwargs):
         arrive_dest = episode.last_info_for()["arrive_dest"]
         crash = episode.last_info_for()["crash"]
         out_of_road = episode.last_info_for()["out_of_road"]
@@ -68,18 +66,30 @@ class DrivingCallbacks(DefaultCallbacks):
         episode.custom_metrics["crash_rate"] = float(crash)
         episode.custom_metrics["out_of_road_rate"] = float(out_of_road)
         episode.custom_metrics["max_step_rate"] = float(max_step_rate)
-        episode.custom_metrics["velocity_max"] = float(np.max(episode.user_data["velocity"]))
-        episode.custom_metrics["velocity_mean"] = float(np.mean(episode.user_data["velocity"]))
-        episode.custom_metrics["velocity_min"] = float(np.min(episode.user_data["velocity"]))
-        episode.custom_metrics["steering_max"] = float(np.max(episode.user_data["steering"]))
-        episode.custom_metrics["steering_mean"] = float(np.mean(episode.user_data["steering"]))
-        episode.custom_metrics["steering_min"] = float(np.min(episode.user_data["steering"]))
-        episode.custom_metrics["acceleration_min"] = float(np.min(episode.user_data["acceleration"]))
-        episode.custom_metrics["acceleration_mean"] = float(np.mean(episode.user_data["acceleration"]))
-        episode.custom_metrics["acceleration_max"] = float(np.max(episode.user_data["acceleration"]))
-        episode.custom_metrics["step_reward_max"] = float(np.max(episode.user_data["step_reward"]))
-        episode.custom_metrics["step_reward_mean"] = float(np.mean(episode.user_data["step_reward"]))
-        episode.custom_metrics["step_reward_min"] = float(np.min(episode.user_data["step_reward"]))
+        episode.custom_metrics["velocity_max"] = float(
+            np.max(episode.user_data["velocity"]))
+        episode.custom_metrics["velocity_mean"] = float(
+            np.mean(episode.user_data["velocity"]))
+        episode.custom_metrics["velocity_min"] = float(
+            np.min(episode.user_data["velocity"]))
+        episode.custom_metrics["steering_max"] = float(
+            np.max(episode.user_data["steering"]))
+        episode.custom_metrics["steering_mean"] = float(
+            np.mean(episode.user_data["steering"]))
+        episode.custom_metrics["steering_min"] = float(
+            np.min(episode.user_data["steering"]))
+        episode.custom_metrics["acceleration_min"] = float(
+            np.min(episode.user_data["acceleration"]))
+        episode.custom_metrics["acceleration_mean"] = float(
+            np.mean(episode.user_data["acceleration"]))
+        episode.custom_metrics["acceleration_max"] = float(
+            np.max(episode.user_data["acceleration"]))
+        episode.custom_metrics["step_reward_max"] = float(
+            np.max(episode.user_data["step_reward"]))
+        episode.custom_metrics["step_reward_mean"] = float(
+            np.mean(episode.user_data["step_reward"]))
+        episode.custom_metrics["step_reward_min"] = float(
+            np.min(episode.user_data["step_reward"]))
         episode.custom_metrics["cost"] = float(sum(episode.user_data["cost"]))
 
     def on_train_result(self, *, algorithm, result: dict, **kwargs):
@@ -101,26 +111,25 @@ class DrivingCallbacks(DefaultCallbacks):
             result["cost"] = result["custom_metrics"]["cost_mean"]
 
 
-def train(
-    trainer,
-    config,
-    stop,
-    exp_name,
-    num_gpus=0,
-    test_mode=False,
-    checkpoint_freq=10,
-    keep_checkpoints_num=None,
-    custom_callback=None,
-    max_failures=5,
-    **kwargs
-):
+def train(trainer,
+          config,
+          stop,
+          exp_name,
+          num_gpus=0,
+          test_mode=False,
+          checkpoint_freq=10,
+          keep_checkpoints_num=None,
+          custom_callback=None,
+          max_failures=5,
+          **kwargs):
     ray.init(
         num_gpus=num_gpus,
         logging_level=logging.ERROR if not test_mode else logging.DEBUG,
         log_to_driver=test_mode,
     )
     used_config = {
-        "callbacks": custom_callback if custom_callback else DrivingCallbacks,  # Must Have!
+        "callbacks": custom_callback
+                     if custom_callback else DrivingCallbacks,  # Must Have!
         "log_level": "DEBUG" if test_mode else "WARN",
     }
     used_config.update(config)
@@ -149,24 +158,25 @@ def train(
         kwargs["verbose"] = 1 if not test_mode else 2
 
     # start training
-    analysis = tune.run(
-        trainer,
-        name=exp_name,
-        checkpoint_freq=checkpoint_freq,
-        checkpoint_at_end=True if "checkpoint_at_end" not in kwargs else kwargs.pop("checkpoint_at_end"),
-        stop=stop,
-        config=config,
-        max_failures=max_failures if not test_mode else 0,
-        reuse_actors=False,
-        local_dir=".",
-        **kwargs
-    )
+    analysis = tune.run(trainer,
+                        name=exp_name,
+                        checkpoint_freq=checkpoint_freq,
+                        checkpoint_at_end=True if "checkpoint_at_end"
+                        not in kwargs else kwargs.pop("checkpoint_at_end"),
+                        stop=stop,
+                        config=config,
+                        max_failures=max_failures if not test_mode else 0,
+                        reuse_actors=False,
+                        local_dir=".",
+                        **kwargs)
     return analysis
 
 
 def get_train_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--exp-name", type=str, default="generalization_experiment")
+    parser.add_argument("--exp-name",
+                        type=str,
+                        default="generalization_experiment")
     parser.add_argument("--num-gpus", type=int, default=0)
     return parser
 
@@ -180,12 +190,10 @@ if __name__ == '__main__':
         # ===== Training Environment =====
         # Train the policies in scenario sets with different number of scenarios.
         env=createGymWrapper(MetaDriveEnv),
-        env_config=dict(
-            num_scenarios=tune.grid_search([1, 3, 5, 1000]),
-            start_seed=tune.grid_search([5000]),
-            random_traffic=False,
-            traffic_density=tune.grid_search([0.1, 0.3])
-        ),
+        env_config=dict(num_scenarios=tune.grid_search([1, 3, 5, 1000]),
+                        start_seed=tune.grid_search([5000]),
+                        random_traffic=False,
+                        traffic_density=tune.grid_search([0.1, 0.3])),
 
         # ===== Framework =====
         framework="torch",
@@ -195,7 +203,8 @@ if __name__ == '__main__':
         evaluation_interval=2,
         evaluation_num_episodes=40,
         metrics_smoothing_episodes=200,
-        evaluation_config=dict(env_config=dict(num_scenarios=200, start_seed=0)),
+        evaluation_config=dict(
+            env_config=dict(num_scenarios=200, start_seed=0)),
         evaluation_num_workers=5,
 
         # ===== Training =====
@@ -215,12 +224,10 @@ if __name__ == '__main__':
         num_cpus_for_driver=0.5,
     )
 
-    train(
-        "PPO",
-        exp_name=exp_name,
-        keep_checkpoints_num=5,
-        stop=stop,
-        config=config,
-        num_gpus=args.num_gpus,
-        test_mode=False
-    )
+    train("PPO",
+          exp_name=exp_name,
+          keep_checkpoints_num=5,
+          stop=stop,
+          config=config,
+          num_gpus=args.num_gpus,
+          test_mode=False)

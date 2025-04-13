@@ -13,7 +13,8 @@ def test_map_get_semantic_map(dir="waymo", render=False, show=False):
     default_config["use_render"] = render
     default_config["debug"] = False
     default_config["debug_static_world"] = False
-    default_config["data_directory"] = AssetLoader.file_path(dir, unix_style=False)
+    default_config["data_directory"] = AssetLoader.file_path(dir,
+                                                             unix_style=False)
     # default_config["data_directory"] = AssetLoader.file_path("nuscenes", unix_style=False)
     # default_config["data_directory"] = "/home/shady/Downloads/test_processed"
     default_config["num_scenarios"] = 3
@@ -23,10 +24,12 @@ def test_map_get_semantic_map(dir="waymo", render=False, show=False):
         engine.data_manager = ScenarioDataManager()
         for idx in range(default_config["num_scenarios"]):
             engine.seed(idx)
-            m_data = engine.data_manager.get_scenario(idx, should_copy=False)["map_features"]
+            m_data = engine.data_manager.get_scenario(
+                idx, should_copy=False)["map_features"]
             map = ScenarioMap(map_index=idx, map_data=m_data)
             heightfield = map.get_semantic_map([0, 0], size, res)
-            assert heightfield.shape[0] == heightfield.shape[1] == int(size * res)
+            assert heightfield.shape[0] == heightfield.shape[1] == int(
+                size * res)
             if show:
                 cv2.imshow('terrain', heightfield)
                 cv2.waitKey(0)
@@ -39,7 +42,8 @@ def test_map_get_elevation_map(dir="waymo", render=False, show=False):
     default_config["use_render"] = render
     default_config["debug"] = False
     default_config["debug_static_world"] = False
-    default_config["data_directory"] = AssetLoader.file_path(dir, unix_style=False)
+    default_config["data_directory"] = AssetLoader.file_path(dir,
+                                                             unix_style=False)
     # default_config["data_directory"] = AssetLoader.file_path("nuscenes", unix_style=False)
     # default_config["data_directory"] = "/home/shady/Downloads/test_processed"
     default_config["num_scenarios"] = 3
@@ -49,10 +53,12 @@ def test_map_get_elevation_map(dir="waymo", render=False, show=False):
         engine.data_manager = ScenarioDataManager()
         for idx in range(default_config["num_scenarios"]):
             engine.seed(idx)
-            m_data = engine.data_manager.get_scenario(idx, should_copy=False)["map_features"]
+            m_data = engine.data_manager.get_scenario(
+                idx, should_copy=False)["map_features"]
             map = ScenarioMap(map_index=idx, map_data=m_data)
             heightfield = map.get_height_map([0, 0], size, res, extension=4)
-            assert heightfield.shape[0] == heightfield.shape[1] == int(size * res)
+            assert heightfield.shape[0] == heightfield.shape[1] == int(
+                size * res)
             if show:
                 cv2.imshow('terrain', heightfield)
                 cv2.waitKey(0)

@@ -12,7 +12,8 @@ def assert_equal_pos(data_1, data_2):
     for i in range(len(data_1)):
         difference = data_1[i] - data_2[i]
         diff = norm(data_1[i][0] - data_2[i][0], data_1[i][1] - data_2[i][1])
-        assert diff < 0.00001, "pos mismatch for vehicle: {}, distance: {}".format(i, diff)
+        assert diff < 0.00001, "pos mismatch for vehicle: {}, distance: {}".format(
+            i, diff)
 
 
 def test_scenario_randomness(vis=False):
@@ -39,10 +40,14 @@ def test_scenario_randomness(vis=False):
     try:
         positions_1 = []
         o, _ = env.reset()
-        positions_1.append([env.agent.position] + [v.position for v in env.engine.traffic_manager.traffic_vehicles])
+        positions_1.append(
+            [env.agent.position] +
+            [v.position for v in env.engine.traffic_manager.traffic_vehicles])
         for i in range(1, 100000 if vis else 2000):
             o, r, tm, tc, info = env.step([0, 1])
-            positions_1.append([env.agent.position] + [v.position for v in env.engine.traffic_manager.traffic_vehicles])
+            positions_1.append([env.agent.position] + [
+                v.position for v in env.engine.traffic_manager.traffic_vehicles
+            ])
             if tm or tc:
                 break
         env.close()
@@ -50,12 +55,16 @@ def test_scenario_randomness(vis=False):
         env = SafeMetaDriveEnv(cfg)
         o, _ = env.reset()
         old_position = positions_1.pop()
-        new_position = [env.agent.position] + [v.position for v in env.engine.traffic_manager.traffic_vehicles]
+        new_position = [env.agent.position] + [
+            v.position for v in env.engine.traffic_manager.traffic_vehicles
+        ]
         assert_equal_pos(old_position, new_position)
         for i in range(1, 100000 if vis else 2000):
             o, r, tm, tc, info = env.step([0, 1])
             old_position = positions_1.pop()
-            new_position = [env.agent.position] + [v.position for v in env.engine.traffic_manager.traffic_vehicles]
+            new_position = [env.agent.position] + [
+                v.position for v in env.engine.traffic_manager.traffic_vehicles
+            ]
             assert_equal_pos(old_position, new_position)
             if tm or tc:
                 break

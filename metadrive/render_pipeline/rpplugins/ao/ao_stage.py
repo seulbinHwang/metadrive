@@ -32,7 +32,8 @@ class AOStage(RenderStage):
 
     required_inputs = []
     required_pipes = [
-        "GBuffer", "DownscaledDepth", "PreviousFrame::AmbientOcclusion", "CombinedVelocity", "PreviousFrame::SceneDepth"
+        "GBuffer", "DownscaledDepth", "PreviousFrame::AmbientOcclusion",
+        "CombinedVelocity", "PreviousFrame::SceneDepth"
     ]
 
     @property
@@ -49,12 +50,14 @@ class AOStage(RenderStage):
         self.target_upscale.add_color_attachment(bits=(8, 0, 0, 0))
         self.target_upscale.prepare_buffer()
 
-        self.target_upscale.set_shader_inputs(SourceTex=self.target.color_tex, upscaleWeights=Vec2(0.001, 0.001))
+        self.target_upscale.set_shader_inputs(SourceTex=self.target.color_tex,
+                                              upscaleWeights=Vec2(0.001, 0.001))
 
         self.tarrget_detail_ao = self.create_target("DetailAO")
         self.tarrget_detail_ao.add_color_attachment(bits=(8, 0, 0, 0))
         self.tarrget_detail_ao.prepare_buffer()
-        self.tarrget_detail_ao.set_shader_input("AOResult", self.target_upscale.color_tex)
+        self.tarrget_detail_ao.set_shader_input("AOResult",
+                                                self.target_upscale.color_tex)
 
         self.debug("Blur quality is", self.quality)
 
@@ -85,13 +88,13 @@ class AOStage(RenderStage):
             target_blur_h.add_color_attachment(bits=(8, 0, 0, 0))
             target_blur_h.prepare_buffer()
 
-            target_blur_v.set_shader_inputs(
-                SourceTex=current_tex, blur_direction=LVecBase2i(0, 1), pixel_stretch=pixel_stretch
-            )
+            target_blur_v.set_shader_inputs(SourceTex=current_tex,
+                                            blur_direction=LVecBase2i(0, 1),
+                                            pixel_stretch=pixel_stretch)
 
-            target_blur_h.set_shader_inputs(
-                SourceTex=target_blur_v.color_tex, blur_direction=LVecBase2i(1, 0), pixel_stretch=pixel_stretch
-            )
+            target_blur_h.set_shader_inputs(SourceTex=target_blur_v.color_tex,
+                                            blur_direction=LVecBase2i(1, 0),
+                                            pixel_stretch=pixel_stretch)
 
             current_tex = target_blur_h.color_tex
             self.blur_targets += [target_blur_v, target_blur_h]
@@ -103,9 +106,13 @@ class AOStage(RenderStage):
 
     def reload_shaders(self):
         self.target.shader = self.load_plugin_shader("ao_sample.frag.glsl")
-        self.target_upscale.shader = self.load_plugin_shader("/$$rp/shader/bilateral_upscale.frag.glsl")
-        blur_shader = self.load_plugin_shader("/$$rp/shader/bilateral_blur.frag.glsl")
+        self.target_upscale.shader = self.load_plugin_shader(
+            "/$$rp/shader/bilateral_upscale.frag.glsl")
+        blur_shader = self.load_plugin_shader(
+            "/$$rp/shader/bilateral_blur.frag.glsl")
         for target in self.blur_targets:
             target.shader = blur_shader
-        self.tarrget_detail_ao.shader = self.load_plugin_shader("small_scale_ao.frag.glsl")
-        self.target_resolve.shader = self.load_plugin_shader("resolve_ao.frag.glsl")
+        self.tarrget_detail_ao.shader = self.load_plugin_shader(
+            "small_scale_ao.frag.glsl")
+        self.target_resolve.shader = self.load_plugin_shader(
+            "resolve_ao.frag.glsl")

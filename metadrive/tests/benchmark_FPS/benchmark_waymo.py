@@ -13,21 +13,25 @@ def process_memory():
 
 
 def benchmark_fps():
-    env = ScenarioEnv(
-        {
-            "use_render": False,
-            "data_directory": AssetLoader.file_path("waymo", unix_style=False),
-            "agent_policy": ReplayEgoCarPolicy,
-            "no_traffic": False,
-            "window_size": (1200, 800),
-            "horizon": 1000,
-            "vehicle_config": dict(
+    env = ScenarioEnv({
+        "use_render":
+            False,
+        "data_directory":
+            AssetLoader.file_path("waymo", unix_style=False),
+        "agent_policy":
+            ReplayEgoCarPolicy,
+        "no_traffic":
+            False,
+        "window_size": (1200, 800),
+        "horizon":
+            1000,
+        "vehicle_config":
+            dict(
                 lidar=dict(num_lasers=120, distance=50, num_others=4),
                 lane_line_detector=dict(num_lasers=12, distance=50),
                 side_detector=dict(num_lasers=160, distance=50),
             ),
-        }
-    )
+    })
     env.reset()
     total_time = 0
     total_steps = 0

@@ -28,6 +28,7 @@ class PlanView:
 
     (Section 5.3.4 of OpenDRIVE 1.4)
     """
+
     def __init__(self):
         self._geometries = []
         self._precalculation = None
@@ -73,7 +74,8 @@ class PlanView:
           curvEnd:
 
         """
-        self._add_geometry(Spiral(start_pos, heading, length, curvStart, curvEnd), True)
+        self._add_geometry(
+            Spiral(start_pos, heading, length, curvStart, curvEnd), True)
 
     def addArc(self, start_pos, heading, length, curvature):
         """
@@ -87,7 +89,8 @@ class PlanView:
         """
         self._add_geometry(Arc(start_pos, heading, length, curvature), True)
 
-    def addParamPoly3(self, start_pos, heading, length, aU, bU, cU, dU, aV, bV, cV, dV, pRange):
+    def addParamPoly3(self, start_pos, heading, length, aU, bU, cU, dU, aV, bV,
+                      cV, dV, pRange):
         """
 
         Args:
@@ -106,7 +109,8 @@ class PlanView:
 
         """
         self._add_geometry(
-            ParamPoly3(start_pos, heading, length, aU, bU, cU, dU, aV, bV, cV, dV, pRange),
+            ParamPoly3(start_pos, heading, length, aU, bU, cU, dU, aV, bV, cV,
+                       dV, pRange),
             True,
         )
 
@@ -133,7 +137,8 @@ class PlanView:
           length: Length of geometry to be added.
 
         """
-        self._geo_lengths = np.append(self._geo_lengths, length + self._geo_lengths[-1])
+        self._geo_lengths = np.append(self._geo_lengths,
+                                      length + self._geo_lengths[-1])
 
     @property
     def length(self) -> float:
@@ -165,7 +170,8 @@ class PlanView:
         # self.normal_time += end - start
         return result_pos, result_tang
 
-    def interpolate_cached_values(self, s_pos: float) -> Tuple[np.ndarray, float]:
+    def interpolate_cached_values(self,
+                                  s_pos: float) -> Tuple[np.ndarray, float]:
         """Calc position and tangent at s_pos by interpolating values
         in _precalculation array.
 
@@ -181,7 +187,8 @@ class PlanView:
         # we need idx for angle interpolation
         # so idx can be used anyway in the other np.interp function calls
         idx = np.abs(self._precalculation[:, 0] - s_pos).argmin()
-        if s_pos - self._precalculation[idx, 0] < 0 or idx + 1 == len(self._precalculation):
+        if s_pos - self._precalculation[idx, 0] < 0 or idx + 1 == len(
+                self._precalculation):
             idx -= 1
         result_pos_x = np.interp(
             s_pos,
@@ -215,8 +222,10 @@ class PlanView:
         pos_prev = self._precalculation[idx, 0]
         pos_next = self._precalculation[idx + 1, 0]
 
-        shortest_angle = ((angle_next - angle_prev) + np.pi) % (2 * np.pi) - np.pi
-        return angle_prev + shortest_angle * (s_pos - pos_prev) / (pos_next - pos_prev)
+        shortest_angle = (
+            (angle_next - angle_prev) + np.pi) % (2 * np.pi) - np.pi
+        return angle_prev + shortest_angle * (s_pos - pos_prev) / (pos_next -
+                                                                   pos_prev)
 
     def calc_geometry(self, s_pos: float) -> Tuple[np.ndarray, float]:
         """Calc position and tangent at s_pos by delegating calculation to geometry.
@@ -241,11 +250,11 @@ class PlanView:
             else:
                 raise Exception(
                     f"Tried to calculate a position outside of the borders of the reference path at s={s_pos}"
-                    f", but path has only length of l={ self._geo_lengths[-1]}"
-                )
+                    f", but path has only length of l={ self._geo_lengths[-1]}")
 
         # geo_idx is index which geometry to use
-        return self._geometries[geo_idx].calc_position(s_pos - self._geo_lengths[geo_idx])
+        return self._geometries[geo_idx].calc_position(
+            s_pos - self._geo_lengths[geo_idx])
 
     def precalculate(self, precision: float = 0.5):
         """Precalculate coordinates of planView to save computing resources and time.

@@ -35,15 +35,16 @@ class Plugin(BasePlugin):
     author = "tobspr <tobias.springer1@gmail.com>"
     description = (
         "This plugin adds support for an additional forward rendering "
-        "pass. This is mainly useful for transparency."
-    )
+        "pass. This is mainly useful for transparency.")
     version = "0.1 alpha (!)"
 
     def on_stage_setup(self):
         self.stage = self.create_stage(ForwardStage)
 
         if self.is_plugin_enabled("scattering"):
-            self.stage.required_pipes += ["ScatteringIBLSpecular", "ScatteringIBLDiffuse"]
+            self.stage.required_pipes += [
+                "ScatteringIBLSpecular", "ScatteringIBLDiffuse"
+            ]
 
         if self.is_plugin_enabled("pssm"):
             self.stage.required_pipes += ["PSSMSceneSunShadowMapPCF"]

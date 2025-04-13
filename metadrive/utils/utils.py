@@ -37,7 +37,8 @@ def get_time_str():
 def setup_logger(debug=False):
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.WARNING,
-        format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s'
+        format=
+        '%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s'
     )
 
 
@@ -65,7 +66,8 @@ def recursive_equal(data1, data2, need_assert=False):
             return False
         ret = []
         for k in data1:
-            ret.append(recursive_equal(data1[k], data2[k], need_assert=need_assert))
+            ret.append(
+                recursive_equal(data1[k], data2[k], need_assert=need_assert))
         return all(ret)
 
     elif isinstance(data1, (list, tuple)):
@@ -77,7 +79,8 @@ def recursive_equal(data1, data2, need_assert=False):
             return False
         ret = []
         for i in range(len(data1)):
-            ret.append(recursive_equal(data1[i], data2[i], need_assert=need_assert))
+            ret.append(
+                recursive_equal(data1[i], data2[i], need_assert=need_assert))
         return all(ret)
     elif isinstance(data1, np.ndarray):
         ret = np.isclose(data1, data2).all()
@@ -103,7 +106,10 @@ def concat_step_infos(step_info_list):
     """We only conduct simply shallow update here!"""
     old_dict = dict()
     for new_dict in step_info_list:
-        old_dict = merge_dicts(old_dict, new_dict, allow_new_keys=True, without_copy=True)
+        old_dict = merge_dicts(old_dict,
+                               new_dict,
+                               allow_new_keys=True,
+                               without_copy=True)
     return old_dict
 
 
@@ -124,20 +130,20 @@ def merge_dicts(old_dict, new_dict, allow_new_keys=False, without_copy=False):
         merged = old_dict
     else:
         merged = copy.deepcopy(old_dict)
-    _deep_update(
-        merged, new_dict, new_keys_allowed=allow_new_keys, allow_new_subkey_list=[], raise_error=not allow_new_keys
-    )
+    _deep_update(merged,
+                 new_dict,
+                 new_keys_allowed=allow_new_keys,
+                 allow_new_subkey_list=[],
+                 raise_error=not allow_new_keys)
     return merged
 
 
-def _deep_update(
-    original,
-    new_dict,
-    new_keys_allowed=False,
-    allow_new_subkey_list=None,
-    override_all_if_type_changes=None,
-    raise_error=True
-):
+def _deep_update(original,
+                 new_dict,
+                 new_keys_allowed=False,
+                 allow_new_subkey_list=None,
+                 override_all_if_type_changes=None,
+                 raise_error=True):
     allow_new_subkey_list = allow_new_subkey_list or []
     override_all_if_type_changes = override_all_if_type_changes or []
 
@@ -160,7 +166,10 @@ def _deep_update(
                 _deep_update(original[k], value, True, raise_error=raise_error)
             # Non-allowed key.
             else:
-                _deep_update(original[k], value, new_keys_allowed, raise_error=raise_error)
+                _deep_update(original[k],
+                             value,
+                             new_keys_allowed,
+                             raise_error=raise_error)
         # Original value not a dict OR new value not a dict:
         # Override entire value.
         else:
@@ -178,14 +187,16 @@ def deprecation_warning(old, new, error=False) -> None:
             throw. If True, throw ValueError. If False, just warn.
             If Exception, throw that Exception.
     """
-    msg = "`{}` has been deprecated.{}".format(old, (" Use `{}` instead.".format(new) if new else ""))
+    msg = "`{}` has been deprecated.{}".format(
+        old, (" Use `{}` instead.".format(new) if new else ""))
     if error is True:
         raise ValueError(msg)
     elif error and issubclass(error, Exception):
         raise error(msg)
     else:
         logger = logging.getLogger(__name__)
-        logger.warning("DeprecationWarning: " + msg + " This will raise an error in the future!")
+        logger.warning("DeprecationWarning: " + msg +
+                       " This will raise an error in the future!")
 
 
 def get_object_from_node(node: BulletBodyNode):
@@ -207,13 +218,15 @@ def get_object_from_node(node: BulletBodyNode):
 def is_map_related_instance(obj):
     from metadrive.component.block.base_block import BaseBlock
     from metadrive.component.map.base_map import BaseMap
-    return True if isinstance(obj, BaseBlock) or isinstance(obj, BaseMap) else False
+    return True if isinstance(obj, BaseBlock) or isinstance(obj,
+                                                            BaseMap) else False
 
 
 def is_map_related_class(object_class):
     from metadrive.component.block.base_block import BaseBlock
     from metadrive.component.map.base_map import BaseMap
-    return True if issubclass(object_class, BaseBlock) or issubclass(object_class, BaseMap) else False
+    return True if issubclass(object_class, BaseBlock) or issubclass(
+        object_class, BaseMap) else False
 
 
 def dict_recursive_remove_array(d):
@@ -234,10 +247,12 @@ def time_me(fn):
     Returns: None
 
     """
+
     def _wrapper(*args, **kwargs):
         start = time.time()
         ret = fn(*args, **kwargs)
-        print("function: %s cost %s second" % (fn.__name__, time.time() - start))
+        print("function: %s cost %s second" %
+              (fn.__name__, time.time() - start))
         return ret
 
     return _wrapper
@@ -252,11 +267,15 @@ def time_me_with_prefix(prefix):
     Returns: None
 
     """
+
     def decorator(fn):
+
         def _wrapper(*args, **kwargs):
             start = time.time()
             ret = fn(*args, **kwargs)
-            print(prefix, "function: %s cost %s second" % (fn.__name__, time.time() - start))
+            print(
+                prefix, "function: %s cost %s second" %
+                (fn.__name__, time.time() - start))
             return ret
 
         return _wrapper
@@ -341,10 +360,11 @@ def draw_polygon(polygon):
 
     # Plot the rectangle
     plt.figure(figsize=(8, 8))
-    plt.plot(*zip(*np.append(rectangle_points, [rectangle_points[0]], axis=0)), marker='o', label='Rectangle Vertices')
-    plt.fill(
-        *zip(*np.append(rectangle_points, [rectangle_points[0]], axis=0)), alpha=0.3
-    )  # Fill the rectangle with light opacity
+    plt.plot(*zip(*np.append(rectangle_points, [rectangle_points[0]], axis=0)),
+             marker='o',
+             label='Rectangle Vertices')
+    plt.fill(*zip(*np.append(rectangle_points, [rectangle_points[0]], axis=0)),
+             alpha=0.3)  # Fill the rectangle with light opacity
 
     # Plot the original midpoints
     # plt.scatter(x_mid, y_mid, color='red', zorder=5, label='Midpoints')

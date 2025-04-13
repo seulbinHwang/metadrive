@@ -33,10 +33,8 @@ class Plugin(BasePlugin):
 
     name = "Motion blur"
     author = "tobspr <tobias.springer1@gmail.com>"
-    description = (
-        "This plugin adds support for motion blur. This includes "
-        "per-object motion blur aswell as camera-motion blur."
-    )
+    description = ("This plugin adds support for motion blur. This includes "
+                   "per-object motion blur aswell as camera-motion blur.")
     version = "1.0"
 
     def on_stage_setup(self):

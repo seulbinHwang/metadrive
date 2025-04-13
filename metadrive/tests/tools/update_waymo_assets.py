@@ -7,9 +7,11 @@ from metadrive.scenario import utils as sd_utils
 
 if __name__ == '__main__':
     waymo_data = AssetLoader.file_path(
-        AssetLoader.asset_path, "waymo", unix_style=False
-    )  # Use the built-in datasets with simulator
-    os.listdir(waymo_data)  # there are 3 waymo scenario files with one 'dataset_summary.pkl' in this example dataset.
+        AssetLoader.asset_path, "waymo",
+        unix_style=False)  # Use the built-in datasets with simulator
+    os.listdir(
+        waymo_data
+    )  # there are 3 waymo scenario files with one 'dataset_summary.pkl' in this example dataset.
 
     with open(waymo_data + '/dataset_summary.pkl', 'rb') as f:
         dataset_summary = pickle.load(f)
@@ -19,15 +21,19 @@ if __name__ == '__main__':
     print("Dataset path: ", dataset_path)
 
     # Get the scenario .pkl file name
-    _, scenario_ids, dataset_mapping = sd_utils.read_dataset_summary(dataset_path)
+    _, scenario_ids, dataset_mapping = sd_utils.read_dataset_summary(
+        dataset_path)
 
     for scenario_pkl_file in scenario_ids:
 
         # Get the relative path to the .pkl file
-        print("The pkl file relative path: ", dataset_mapping[scenario_pkl_file])  # A empty path
+        print("The pkl file relative path: ",
+              dataset_mapping[scenario_pkl_file])  # A empty path
 
         # Get the absolute path to the .pkl file
-        abs_path_to_pkl_file = os.path.join(dataset_path, dataset_mapping[scenario_pkl_file], scenario_pkl_file)
+        abs_path_to_pkl_file = os.path.join(dataset_path,
+                                            dataset_mapping[scenario_pkl_file],
+                                            scenario_pkl_file)
         print("The pkl file absolute path: ", abs_path_to_pkl_file)
 
         # Call utility function in MD and get the ScenarioDescrption object
@@ -54,10 +60,13 @@ if __name__ == '__main__':
             pickle.dump(sd_scenario, f)
 
         # Update summary
-        print('\n\n Before', dataset_summary[scenario_pkl_file]['number_summary'])
-        dataset_summary[scenario_pkl_file] = copy.deepcopy(sd_scenario[SD.METADATA])
+        print('\n\n Before',
+              dataset_summary[scenario_pkl_file]['number_summary'])
+        dataset_summary[scenario_pkl_file] = copy.deepcopy(
+            sd_scenario[SD.METADATA])
 
-        print('\n\n After', dataset_summary[scenario_pkl_file]['number_summary'])
+        print('\n\n After',
+              dataset_summary[scenario_pkl_file]['number_summary'])
 
     with open(waymo_data + '/dataset_summary.pkl', 'wb') as f:
         pickle.dump(dataset_summary, f)

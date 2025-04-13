@@ -36,6 +36,7 @@ from metadrive.render_pipeline.rpcore.loader import RPLoader
 class DisplayShaderBuilder(object):  # pylint: disable=too-few-public-methods
     """ Utility class to generate shaders on the fly to display texture previews
     and also buffers """
+
     @classmethod
     def build(cls, texture, view_width, view_height):
         """ Builds a shader to display <texture> in a view port with the size
@@ -43,24 +44,27 @@ class DisplayShaderBuilder(object):  # pylint: disable=too-few-public-methods
         view_width, view_height = int(view_width), int(view_height)
 
         cache_key = "/$$rptemp/$$TEXDISPLAY-X{}-Y{}-Z{}-TT{}-CT{}-VW{}-VH{}.frag.glsl".format(
-            texture.get_x_size(), texture.get_y_size(), texture.get_z_size(), texture.get_texture_type(),
-            texture.get_component_type(), view_width, view_height
-        )
+            texture.get_x_size(), texture.get_y_size(), texture.get_z_size(),
+            texture.get_texture_type(), texture.get_component_type(),
+            view_width, view_height)
 
         # Only regenerate the file when there is no cache entry for it
         if not isfile(cache_key) or True:
-            fragment_shader = cls._build_fragment_shader(texture, view_width, view_height)
+            fragment_shader = cls._build_fragment_shader(
+                texture, view_width, view_height)
 
             with open(cache_key, "w") as handle:
                 handle.write(fragment_shader)
 
-        return RPLoader.load_shader("/$$rp/shader/default_gui_shader.vert.glsl", cache_key)
+        return RPLoader.load_shader("/$$rp/shader/default_gui_shader.vert.glsl",
+                                    cache_key)
 
     @classmethod
     def _build_fragment_shader(cls, texture, view_width, view_height):
         """ Internal method to build a fragment shader displaying the texture """
 
-        sampling_code, sampler_type = cls._generate_sampling_code(texture, view_width, view_height)
+        sampling_code, sampler_type = cls._generate_sampling_code(
+            texture, view_width, view_height)
 
         # Build actual shader
         built = """
@@ -76,9 +80,7 @@ class DisplayShaderBuilder(object):  # pylint: disable=too-few-public-methods
             uniform """ + sampler_type + """ p3d_Texture0;
             void main() {
                 int view_width = """ + str(view_width) + """;
-                int view_height = """ + str(
-            view_height
-        ) + """;
+                int view_height = """ + str(view_height) + """;
                 ivec2 display_coord = ivec2(texcoord * vec2(view_width, view_height));
                 int int_index = display_coord.x + display_coord.y * view_width;
                 """ + sampling_code + """
@@ -106,12 +108,15 @@ class DisplayShaderBuilder(object):  # pylint: disable=too-few-public-methods
         slice_count = "int slice_count = textureSize(p3d_Texture0, 0).z;"
 
         float_types = [Image.T_float, Image.T_unsigned_byte]
-        int_types = [Image.T_int, Image.T_unsigned_short, Image.T_unsigned_int_24_8]
+        int_types = [
+            Image.T_int, Image.T_unsigned_short, Image.T_unsigned_int_24_8
+        ]
 
         result = "result = vec3(1, 0, 1);", "sampler2D"
 
         if comp_type not in float_types + int_types:
-            RPObject.global_warn("DisplayShaderBuilder", "Unkown texture component type:", comp_type)
+            RPObject.global_warn("DisplayShaderBuilder",
+                                 "Unkown texture component type:", comp_type)
 
         # 2D Textures
         if texture_type == Image.TT_2d_texture:
@@ -129,7 +134,9 @@ class DisplayShaderBuilder(object):  # pylint: disable=too-few-public-methods
                 return "if (int_index < textureSize(p3d_Texture0)) {" + code + "} else { result = vec3(1.0, 0.6, 0.2);};"  # noqa
 
             if comp_type in float_types:
-                result = range_check("result = texelFetch(p3d_Texture0, int_index).xyz;"), "samplerBuffer"  # noqa
+                result = range_check(
+                    "result = texelFetch(p3d_Texture0, int_index).xyz;"
+                ), "samplerBuffer"  # noqa
 
             elif comp_type in int_types:
                 result = range_check(
@@ -168,6 +175,7 @@ class DisplayShaderBuilder(object):  # pylint: disable=too-few-public-methods
             result = code, "samplerCubeArray"
 
         else:
-            print("WARNING: Unhandled texture type", texture_type, "in display shader builder")
+            print("WARNING: Unhandled texture type", texture_type,
+                  "in display shader builder")
 
         return result

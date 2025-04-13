@@ -51,7 +51,8 @@ def _suppress_warning():
 def _free_warning():
     loadPrcFileData("", "notify-level-glgsg debug")
     # loadPrcFileData("", "notify-level-pgraph debug")  # press 4 to use toggle analyze to do this
-    loadPrcFileData("", "notify-level-display debug")  # press 4 to use toggle analyze to do this
+    loadPrcFileData("", "notify-level-display debug"
+                   )  # press 4 to use toggle analyze to do this
     loadPrcFileData("", "notify-level-pnmimage debug")
     loadPrcFileData("", "notify-level-thread debug")
 
@@ -151,23 +152,30 @@ class EngineCore(ShowBase.ShowBase):
             assert self.mode == RENDER_MODE_ONSCREEN, "Render mode error"
             # Warning it may cause memory leak, Pand3d Official has fixed this in their master branch.
             # You can enable it if your panda version is latest.
-            if self.global_config["multi_thread_render"] and not self.use_render_pipeline:
+            if self.global_config[
+                    "multi_thread_render"] and not self.use_render_pipeline:
                 # multi-thread render, accelerate simulation
-                loadPrcFileData("", "threading-model {}".format(self.global_config["multi_thread_render_mode"]))
+                loadPrcFileData(
+                    "", "threading-model {}".format(
+                        self.global_config["multi_thread_render_mode"]))
         else:
             self.global_config["show_coordinates"] = False
             if self.global_config["image_observation"]:
                 assert self.mode == RENDER_MODE_OFFSCREEN, "Render mode error"
-                if self.global_config["multi_thread_render"] and not self.use_render_pipeline:
+                if self.global_config[
+                        "multi_thread_render"] and not self.use_render_pipeline:
                     # render-pipeline can not work with multi-thread rendering
-                    loadPrcFileData("", "threading-model {}".format(self.global_config["multi_thread_render_mode"]))
+                    loadPrcFileData(
+                        "", "threading-model {}".format(
+                            self.global_config["multi_thread_render_mode"]))
             else:
                 assert self.mode == RENDER_MODE_NONE, "Render mode error"
                 if self.global_config["show_interface"]:
                     # Disable useless camera capturing in none mode
                     self.global_config["show_interface"] = False
 
-        loadPrcFileData("", "win-size {} {}".format(*self.global_config["window_size"]))
+        loadPrcFileData(
+            "", "win-size {} {}".format(*self.global_config["window_size"]))
 
         if self.use_render_pipeline:
             from metadrive.render_pipeline.rpcore import RenderPipeline
@@ -206,11 +214,13 @@ class EngineCore(ShowBase.ShowBase):
                 self.accept("1", self.toggleDebug)
                 self.accept("4", self.toggleAnalyze)
 
-        if not self.global_config["disable_model_compression"] and not self.use_render_pipeline:
+        if not self.global_config[
+                "disable_model_compression"] and not self.use_render_pipeline:
             loadPrcFileData("", "compressed-textures 1")  # Default to compress
 
         super(EngineCore, self).__init__(windowType=self.mode)
-        logger.info("Known Pipes: {}".format(*GraphicsPipeSelection.getGlobalPtr().getPipeTypes()))
+        logger.info("Known Pipes: {}".format(
+            *GraphicsPipeSelection.getGlobalPtr().getPipeTypes()))
         if self.main_window_disabled and self.mode != RENDER_MODE_NONE:
             self.win.setActive(False)
 
@@ -222,27 +232,33 @@ class EngineCore(ShowBase.ShowBase):
         if self.mode == RENDER_MODE_ONSCREEN:
             h = self.pipe.getDisplayHeight()
             w = self.pipe.getDisplayWidth()
-            if self.global_config["window_size"][0] > 0.9 * w or self.global_config["window_size"][1] > 0.9 * h:
-                old_scale = self.global_config["window_size"][0] / self.global_config["window_size"][1]
+            if self.global_config["window_size"][
+                    0] > 0.9 * w or self.global_config["window_size"][
+                        1] > 0.9 * h:
+                old_scale = self.global_config["window_size"][
+                    0] / self.global_config["window_size"][1]
                 new_w = int(min(0.9 * w, 0.9 * h * old_scale))
                 new_h = int(min(0.9 * h, 0.9 * w / old_scale))
                 self.global_config["window_size"] = tuple([new_w, new_h])
                 from panda3d.core import WindowProperties
                 props = WindowProperties()
-                props.setSize(self.global_config["window_size"][0], self.global_config["window_size"][1])
+                props.setSize(self.global_config["window_size"][0],
+                              self.global_config["window_size"][1])
                 self.win.requestProperties(props)
                 logger.warning(
-                    "Since your screen is too small ({}, {}), we resize the window to {}.".format(
-                        w, h, self.global_config["window_size"]
-                    )
-                )
+                    "Since your screen is too small ({}, {}), we resize the window to {}."
+                    .format(w, h, self.global_config["window_size"]))
             # main_window_position = (
             #     (w - self.global_config["window_size"][0]) / 2, (h - self.global_config["window_size"][1]) / 2
             # )
 
         # screen scale factor
-        self.w_scale = max(self.global_config["window_size"][0] / self.global_config["window_size"][1], 1)
-        self.h_scale = max(self.global_config["window_size"][1] / self.global_config["window_size"][0], 1)
+        self.w_scale = max(
+            self.global_config["window_size"][0] /
+            self.global_config["window_size"][1], 1)
+        self.h_scale = max(
+            self.global_config["window_size"][1] /
+            self.global_config["window_size"][0], 1)
 
         if self.mode == RENDER_MODE_ONSCREEN:
             self.disableMouse()
@@ -256,15 +272,17 @@ class EngineCore(ShowBase.ShowBase):
                 pass
             if not self.use_render_pipeline:
                 # Display logo
-                if self.mode == RENDER_MODE_ONSCREEN and (not self.global_config["debug"]):
+                if self.mode == RENDER_MODE_ONSCREEN and (
+                        not self.global_config["debug"]):
                     if self.global_config["show_logo"]:
                         self._window_logo = attach_logo(self)
                         self._loading_logo = attach_cover_image(
-                            window_width=self.get_size()[0], window_height=self.get_size()[1]
-                        )
+                            window_width=self.get_size()[0],
+                            window_height=self.get_size()[1])
                         for i in range(5):
                             self.graphicsEngine.renderFrame()
-                        self.taskMgr.add(self.remove_logo, "remove _loading_logo in first frame")
+                        self.taskMgr.add(self.remove_logo,
+                                         "remove _loading_logo in first frame")
 
         self.closed = False
 
@@ -281,11 +299,12 @@ class EngineCore(ShowBase.ShowBase):
 
         # physics world
         self.physics_world = PhysicsWorld(
-            self.global_config["debug_static_world"], disable_collision=self.global_config["disable_collision"]
-        )
+            self.global_config["debug_static_world"],
+            disable_collision=self.global_config["disable_collision"])
 
         # collision callback
-        self.physics_world.dynamic_world.setContactAddedCallback(PythonCallbackObject(collision_callback))
+        self.physics_world.dynamic_world.setContactAddedCallback(
+            PythonCallbackObject(collision_callback))
 
         # for real time simulation
         self.force_fps = ForceFPS(self)
@@ -301,27 +320,27 @@ class EngineCore(ShowBase.ShowBase):
             if self.use_render_pipeline:
                 self.pbrpipe = None
                 if self.global_config["daytime"] is not None:
-                    self.render_pipeline.daytime_mgr.time = self.global_config["daytime"]
+                    self.render_pipeline.daytime_mgr.time = self.global_config[
+                        "daytime"]
             else:
                 if is_mac():
                     self.pbrpipe = init(
                         msaa_samples=4,
                         # use_hardware_skinning=True,
-                        use_330=True
-                    )
+                        use_330=True)
                 else:
                     self.pbrpipe = init(
                         msaa_samples=16,
                         use_hardware_skinning=True,
                         # use_normal_maps=True,
-                        use_330=False
-                    )
+                        use_330=False)
 
                 self.sky_box = SkyBox(not self.global_config["show_skybox"])
                 self.sky_box.attach_to_world(self.render, self.physics_world)
 
                 self.world_light = Light()
-                self.world_light.attach_to_world(self.render, self.physics_world)
+                self.world_light.attach_to_world(self.render,
+                                                 self.physics_world)
                 self.render.setLight(self.world_light.direction_np)
                 self.render.setLight(self.world_light.ambient_np)
                 self.render.setAntialias(AntialiasAttrib.MAuto)
@@ -342,7 +361,8 @@ class EngineCore(ShowBase.ShowBase):
                 self.setFrameRateMeter(True)
 
             # onscreen message
-            self.on_screen_message = ScreenMessage(debug=self.DEBUG) if self.mode == RENDER_MODE_ONSCREEN else None
+            self.on_screen_message = ScreenMessage(
+                debug=self.DEBUG) if self.mode == RENDER_MODE_ONSCREEN else None
             self._show_help_message = False
             self._episode_start_time = time.time()
 
@@ -418,17 +438,15 @@ class EngineCore(ShowBase.ShowBase):
         self.taskMgr.stop()
         logger.debug(
             "Before del taskMgr: task_chain_num={}, all_tasks={}".format(
-                self.taskMgr.mgr.getNumTaskChains(), self.taskMgr.getAllTasks()
-            )
-        )
+                self.taskMgr.mgr.getNumTaskChains(),
+                self.taskMgr.getAllTasks()))
         for tsk in self.taskMgr.getAllTasks():
             if tsk not in self._all_panda_tasks:
                 self.taskMgr.remove(tsk)
         logger.debug(
             "After del taskMgr: task_chain_num={}, all_tasks={}".format(
-                self.taskMgr.mgr.getNumTaskChains(), self.taskMgr.getAllTasks()
-            )
-        )
+                self.taskMgr.mgr.getNumTaskChains(),
+                self.taskMgr.getAllTasks()))
         if hasattr(self, "_window_logo"):
             self._window_logo.removeNode()
         self.terrain.destroy()
@@ -515,7 +533,8 @@ class EngineCore(ShowBase.ShowBase):
             self._loading_logo.setColor((1, 1, 1, new_alpha))
             return task.cont
 
-    def _draw_line_3d(self, start_p: Union[Vec3, Tuple], end_p: Union[Vec3, Tuple], color, thickness: float):
+    def _draw_line_3d(self, start_p: Union[Vec3, Tuple],
+                      end_p: Union[Vec3, Tuple], color, thickness: float):
         """
         This API is not official
         Args:
@@ -557,10 +576,16 @@ class EngineCore(ShowBase.ShowBase):
         if len(self.coordinate_line) > 0:
             return
         # x direction = red
-        np_x = self._draw_line_3d(Vec3(0, 0, 0.1), Vec3(100, 0, 0.1), color=[1, 0, 0, 1], thickness=3)
+        np_x = self._draw_line_3d(Vec3(0, 0, 0.1),
+                                  Vec3(100, 0, 0.1),
+                                  color=[1, 0, 0, 1],
+                                  thickness=3)
         np_x.reparentTo(self.render)
         # y direction = blue
-        np_y = self._draw_line_3d(Vec3(0, 0, 0.1), Vec3(0, 50, 0.1), color=[0, 1, 0, 1], thickness=3)
+        np_y = self._draw_line_3d(Vec3(0, 0, 0.1),
+                                  Vec3(0, 50, 0.1),
+                                  color=[0, 1, 0, 1],
+                                  thickness=3)
         np_y.reparentTo(self.render)
 
         np_y.hide(CamMask.AllOn)
@@ -585,7 +610,8 @@ class EngineCore(ShowBase.ShowBase):
 
     @property
     def use_render_pipeline(self):
-        return self.global_config["render_pipeline"] and not self.mode == RENDER_MODE_NONE
+        return self.global_config[
+            "render_pipeline"] and not self.mode == RENDER_MODE_NONE
 
     def reload_shader(self):
         if self.render_pipeline is not None:
@@ -597,10 +623,13 @@ class EngineCore(ShowBase.ShowBase):
                 # It is added when initializing main_camera
                 continue
             if sensor_id in self.sensors:
-                raise ValueError("Sensor id {} is duplicated!".format(sensor_id))
+                raise ValueError(
+                    "Sensor id {} is duplicated!".format(sensor_id))
             cls = sensor_cfg[0]
             args = sensor_cfg[1:]
-            assert issubclass(cls, BaseSensor), "{} is not a subclass of BaseSensor".format(cls.__name__)
+            assert issubclass(
+                cls, BaseSensor), "{} is not a subclass of BaseSensor".format(
+                    cls.__name__)
             if issubclass(cls, ImageBuffer):
                 self.add_image_sensor(sensor_id, cls, args)
             else:
@@ -608,10 +637,14 @@ class EngineCore(ShowBase.ShowBase):
 
     def get_sensor(self, sensor_id):
         if sensor_id not in self.sensors:
-            raise ValueError("Can not get {}, available sensors: {}".format(sensor_id, self.sensors.keys()))
+            raise ValueError("Can not get {}, available sensors: {}".format(
+                sensor_id, self.sensors.keys()))
         return self.sensors[sensor_id]
 
     def add_image_sensor(self, name: str, cls, args):
-        sensor = cls(*args, engine=self, cuda=self.global_config["image_on_cuda"])
-        assert isinstance(sensor, ImageBuffer), "This API is for adding image sensor"
+        sensor = cls(*args,
+                     engine=self,
+                     cuda=self.global_config["image_on_cuda"])
+        assert isinstance(sensor,
+                          ImageBuffer), "This API is for adding image sensor"
         self.sensors[name] = sensor

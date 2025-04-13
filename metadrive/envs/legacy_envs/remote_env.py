@@ -23,6 +23,7 @@ def get_remote_metadrive():
 
 
 class RemoteMetaDrive(gym.Env):
+
     def __init__(self, env_config):
         assert ray is not None, "Please install ray via: pip install ray " \
                                 "if you wish to use multiple MetaDrive in single process."

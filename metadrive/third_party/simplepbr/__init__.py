@@ -34,7 +34,9 @@ def _add_shader_defines(shaderstr, defines):
         raise RuntimeError('Failed to find GLSL version string')
     shaderlines.remove(version_line)
 
-    define_lines = [f'#define {define} {value}' for define, value in defines.items()]
+    define_lines = [
+        f'#define {define} {value}' for define, value in defines.items()
+    ]
 
     return '\n'.join([version_line] + define_lines + ['#line 1'] + shaderlines)
 
@@ -82,6 +84,7 @@ class Pipeline:
     """
     A SimplePBR Pipeline
     """
+
     def __init__(
         self,
         *,
@@ -159,7 +162,8 @@ class Pipeline:
 
             cvar = p3d.ConfigVariableInt('gl-version')
             gl_version = [cvar.get_word(i) for i in range(cvar.get_num_words())]
-            if len(gl_version) >= 2 and gl_version[0] >= 3 and gl_version[1] >= 2:
+            if len(gl_version
+                  ) >= 2 and gl_version[0] >= 3 and gl_version[1] >= 2:
                 # Not exactly accurate, but setting this variable to '3 2' is common for disabling
                 # the fixed-function pipeline and 3.2 support likely means 3.3 support as well.
                 self.use_330 = True
@@ -271,7 +275,8 @@ class Pipeline:
         scene_tex = p3d.Texture()
         scene_tex.set_format(p3d.Texture.F_rgba16)
         scene_tex.set_component_type(p3d.Texture.T_float)
-        self.tonemap_quad = self.manager.render_scene_into(colortex=scene_tex, fbprops=fbprops)
+        self.tonemap_quad = self.manager.render_scene_into(colortex=scene_tex,
+                                                           fbprops=fbprops)
 
         defines = {}
         if self.use_330:
@@ -295,9 +300,18 @@ class Pipeline:
 
         """
         engine = p3d.GraphicsEngine.get_global_ptr()
-        cameras = [dispregion.camera for win in engine.windows for dispregion in win.active_display_regions]
+        cameras = [
+            dispregion.camera
+            for win in engine.windows
+            for dispregion in win.active_display_regions
+        ]
 
-        return [i.node() for i in cameras if hasattr(i.node(), 'is_shadow_caster') and i.node().is_shadow_caster()]
+        return [
+            i.node()
+            for i in cameras
+            if hasattr(i.node(), 'is_shadow_caster') and
+            i.node().is_shadow_caster()
+        ]
 
     def verify_shaders(self):
         """

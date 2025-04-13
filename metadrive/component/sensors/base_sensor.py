@@ -2,6 +2,7 @@ class BaseSensor:
     """
     This is the base class of all sensors
     """
+
     def perceive(self, *args, **kwargs):
         """
         All sensors have to implement this API as the interface for accessing the sensor output

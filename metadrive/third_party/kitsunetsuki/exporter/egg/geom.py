@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from panda3d.egg import (EggGroup, EggPolygon, EggVertexPool, EggMaterial, EggTexture)
+from panda3d.egg import (EggGroup, EggPolygon, EggVertexPool, EggMaterial,
+                         EggTexture)
 
 from metadrive.third_party.kitsunetsuki.base.matrices import get_object_matrix
 from metadrive.third_party.kitsunetsuki.base.armature import get_armature
@@ -22,11 +23,13 @@ from metadrive.third_party.kitsunetsuki.base.objects import apply_modifiers, is_
 
 
 class GeomMixin(object):
+
     def _get_joints(self, egg_group):
         results = {}
 
         for child in egg_group.get_children():
-            if (isinstance(child, EggGroup) and child.get_group_type() == EggGroup.GT_joint):
+            if (isinstance(child, EggGroup) and
+                    child.get_group_type() == EggGroup.GT_joint):
                 results[child.get_name()] = child
                 results.update(self._get_joints(child))
 
@@ -51,7 +54,8 @@ class GeomMixin(object):
             for material in mesh.materials.values():
                 # material
                 for child in self._root.get_children():  # existing material
-                    if (isinstance(child, EggMaterial) and child.get_name() == material.name):
+                    if (isinstance(child, EggMaterial) and
+                            child.get_name() == material.name):
                         egg_materials[material.name] = child
                         break
                 else:  # new material
@@ -67,15 +71,19 @@ class GeomMixin(object):
                 if not self._no_textures:
                     for type_, _, egg_texture in self.make_textures(material):
                         tname = egg_texture.get_name()
-                        for child in self._root.get_children():  # existing texture
-                            if (isinstance(child, EggTexture) and child.get_name() == tname):
+                        for child in self._root.get_children(
+                        ):  # existing texture
+                            if (isinstance(child, EggTexture) and
+                                    child.get_name() == tname):
                                 egg_textures[tname] = child
-                                egg_material_textures[material.name][tname] = child
+                                egg_material_textures[
+                                    material.name][tname] = child
                                 break
                         else:  # new texture
                             self._root.add_child(egg_texture)
                             egg_textures[tname] = egg_texture
-                            egg_material_textures[material.name][tname] = egg_texture
+                            egg_material_textures[
+                                material.name][tname] = egg_texture
 
         # get or create vertex pool
         egg_vertex_pool = None
@@ -97,8 +105,9 @@ class GeomMixin(object):
         egg_joints = {}
         if armature:
             for child in self._root.get_children():
-                if (isinstance(child, EggGroup) and child.get_dart_type() == EggGroup.DT_structured
-                        and child.get_name() == armature.name):
+                if (isinstance(child, EggGroup) and
+                        child.get_dart_type() == EggGroup.DT_structured and
+                        child.get_name() == armature.name):
                     egg_joints = self._get_joints(child)
 
         sharp_vertices = {}
@@ -146,21 +155,26 @@ class GeomMixin(object):
 
                 # <-- vertex
                 vertex = mesh.vertices[vertex_id]
-                use_smooth = (polygon.use_smooth and vertex_id not in sharp_vertices and not is_collision(obj))
+                use_smooth = (polygon.use_smooth and
+                              vertex_id not in sharp_vertices and
+                              not is_collision(obj))
 
                 # try to reuse shared vertices
-                if (polygon.use_smooth and vertex_id in egg_vertices and not is_collision(obj)):
+                if (polygon.use_smooth and vertex_id in egg_vertices and
+                        not is_collision(obj)):
                     shared = False
                     for egg_vertex in egg_vertices[vertex_id]:
                         loop_id = polygon.loop_indices[i]
-                        egg_vertex_uv = egg_vertex.get_uv_obj(self._get_uv_name(mesh.uv_layers.active))
+                        egg_vertex_uv = egg_vertex.get_uv_obj(
+                            self._get_uv_name(mesh.uv_layers.active))
 
                         if not egg_vertex_uv:
                             egg_polygon.add_vertex(egg_vertex)
                             shared = True
                             break
 
-                        if self.can_share_vertex(mesh, vertex, loop_id, egg_vertex_uv.get_uv(),
+                        if self.can_share_vertex(mesh, vertex, loop_id,
+                                                 egg_vertex_uv.get_uv(),
                                                  egg_vertex.get_normal()):
                             egg_polygon.add_vertex(egg_vertex)
                             shared = True
@@ -174,9 +188,12 @@ class GeomMixin(object):
                     can_merge_vertices = True
                 elif is_collision(obj):
                     can_merge_vertices = False
-                egg_vertex = self.make_vertex(
-                    parent_obj_matrix, obj_matrix, polygon, vertex, use_smooth=use_smooth, can_merge=can_merge_vertices
-                )
+                egg_vertex = self.make_vertex(parent_obj_matrix,
+                                              obj_matrix,
+                                              polygon,
+                                              vertex,
+                                              use_smooth=use_smooth,
+                                              can_merge=can_merge_vertices)
 
                 # uv layers
                 if not is_collision(obj):
@@ -189,7 +206,8 @@ class GeomMixin(object):
                         if not uv_layer.active and self._no_extra_uv:
                             continue
 
-                        egg_vertex_uv = self.make_vertex_uv(uv_layer, uv_loop.uv)
+                        egg_vertex_uv = self.make_vertex_uv(
+                            uv_layer, uv_loop.uv)
                         if uv_name in uv_tb:
                             t, b, s = uv_tb[uv_name][loop_id]
                             tangent = parent_obj_matrix @ t
@@ -216,7 +234,8 @@ class GeomMixin(object):
                         obj_vertex_group = obj.vertex_groups[vertex_group.group]
                         if obj_vertex_group.name in egg_joints:
                             egg_joint = egg_joints[obj_vertex_group.name]
-                            egg_joint.set_vertex_membership(egg_vertex, vertex_group.weight)
+                            egg_joint.set_vertex_membership(
+                                egg_vertex, vertex_group.weight)
 
                 # vertex -->
 

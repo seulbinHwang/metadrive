@@ -12,6 +12,7 @@ from direct.showbase.ShowBase import ShowBase
 
 
 class Application(ShowBase):
+
     def __init__(self):
         sys.path.insert(0, "../../")
         load_prc_file_data("", "win-size 512 512")

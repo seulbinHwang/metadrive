@@ -20,7 +20,8 @@ class DefaultVehicle(BaseVehicle):
     LATERAL_TIRE_TO_CENTER = 0.815
     FRONT_WHEELBASE = 1.05234
     REAR_WHEELBASE = 1.4166
-    path = ('ferra/vehicle.gltf', (1, 1, 1), (0, 0.075, 0.), (0, 0, 0))  # asset path, scale, offset, HPR
+    path = ('ferra/vehicle.gltf', (1, 1, 1), (0, 0.075, 0.), (0, 0, 0)
+           )  # asset path, scale, offset, HPR
 
     DEFAULT_LENGTH = 4.515  # meters
     DEFAULT_HEIGHT = 1.19  # meters
@@ -47,7 +48,8 @@ class TrafficDefaultVehicle(DefaultVehicle):
 
 
 class StaticDefaultVehicle(DefaultVehicle):
-    PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.STATIC_DEFAULT_VEHICLE)
+    PARAMETER_SPACE = ParameterSpace(
+        VehicleParameterSpace.STATIC_DEFAULT_VEHICLE)
 
 
 class XLVehicle(BaseVehicle):
@@ -167,10 +169,16 @@ class SVehicle(BaseVehicle):
         if self.use_render_pipeline and platform.system() != "Linux":
             # vfs = VirtualFileSystem.get_global_ptr()
             # vfs.mount(convert_path(AssetLoader.file_path("models", "beetle")), "/$$beetle_model", 0)
-            return ['beetle/vehicle.bam', (0.0077, 0.0077, 0.0077), (0.04512, -0.24 - 0.04512, 1.77), (-90, -90, 0)]
+            return [
+                'beetle/vehicle.bam', (0.0077, 0.0077, 0.0077),
+                (0.04512, -0.24 - 0.04512, 1.77), (-90, -90, 0)
+            ]
         else:
             factor = 1
-            return ['beetle/vehicle.gltf', (factor, factor, factor), (0, -0.2, 0.03), (0, 0, 0)]
+            return [
+                'beetle/vehicle.gltf', (factor, factor, factor),
+                (0, -0.2, 0.03), (0, 0, 0)
+            ]
 
     @property
     def LENGTH(self):
@@ -186,46 +194,51 @@ class SVehicle(BaseVehicle):
 
 
 class VaryingDynamicsVehicle(DefaultVehicle):
+
     @property
     def WIDTH(self):
-        return self.config["width"] if self.config["width"] is not None else super(VaryingDynamicsVehicle, self).WIDTH
+        return self.config["width"] if self.config[
+            "width"] is not None else super(VaryingDynamicsVehicle, self).WIDTH
 
     @property
     def LENGTH(self):
-        return self.config["length"] if self.config["length"] is not None else super(
-            VaryingDynamicsVehicle, self
-        ).LENGTH
+        return self.config[
+            "length"] if self.config["length"] is not None else super(
+                VaryingDynamicsVehicle, self).LENGTH
 
     @property
     def HEIGHT(self):
-        return self.config["height"] if self.config["height"] is not None else super(
-            VaryingDynamicsVehicle, self
-        ).HEIGHT
+        return self.config[
+            "height"] if self.config["height"] is not None else super(
+                VaryingDynamicsVehicle, self).HEIGHT
 
     @property
     def MASS(self):
-        return self.config["mass"] if self.config["mass"] is not None else super(VaryingDynamicsVehicle, self).MASS
+        return self.config["mass"] if self.config[
+            "mass"] is not None else super(VaryingDynamicsVehicle, self).MASS
 
     def reset(
-        self,
-        random_seed=None,
-        vehicle_config=None,
-        position=None,
-        heading: float = 0.0,  # In degree!
-        *args,
-        **kwargs
-    ):
+            self,
+            random_seed=None,
+            vehicle_config=None,
+            position=None,
+            heading: float = 0.0,  # In degree!
+            *args,
+            **kwargs):
 
         assert "width" not in self.PARAMETER_SPACE
         assert "height" not in self.PARAMETER_SPACE
         assert "length" not in self.PARAMETER_SPACE
         should_force_reset = False
         if vehicle_config is not None:
-            if vehicle_config["width"] is not None and vehicle_config["width"] != self.WIDTH:
+            if vehicle_config["width"] is not None and vehicle_config[
+                    "width"] != self.WIDTH:
                 should_force_reset = True
-            if vehicle_config["height"] is not None and vehicle_config["height"] != self.HEIGHT:
+            if vehicle_config["height"] is not None and vehicle_config[
+                    "height"] != self.HEIGHT:
                 should_force_reset = True
-            if vehicle_config["length"] is not None and vehicle_config["length"] != self.LENGTH:
+            if vehicle_config["length"] is not None and vehicle_config[
+                    "length"] != self.LENGTH:
                 should_force_reset = True
             if "max_engine_force" in vehicle_config and \
                 vehicle_config["max_engine_force"] is not None and \
@@ -260,14 +273,12 @@ class VaryingDynamicsVehicle(DefaultVehicle):
 
         if should_force_reset:
             self.destroy()
-            self.__init__(
-                vehicle_config=vehicle_config,
-                name=self.name,
-                random_seed=self.random_seed,
-                position=position,
-                heading=heading,
-                _calling_reset=False
-            )
+            self.__init__(vehicle_config=vehicle_config,
+                          name=self.name,
+                          random_seed=self.random_seed,
+                          position=position,
+                          heading=heading,
+                          _calling_reset=False)
 
             # lm = process_memory()
             # print("{}:  Reset! Mem Change {:.3f}MB".format("1 Force Re-Init Vehicle", (lm - cm) / 1e6))
@@ -275,9 +286,13 @@ class VaryingDynamicsVehicle(DefaultVehicle):
 
         assert self.max_steering == self.config["max_steering"]
 
-        ret = super(VaryingDynamicsVehicle, self).reset(
-            random_seed=random_seed, vehicle_config=vehicle_config, position=position, heading=heading, *args, **kwargs
-        )
+        ret = super(VaryingDynamicsVehicle,
+                    self).reset(random_seed=random_seed,
+                                vehicle_config=vehicle_config,
+                                position=position,
+                                heading=heading,
+                                *args,
+                                **kwargs)
 
         # lm = process_memory()
         # print("{}:  Reset! Mem Change {:.3f}MB".format("2 Force Reset Vehicle", (lm - cm) / 1e6))
@@ -287,9 +302,14 @@ class VaryingDynamicsVehicle(DefaultVehicle):
 
 
 class VaryingDynamicsBoundingBoxVehicle(VaryingDynamicsVehicle):
-    def __init__(
-        self, vehicle_config: dict = None, name: str = None, random_seed=None, position=None, heading=None, **kwargs
-    ):
+
+    def __init__(self,
+                 vehicle_config: dict = None,
+                 name: str = None,
+                 random_seed=None,
+                 position=None,
+                 heading=None,
+                 **kwargs):
 
         # TODO(pzh): The above code is removed for now. How we get BUS label?
         #  vehicle_config has 'width' 'length' and 'height'
@@ -298,14 +318,13 @@ class VaryingDynamicsBoundingBoxVehicle(VaryingDynamicsVehicle):
         # else:
         #     self.SEMANTIC_LABEL = Semantics.BUS.label
 
-        super(VaryingDynamicsBoundingBoxVehicle, self).__init__(
-            vehicle_config=vehicle_config,
-            name=name,
-            random_seed=random_seed,
-            position=position,
-            heading=heading,
-            **kwargs
-        )
+        super(VaryingDynamicsBoundingBoxVehicle,
+              self).__init__(vehicle_config=vehicle_config,
+                             name=name,
+                             random_seed=random_seed,
+                             position=position,
+                             heading=heading,
+                             **kwargs)
 
     def _add_visualization(self):
         if self.render:
@@ -315,7 +334,8 @@ class VaryingDynamicsBoundingBoxVehicle(VaryingDynamicsVehicle):
             # if path not in BaseVehicle.model_collection:
 
             # PZH: Load a box model and resize it to the vehicle size
-            car_model = AssetLoader.loader.loadModel(AssetLoader.file_path("models", "box.bam"))
+            car_model = AssetLoader.loader.loadModel(
+                AssetLoader.file_path("models", "box.bam"))
 
             car_model.setTwoSided(False)
             BaseVehicle.model_collection[path] = car_model
@@ -326,7 +346,8 @@ class VaryingDynamicsBoundingBoxVehicle(VaryingDynamicsVehicle):
             car_model.setHpr(*HPR)
             car_model.instanceTo(self.origin)
 
-            show_contour = self.config["show_contour"] if "show_contour" in self.config else False
+            show_contour = self.config[
+                "show_contour"] if "show_contour" in self.config else False
             if show_contour:
                 # ========== Draw the contour of the bounding box ==========
                 # Draw the bottom of the car first
@@ -374,12 +395,9 @@ class VaryingDynamicsBoundingBoxVehicle(VaryingDynamicsVehicle):
             if self.config["random_color"]:
                 material = Material()
                 material.setBaseColor(
-                    (
-                        self.panda_color[0] * self.MATERIAL_COLOR_COEFF,
-                        self.panda_color[1] * self.MATERIAL_COLOR_COEFF,
-                        self.panda_color[2] * self.MATERIAL_COLOR_COEFF, 0.
-                    )
-                )
+                    (self.panda_color[0] * self.MATERIAL_COLOR_COEFF,
+                     self.panda_color[1] * self.MATERIAL_COLOR_COEFF,
+                     self.panda_color[2] * self.MATERIAL_COLOR_COEFF, 0.))
                 material.setMetallic(self.MATERIAL_METAL_COEFF)
                 material.setSpecular(self.MATERIAL_SPECULAR_COLOR)
                 material.setRefractiveIndex(1.5)
@@ -412,7 +430,8 @@ class VaryingDynamicsBoundingBoxVehicle(VaryingDynamicsVehicle):
         wheel.setSuspensionStiffness(self.SUSPENSION_STIFFNESS)
         wheel.setWheelsDampingRelaxation(4.8)
         wheel.setWheelsDampingCompression(1.2)
-        wheel_friction = self.config["wheel_friction"] if not self.config["no_wheel_friction"] else 0
+        wheel_friction = self.config[
+            "wheel_friction"] if not self.config["no_wheel_friction"] else 0
         wheel.setFrictionSlip(wheel_friction)
         wheel.setRollInfluence(0.5)
         return wheel

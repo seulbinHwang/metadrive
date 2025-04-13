@@ -10,7 +10,8 @@ from metadrive.envs.base_env import BASE_DEFAULT_CONFIG
 
 if __name__ == '__main__':
     engine = initialize_engine(BASE_DEFAULT_CONFIG)
-    tex_origin = engine.loader.loadTexture(AssetLoader.file_path("textures", "asphalt", "diff_2k.png"))
+    tex_origin = engine.loader.loadTexture(
+        AssetLoader.file_path("textures", "asphalt", "diff_2k.png"))
     tex = np.frombuffer(tex_origin.getRamImage().getData(), dtype=np.uint8)
     tex = tex.copy()
     tex = tex.reshape((tex_origin.getYSize(), tex_origin.getXSize(), 3))

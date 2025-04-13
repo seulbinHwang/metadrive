@@ -13,7 +13,8 @@ def get_max_valid_indicis(track, current_index):
     states = track["state"]
     assert states["valid"][current_index], "Current index should be valid"
     end = len(states["valid"])
-    for i, valid in enumerate(states["valid"][current_index + 1:], current_index + 1):
+    for i, valid in enumerate(states["valid"][current_index + 1:],
+                              current_index + 1):
         if not valid:
             end = i
             break
@@ -25,7 +26,11 @@ def get_idm_route(traj_points, width=2):
     return traj
 
 
-def parse_object_state(object_dict, time_idx, check_last_state=False, sim_time_interval=0.1, include_z_position=False):
+def parse_object_state(object_dict,
+                       time_idx,
+                       check_last_state=False,
+                       sim_time_interval=0.1,
+                       include_z_position=False):
     """
     Parse object state of one time step
     """
@@ -64,12 +69,12 @@ def parse_object_state(object_dict, time_idx, check_last_state=False, sim_time_i
             ret[k] = float(states[k][time_idx].item())
 
     ret["valid"] = states["valid"][time_idx]
-    if time_idx < len(states["position"]) - 1 and states["valid"][time_idx] and states["valid"][time_idx + 1]:
+    if time_idx < len(states["position"]) - 1 and states["valid"][
+            time_idx] and states["valid"][time_idx + 1]:
         angular_velocity = compute_angular_velocity(
             initial_heading=states["heading"][time_idx],
             final_heading=states["heading"][time_idx + 1],
-            dt=sim_time_interval
-        )
+            dt=sim_time_interval)
         ret["angular_velocity"] = angular_velocity
     else:
         ret["angular_velocity"] = 0
@@ -77,7 +82,8 @@ def parse_object_state(object_dict, time_idx, check_last_state=False, sim_time_i
     # Retrieve vehicle type
     ret["vehicle_class"] = None
     if "spawn_info" in object_dict["metadata"]:
-        type_module, type_cls_name = object_dict["metadata"]["spawn_info"]["type"]
+        type_module, type_cls_name = object_dict["metadata"]["spawn_info"][
+            "type"]
         import importlib
         module = importlib.import_module(type_module)
         cls = getattr(module, type_cls_name)

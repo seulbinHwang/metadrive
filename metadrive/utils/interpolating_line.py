@@ -9,9 +9,11 @@ class InterpolatingLine:
     """
     This class provides point set with interpolating function
     """
+
     def __init__(self, points):
         points = np.asarray(points)[..., :2]
-        self.segment_property, self._start_points, self._end_points = self._get_properties(points)
+        self.segment_property, self._start_points, self._end_points = self._get_properties(
+            points)
         self._distance_b_a = self._end_points - self._start_points
         self.length = sum([seg["length"] for seg in self.segment_property])
 
@@ -48,7 +50,8 @@ class InterpolatingLine:
 
         We will use Option 1.
         """
-        min_dists = self.min_lineseg_dist(position, self._start_points, self._end_points, self._distance_b_a)
+        min_dists = self.min_lineseg_dist(position, self._start_points,
+                                          self._end_points, self._distance_b_a)
         target_segment_idx = np.argmin(min_dists)
 
         long = 0
@@ -58,8 +61,10 @@ class InterpolatingLine:
             else:
                 delta_x = position[0] - seg["start_point"][0]
                 delta_y = position[1] - seg["start_point"][1]
-                long += delta_x * seg["direction"][0] + delta_y * seg["direction"][1]
-                lateral = delta_x * seg["lateral_direction"][0] + delta_y * seg["lateral_direction"][1]
+                long += delta_x * seg["direction"][0] + delta_y * seg[
+                    "direction"][1]
+                lateral = delta_x * seg["lateral_direction"][0] + delta_y * seg[
+                    "lateral_direction"][1]
                 return long, lateral
 
         # deprecated content
@@ -121,12 +126,18 @@ class InterpolatingLine:
                 continue
 
             seg_property = {
-                "length": self.points_distance(p_start, p_end),
-                "direction": np.asarray(self.points_direction(p_start, p_end)),
-                "lateral_direction": np.asarray(self.points_lateral_direction(p_start, p_end)),
-                "heading": self.points_heading(p_start, p_end),
-                "start_point": p_start,
-                "end_point": p_end
+                "length":
+                    self.points_distance(p_start, p_end),
+                "direction":
+                    np.asarray(self.points_direction(p_start, p_end)),
+                "lateral_direction":
+                    np.asarray(self.points_lateral_direction(p_start, p_end)),
+                "heading":
+                    self.points_heading(p_start, p_end),
+                "start_point":
+                    p_start,
+                "end_point":
+                    p_end
             }
             ret.append(seg_property)
             start_points.append(seg_property["start_point"])
@@ -153,7 +164,8 @@ class InterpolatingLine:
 
     @staticmethod
     def points_direction(start_p, end_p):
-        return (end_p - start_p) / norm((end_p - start_p)[0], (end_p - start_p)[1])
+        return (end_p - start_p) / norm((end_p - start_p)[0],
+                                        (end_p - start_p)[1])
 
     @staticmethod
     def points_lateral_direction(start_p, end_p):
@@ -174,10 +186,12 @@ class InterpolatingLine:
             if accumulate_len + 0.1 >= longitudinal:
                 break
         if lateral is not None:
-            return (seg["start_point"] + (longitudinal - accumulate_len + seg["length"]) *
+            return (seg["start_point"] +
+                    (longitudinal - accumulate_len + seg["length"]) *
                     seg["direction"]) + lateral * seg["lateral_direction"]
         else:
-            return seg["start_point"] + (longitudinal - accumulate_len + seg["length"]) * seg["direction"]
+            return seg["start_point"] + (longitudinal - accumulate_len +
+                                         seg["length"]) * seg["direction"]
 
     def get_heading_theta(self, longitudinal: float) -> float:
         """
@@ -259,27 +273,43 @@ class InterpolatingLine:
 
 
 if __name__ == '__main__':
-    test_p = [
-        (611.5277397744468, 1829.6026943481352), (611.9289393579008, 1830.4997828926864),
-        (612.330138941355, 1831.3968714372377), (612.7313385248092, 1832.293959981789),
-        (613.1325381082634, 1833.1910485263402), (613.5337376917175, 1834.0881370708914),
-        (613.9349372751717, 1834.985225615443), (614.3361368586259, 1835.8823141599942),
-        (614.73733644208, 1836.7794027045454), (615.1385360255342, 1837.6764912490967),
-        (615.5397446694475, 1838.573575740269), (615.9442295025767, 1839.4691858535757),
-        (616.3546178958309, 1840.362106243068), (616.7708919643475, 1841.2522979949786),
-        (617.1930335667643, 1842.1397223144547), (617.6210243060098, 1843.02434052725),
-        (618.0548455301055, 1843.9061140814083), (618.494478332978, 1844.7850045489452),
-        (618.9399035552839, 1845.660973627522), (619.3911017852438, 1846.533983142115),
-        (619.8480533594889, 1847.4039950466793), (620.3107383639176, 1848.2709714258071),
-        (620.3107383639176, 1848.2709714258071), (620.7713311311863, 1849.086333109443),
-        (621.2652449066546, 1849.8819520853385), (621.7916348376419, 1850.656467426024),
-        (622.3496005201381, 1851.4085543023612), (622.938187538968, 1852.1369262496978),
-        (623.5563891003444, 1852.8403373683998), (624.2031477540157, 1853.5175844549963),
-        (624.8773572020626, 1854.16750906029), (625.5778641912499, 1854.7889994709174),
-        (626.3034704856974, 1855.3809926109623), (627.0430244723732, 1855.9555751328883),
-        (627.7826528334156, 1856.5300621160332), (628.522281194458, 1857.1045490991783),
-        (629.2619095555023, 1857.6790360823206)
-    ]
+    test_p = [(611.5277397744468, 1829.6026943481352),
+              (611.9289393579008, 1830.4997828926864),
+              (612.330138941355, 1831.3968714372377),
+              (612.7313385248092, 1832.293959981789),
+              (613.1325381082634, 1833.1910485263402),
+              (613.5337376917175, 1834.0881370708914),
+              (613.9349372751717, 1834.985225615443),
+              (614.3361368586259, 1835.8823141599942),
+              (614.73733644208, 1836.7794027045454),
+              (615.1385360255342, 1837.6764912490967),
+              (615.5397446694475, 1838.573575740269),
+              (615.9442295025767, 1839.4691858535757),
+              (616.3546178958309, 1840.362106243068),
+              (616.7708919643475, 1841.2522979949786),
+              (617.1930335667643, 1842.1397223144547),
+              (617.6210243060098, 1843.02434052725),
+              (618.0548455301055, 1843.9061140814083),
+              (618.494478332978, 1844.7850045489452),
+              (618.9399035552839, 1845.660973627522),
+              (619.3911017852438, 1846.533983142115),
+              (619.8480533594889, 1847.4039950466793),
+              (620.3107383639176, 1848.2709714258071),
+              (620.3107383639176, 1848.2709714258071),
+              (620.7713311311863, 1849.086333109443),
+              (621.2652449066546, 1849.8819520853385),
+              (621.7916348376419, 1850.656467426024),
+              (622.3496005201381, 1851.4085543023612),
+              (622.938187538968, 1852.1369262496978),
+              (623.5563891003444, 1852.8403373683998),
+              (624.2031477540157, 1853.5175844549963),
+              (624.8773572020626, 1854.16750906029),
+              (625.5778641912499, 1854.7889994709174),
+              (626.3034704856974, 1855.3809926109623),
+              (627.0430244723732, 1855.9555751328883),
+              (627.7826528334156, 1856.5300621160332),
+              (628.522281194458, 1857.1045490991783),
+              (629.2619095555023, 1857.6790360823206)]
 
     import matplotlib.pyplot as plt
 
@@ -297,19 +327,22 @@ if __name__ == '__main__':
 
     line = InterpolatingLine(test_p)
     point = (619.8480533594889 + 10, 1847.4039950466793 - 4.5)
-    dist = line.min_lineseg_dist(point, line._start_points, line._end_points, line._distance_b_a)
+    dist = line.min_lineseg_dist(point, line._start_points, line._end_points,
+                                 line._distance_b_a)
     min_seg = np.argmin(dist)
 
     # Example usage:
-    polyline = np.concatenate([line._start_points, line._end_points[-1:]], axis=0)
+    polyline = np.concatenate([line._start_points, line._end_points[-1:]],
+                              axis=0)
     colors = ["blue"] * len(line._start_points)
     colors[min_seg] = "red"
 
     long, lat = line.local_coordinates(point)
     cross = line.position(long, 0)
-    draw_polyline(
-        polyline,
-        colors=colors,
-        points=[point, cross, line._end_points[min_seg], line._start_points[min_seg]],
-        point_colors=["red", "green", "blue", "blue"]
-    )
+    draw_polyline(polyline,
+                  colors=colors,
+                  points=[
+                      point, cross, line._end_points[min_seg],
+                      line._start_points[min_seg]
+                  ],
+                  point_colors=["red", "green", "blue", "blue"])

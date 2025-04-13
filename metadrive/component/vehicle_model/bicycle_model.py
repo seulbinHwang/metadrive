@@ -5,6 +5,7 @@ class BicycleModel:
     """
     This model can be used to predict next state
     """
+
     def __init__(self):
         self.state = dict(x=0, y=0, speed=0, heading_theta=0, velocity_dir=0)
 
@@ -12,7 +13,11 @@ class BicycleModel:
         """
         heading_theta, velocity_dir in radian
         """
-        self.state = dict(x=x, y=y, speed=speed, heading_theta=heading_theta, velocity_dir=velocity_dir)
+        self.state = dict(x=x,
+                          y=y,
+                          speed=speed,
+                          heading_theta=heading_theta,
+                          velocity_dir=velocity_dir)
 
     def predict(self, dt, control):
         """
@@ -46,6 +51,10 @@ class BicycleModel:
         new_phi = phi + v / 2 / 2 * np.tan(steering / 180 * np.pi) * dt
         new_x = x + v * np.cos(phi + beta) * dt
         new_y = y + v * np.sin(phi + beta) * dt
-        new_state = dict(x=new_x, y=new_y, speed=new_v, heading_theta=new_phi, velocity_dir=new_beta)
+        new_state = dict(x=new_x,
+                         y=new_y,
+                         speed=new_v,
+                         heading_theta=new_phi,
+                         velocity_dir=new_beta)
         self.state = new_state
         return new_state

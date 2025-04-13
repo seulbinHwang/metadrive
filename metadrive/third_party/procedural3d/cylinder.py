@@ -7,6 +7,7 @@ from metadrive.third_party.procedural3d.base import *
 
 
 class CylinderMaker(ModelMaker):
+
     @property
     def bottom_center(self):
         return self._bottom_center
@@ -63,24 +64,22 @@ class CylinderMaker(ModelMaker):
     def thickness(self, thickness):
         self._thickness = thickness
 
-    def __init__(
-        self,
-        bottom_center=None,
-        top_center=None,
-        radius=1.,
-        segments=None,
-        smooth=True,
-        slice=0.,
-        rotation=0.,
-        thickness=None,
-        inverted=False,
-        vertex_color=None,
-        has_uvs=True,
-        tex_units=None,
-        tex_offset=None,
-        tex_rotation=None,
-        tex_scale=None
-    ):
+    def __init__(self,
+                 bottom_center=None,
+                 top_center=None,
+                 radius=1.,
+                 segments=None,
+                 smooth=True,
+                 slice=0.,
+                 rotation=0.,
+                 thickness=None,
+                 inverted=False,
+                 vertex_color=None,
+                 has_uvs=True,
+                 tex_units=None,
+                 tex_offset=None,
+                 tex_rotation=None,
+                 tex_scale=None):
         """
         This class generates cylinder model primitives with the given parameters:
 
@@ -146,11 +145,12 @@ class CylinderMaker(ModelMaker):
 
         """
 
-        surface_ids = ("main", "bottom_cap", "top_cap", "slice_start_cap", "slice_end_cap", "inner_main")
+        surface_ids = ("main", "bottom_cap", "top_cap", "slice_start_cap",
+                       "slice_end_cap", "inner_main")
 
-        ModelMaker.__init__(
-            self, segments, inverted, vertex_color, has_uvs, tex_units, tex_offset, tex_rotation, tex_scale, surface_ids
-        )
+        ModelMaker.__init__(self, segments, inverted, vertex_color, has_uvs,
+                            tex_units, tex_offset, tex_rotation, tex_scale,
+                            surface_ids)
 
         self._bottom_center = bottom_center
         self._top_center = top_center
@@ -197,8 +197,10 @@ class CylinderMaker(ModelMaker):
 
     def generate(self):
 
-        bottom_center = (0., 0., 0.) if self._bottom_center is None else self._bottom_center
-        top_center = (0., 0., 1.) if self._top_center is None else self._top_center
+        bottom_center = (
+            0., 0., 0.) if self._bottom_center is None else self._bottom_center
+        top_center = (0., 0.,
+                      1.) if self._top_center is None else self._top_center
         axis_vec = Point3(*top_center) - Point3(*bottom_center)
         height = axis_vec.length()
         radius = max(.001, self._radius)
@@ -213,7 +215,8 @@ class CylinderMaker(ModelMaker):
         slice = max(0., min(360., self._slice))
         slice_radians = pi * slice / 180.
         delta_angle = pi * ((360. - slice) / 180.) / segs_c
-        thickness = radius if self._thickness is None else max(0., min(radius, self._thickness))
+        thickness = radius if self._thickness is None else max(
+            0., min(radius, self._thickness))
         inner_radius = radius - thickness
         inverted = self._inverted
         has_uvs = self._has_uvs
@@ -303,7 +306,8 @@ class CylinderMaker(ModelMaker):
 
                 for j in range(segs_c + 1):
 
-                    angle = delta_angle * j + (0. if inverted else slice_radians)
+                    angle = delta_angle * j + (0.
+                                               if inverted else slice_radians)
                     c = cos(angle)
                     s = sin(angle) * (-1. if inverted else 1.)
                     x = r * c
@@ -377,7 +381,8 @@ class CylinderMaker(ModelMaker):
                 y = radius * sin(angle) * (-1. if inverted else 1.)
 
                 if smooth:
-                    normal = Vec3(x, y, 0.).normalized() * (-1. if inverted else 1.)
+                    normal = Vec3(x, y,
+                                  0.).normalized() * (-1. if inverted else 1.)
 
                 if has_uvs:
                     u = j / segs_c
@@ -388,7 +393,11 @@ class CylinderMaker(ModelMaker):
                 else:
                     u = 0.
 
-                vert = {"pos": (x, y, z), "normal": normal if smooth else None, "uv": (u, v)}
+                vert = {
+                    "pos": (x, y, z),
+                    "normal": normal if smooth else None,
+                    "uv": (u, v)
+                }
                 verts.append(vert)
 
                 if not smooth and 0 < j < segs_c:
@@ -490,7 +499,8 @@ class CylinderMaker(ModelMaker):
 
                 for j in range(segs_c + 1):
 
-                    angle = delta_angle * j + (0. if inverted else slice_radians)
+                    angle = delta_angle * j + (0.
+                                               if inverted else slice_radians)
                     c = cos(angle)
                     s = sin(angle) * (-1. if inverted else 1.)
                     x = r * c
@@ -513,7 +523,11 @@ class CylinderMaker(ModelMaker):
 
                         u = v = 0.
 
-                    vert = {"pos": (x, y, height), "normal": normal, "uv": (u, v)}
+                    vert = {
+                        "pos": (x, y, height),
+                        "normal": normal,
+                        "uv": (u, v)
+                    }
                     verts.append(vert)
 
             # Define the vertex order of the top cap quads
@@ -575,7 +589,8 @@ class CylinderMaker(ModelMaker):
 
                     for j in range(segs_sc_r + 1):
 
-                        r = inner_radius + (radius - inner_radius) * j / segs_sc_r
+                        r = inner_radius + (radius -
+                                            inner_radius) * j / segs_sc_r
 
                         if cap_id == "start":
                             pos = (r, 0., z)
@@ -585,9 +600,11 @@ class CylinderMaker(ModelMaker):
                         if has_uvs:
 
                             if cap_id == "start":
-                                u = .5 + .5 * r / radius * (1. if inverted else -1.)
+                                u = .5 + .5 * r / radius * (1. if inverted else
+                                                            -1.)
                             else:
-                                u = .5 - .5 * r / radius * (1. if inverted else -1.)
+                                u = .5 - .5 * r / radius * (1. if inverted else
+                                                            -1.)
 
                             if tex_size:
                                 u = (u - .5) * 2. * radius / tex_size[0] + .5
@@ -614,11 +631,19 @@ class CylinderMaker(ModelMaker):
                         vi4 = vi2 + 1
 
                         if cap_id == "start":
-                            indices.extend((vi1, vi3, vi2) if inverted else (vi1, vi2, vi3))
-                            indices.extend((vi2, vi3, vi4) if inverted else (vi2, vi4, vi3))
+                            indices.extend((vi1, vi3,
+                                            vi2) if inverted else (vi1, vi2,
+                                                                   vi3))
+                            indices.extend((vi2, vi3,
+                                            vi4) if inverted else (vi2, vi4,
+                                                                   vi3))
                         else:
-                            indices.extend((vi1, vi2, vi3) if inverted else (vi1, vi3, vi2))
-                            indices.extend((vi2, vi4, vi3) if inverted else (vi2, vi3, vi4))
+                            indices.extend((vi1, vi2,
+                                            vi3) if inverted else (vi1, vi3,
+                                                                   vi2))
+                            indices.extend((vi2, vi4,
+                                            vi3) if inverted else (vi2, vi3,
+                                                                   vi4))
 
                     index_offset += segs_sc_r + 1
 
@@ -671,19 +696,17 @@ class CylinderMaker(ModelMaker):
             if tex_scale and "inner_main" in tex_scale:
                 inner_tex_scale["main"] = tex_scale["inner_main"]
 
-            model_maker = CylinderMaker(
-                None, (0., 0., height),
-                inner_radius,
-                segs,
-                smooth,
-                slice,
-                inverted=not inverted,
-                has_uvs=has_uvs,
-                tex_units=inner_tex_units,
-                tex_offset=inner_tex_offset,
-                tex_rotation=inner_tex_rot,
-                tex_scale=inner_tex_scale
-            )
+            model_maker = CylinderMaker(None, (0., 0., height),
+                                        inner_radius,
+                                        segs,
+                                        smooth,
+                                        slice,
+                                        inverted=not inverted,
+                                        has_uvs=has_uvs,
+                                        tex_units=inner_tex_units,
+                                        tex_offset=inner_tex_offset,
+                                        tex_rotation=inner_tex_rot,
+                                        tex_scale=inner_tex_scale)
             node = model_maker.generate()
 
             # Extend the geometry of the inner cylinder with the data of the outer cylinder
@@ -724,14 +747,16 @@ class CylinderMaker(ModelMaker):
             tris_array.set_num_rows(new_row_count)
             memview = memoryview(tris_array).cast("B").cast(indices.typecode)
             memview[old_row_count:] = indices
-            tris_prim.offset_vertices(old_vert_count, old_row_count, new_row_count)
+            tris_prim.offset_vertices(old_vert_count, old_row_count,
+                                      new_row_count)
 
             inner_range = model_maker.vertex_ranges["main"]
 
             if inner_range:
                 vert_ranges["inner_main"] = inner_range
 
-            for surface_name in ("main", "bottom_cap", "top_cap", "slice_start_cap", "slice_end_cap"):
+            for surface_name in ("main", "bottom_cap", "top_cap",
+                                 "slice_start_cap", "slice_end_cap"):
 
                 vert_range = vert_ranges[surface_name]
 
@@ -748,7 +773,8 @@ class CylinderMaker(ModelMaker):
             else:
                 vertex_format = GeomVertexFormat.get_v3n3()
 
-            vertex_data = GeomVertexData("cone_data", vertex_format, Geom.UH_static)
+            vertex_data = GeomVertexData("cone_data", vertex_format,
+                                         Geom.UH_static)
             vertex_data.unclean_set_num_rows(len(verts))
             data_array = vertex_data.modify_array(0)
             memview = memoryview(data_array).cast("B").cast("f")

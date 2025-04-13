@@ -28,11 +28,13 @@ def load_yaml_file(filename):
         with open(filename, "r") as handle:
             parsed_yaml = yaml_load(handle, Loader=SafeLoader)
     except IOError as msg:
-        RPObject.global_error("YAMLLoader", "Could not find or open file:", filename)
+        RPObject.global_error("YAMLLoader", "Could not find or open file:",
+                              filename)
         RPObject.global_error("YAMLLoader", msg)
         raise Exception("Failed to load YAML file: File not found")
     except YAMLError as msg:
-        RPObject.global_error("YAMLLoader", "Invalid yaml-syntax in file:", filename)
+        RPObject.global_error("YAMLLoader", "Invalid yaml-syntax in file:",
+                              filename)
         RPObject.global_error("YAMLLoader", msg)
         raise Exception("Failed to load YAML file: Invalid syntax")
 

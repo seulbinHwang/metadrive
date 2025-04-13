@@ -7,9 +7,15 @@ class Event:
     All events will be cleared at the start of the episode
     A event/condition func should take its manager instance and other args as input
     """
-    def __init__(
-        self, name, condition_func, event_func, cond_args=None, event_args=None, trigger_once=True, priority=100
-    ):
+
+    def __init__(self,
+                 name,
+                 condition_func,
+                 event_func,
+                 cond_args=None,
+                 event_args=None,
+                 trigger_once=True,
+                 priority=100):
         assert DeprecationWarning("Not tested yet")
         self.name = name
         self.event_func = event_func
@@ -30,6 +36,7 @@ class Event:
 
 
 class EventManager:
+
     def __init__(self):
         assert DeprecationWarning("Not tested yet")
         self.events = OrderedDict()
@@ -59,8 +66,11 @@ class EventManager:
         def _add_event(self, event):
             assert isinstance(event, Event), "Only event type can be added"
             self.events[event.name] = event
-            self.events = OrderedDict(sorted(self.events.items(), key=lambda key, value: value.priority))
+            self.events = OrderedDict(
+                sorted(self.events.items(),
+                       key=lambda key, value: value.priority))
 
         def _delete_event(self, event_name):
-            assert event_name in self.events, "No event in this manager {}".format(self)
+            assert event_name in self.events, "No event in this manager {}".format(
+                self)
             self.events.pop(event_name)

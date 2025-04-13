@@ -64,7 +64,10 @@ classes_to_import = [
 ]
 
 # Classes which should get imported and renamed
-classes_to_import_and_rename = {"RPPointLight": "PointLight", "RPSpotLight": "SpotLight"}
+classes_to_import_and_rename = {
+    "RPPointLight": "PointLight",
+    "RPSpotLight": "SpotLight"
+}
 
 native_module = None
 
@@ -84,10 +87,13 @@ from panda3d import _rplight as _native_module  # pylint: disable=wrong-import-p
 # Import all classes
 for v in classes_to_import + list(classes_to_import_and_rename.keys()):
     if hasattr(_native_module, v):
-        v_name = classes_to_import_and_rename[v] if v in classes_to_import_and_rename else v
+        v_name = classes_to_import_and_rename[
+            v] if v in classes_to_import_and_rename else v
         globals()[v_name] = getattr(_native_module, v)
     else:
-        print("ERROR: could not import class", v, "from", _native_module.__name__)
+        print("ERROR: could not import class", v, "from",
+              _native_module.__name__)
 
 # Don't export all variables, only the required ones
-__all__ = classes_to_import + list(classes_to_import_and_rename.values()) + ["NATIVE_CXX_LOADED"]
+__all__ = classes_to_import + list(
+    classes_to_import_and_rename.values()) + ["NATIVE_CXX_LOADED"]

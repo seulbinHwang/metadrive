@@ -45,4 +45,5 @@ class GodrayStage(RenderStage):
         self._target.prepare_buffer()
 
     def reload_shaders(self):
-        self._target.shader = self.load_plugin_shader("compute_godrays.frag.glsl")
+        self._target.shader = self.load_plugin_shader(
+            "compute_godrays.frag.glsl")

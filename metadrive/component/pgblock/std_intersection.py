@@ -3,6 +3,7 @@ from metadrive.component.pgblock.intersection import InterSection, InterSectionW
 
 
 class StdInterSection(InterSection):
+
     def _try_plug_into_previous_block(self) -> bool:
         self._config[Parameter.change_lane_num] = 0
         success = super(StdInterSection, self)._try_plug_into_previous_block()
@@ -10,7 +11,9 @@ class StdInterSection(InterSection):
 
 
 class StdInterSectionWithUTurn(InterSectionWithUTurn):
+
     def _try_plug_into_previous_block(self) -> bool:
         self._config[Parameter.change_lane_num] = 0
-        success = super(StdInterSectionWithUTurn, self)._try_plug_into_previous_block()
+        success = super(StdInterSectionWithUTurn,
+                        self)._try_plug_into_previous_block()
         return success

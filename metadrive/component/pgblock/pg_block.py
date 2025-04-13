@@ -22,6 +22,7 @@ class PGBlockSocket:
     Positive_road is right road, and Negative road is left road on which cars drive in reverse direction
     BlockSocket is a part of block used to connect other blocks
     """
+
     def __init__(self, positive_road: Road, negative_road: Road = None):
         self.positive_road = positive_road
         self.negative_road = negative_road if negative_road else None
@@ -74,6 +75,7 @@ class PGBlock(BaseBlock):
     When single-direction block created, road_2 in block socket is useless.
     But it's helpful when a town is created.
     """
+
     def __init__(
         self,
         block_index: int,
@@ -101,7 +103,8 @@ class PGBlock(BaseBlock):
         assert self.SOCKET_NUM is not None, "The number of Socket should be specified when define a new block"
         if block_index == 0:
             from metadrive.component.pgblock.first_block import FirstPGBlock
-            assert isinstance(self, FirstPGBlock), "only first block can use block index 0"
+            assert isinstance(
+                self, FirstPGBlock), "only first block can use block index 0"
         elif block_index < 0:
             logging.debug("It is recommended that block index should > 1")
         self.number_of_sample_trial = 0
@@ -116,14 +119,18 @@ class PGBlock(BaseBlock):
         # used to create this block, but for first block it is nonsense
         self.remove_negative_lanes = remove_negative_lanes
         if block_index != 0:
-            self.positive_lanes = self.pre_block_socket.get_positive_lanes(self._global_network)
+            self.positive_lanes = self.pre_block_socket.get_positive_lanes(
+                self._global_network)
             self.positive_lane_num = len(self.positive_lanes)
-            self.positive_basic_lane = self.positive_lanes[-1]  # most right or outside lane is the basic lane
+            self.positive_basic_lane = self.positive_lanes[
+                -1]  # most right or outside lane is the basic lane
             self.lane_width = self.positive_basic_lane.width_at(0)
             if not remove_negative_lanes:
-                self.negative_lanes = self.pre_block_socket.get_negative_lanes(self._global_network)
+                self.negative_lanes = self.pre_block_socket.get_negative_lanes(
+                    self._global_network)
                 self.negative_lane_num = len(self.negative_lanes)
-                self.negative_basic_lane = self.negative_lanes[-1]  # most right or outside lane is the basic lane
+                self.negative_basic_lane = self.negative_lanes[
+                    -1]  # most right or outside lane is the basic lane
 
     def _sample_topology(self) -> bool:
         """
@@ -136,12 +143,14 @@ class PGBlock(BaseBlock):
     def get_socket(self, index: Union[str, int]) -> PGBlockSocket:
         if isinstance(index, int):
             if index < 0 or index >= len(self._sockets):
-                raise ValueError("Socket of {}: index out of range {}".format(self.class_name, len(self._sockets)))
+                raise ValueError("Socket of {}: index out of range {}".format(
+                    self.class_name, len(self._sockets)))
             socket_index = list(self._sockets)[index]
         else:
             assert index.startswith(self.name)
             socket_index = index
-        assert socket_index in self._sockets, (socket_index, self._sockets.keys())
+        assert socket_index in self._sockets, (socket_index,
+                                               self._sockets.keys())
         return self._sockets[socket_index]
 
     def add_respawn_roads(self, respawn_roads: Union[List[Road], Road]):
@@ -167,12 +176,13 @@ class PGBlock(BaseBlock):
                 self._add_one_socket(socket)
 
     def _add_one_socket(self, socket: PGBlockSocket):
-        assert isinstance(socket, PGBlockSocket), "Socket list only accept BlockSocket Type"
+        assert isinstance(
+            socket, PGBlockSocket), "Socket list only accept BlockSocket Type"
         if socket.index is not None and not socket.index.startswith(self.name):
             logging.warning(
                 "The adding socket has index {}, which is not started with this block name {}. This is dangerous! "
-                "Current block has sockets: {}.".format(socket.index, self.name, self.get_socket_indices())
-            )
+                "Current block has sockets: {}.".format(
+                    socket.index, self.name, self.get_socket_indices()))
         if socket.index is None:
             # if this socket is self block socket
             socket.set_index(self.name, len(self._sockets))
@@ -231,7 +241,8 @@ class PGBlock(BaseBlock):
 
     @classmethod
     def node(cls, block_idx: int, part_idx: int, road_idx: int) -> str:
-        return str(block_idx) + cls.ID + str(part_idx) + cls.DASH + str(road_idx) + cls.DASH
+        return str(block_idx) + cls.ID + str(part_idx) + cls.DASH + str(
+            road_idx) + cls.DASH
 
     def get_intermediate_spawn_lanes(self):
         trigger_lanes = self.block_network.get_positive_lanes()
@@ -256,7 +267,8 @@ class PGBlock(BaseBlock):
                     # the second element is for right side. If False, then the left/right side line (broken line or
                     # continuous line) will not be constructed.
 
-                    choose_side = [True, True] if _id == len(lanes) - 1 else [True, False]
+                    choose_side = [True, True
+                                  ] if _id == len(lanes) - 1 else [True, False]
                     # if Road(_from, _to).is_negative_road() and _id == 0:
                     #     # draw center line with positive road
                     #     choose_side = [False, False]
@@ -273,8 +285,7 @@ class PGBlock(BaseBlock):
         for index in range(0, len(points) - 1, 2):
             if index + 1 < len(points):
                 node_path_list = self._construct_lane_line_segment(
-                    points[index], points[index + 1], line_color, line_type
-                )
+                    points[index], points[index + 1], line_color, line_type)
                 self._node_path_list.extend(node_path_list)
 
     def _construct_continuous_line(self, points, line_color, line_type):
@@ -284,10 +295,14 @@ class PGBlock(BaseBlock):
         """
         for p_1_index, p_1 in enumerate(points[:-1]):
             p_2 = points[p_1_index + 1]
-            node_path_list = self._construct_lane_line_segment(p_1, p_2, line_color, line_type)
+            node_path_list = self._construct_lane_line_segment(
+                p_1, p_2, line_color, line_type)
             self._node_path_list.extend(node_path_list)
 
-    def _generate_sidewalk_from_line(self, lane, sidewalk_height=None, lateral_direction=1):
+    def _generate_sidewalk_from_line(self,
+                                     lane,
+                                     sidewalk_height=None,
+                                     lateral_direction=1):
         """
         Construct the sidewalk for this lane
         Args:
@@ -297,22 +312,22 @@ class PGBlock(BaseBlock):
 
         """
         if str(lane.index) in self.sidewalks:
-            logger.warning("Sidewalk id {} already exists!".format(str(lane.index)))
+            logger.warning("Sidewalk id {} already exists!".format(
+                str(lane.index)))
             return
         polygon = []
-        longs = np.arange(
-            0, lane.length + PGDrivableAreaProperty.SIDEWALK_LENGTH, PGDrivableAreaProperty.SIDEWALK_LENGTH
-        )
+        longs = np.arange(0,
+                          lane.length + PGDrivableAreaProperty.SIDEWALK_LENGTH,
+                          PGDrivableAreaProperty.SIDEWALK_LENGTH)
         start_lat = +lane.width_at(0) / 2 + 0.2
         side_lat = start_lat + PGDrivableAreaProperty.SIDEWALK_WIDTH
         assert lateral_direction == -1 or lateral_direction == 1
         start_lat *= lateral_direction
         side_lat *= lateral_direction
         if lane.radius != 0 and side_lat > lane.radius:
-            logger.warning(
-                "The sidewalk width ({}) is too large."
-                " It should be < radius ({})".format(side_lat, lane.radius)
-            )
+            logger.warning("The sidewalk width ({}) is too large."
+                           " It should be < radius ({})".format(
+                               side_lat, lane.radius))
             return
         for k, lateral in enumerate([start_lat, side_lat]):
             if k == 1:
@@ -327,32 +342,43 @@ class PGBlock(BaseBlock):
             "height": sidewalk_height
         }
 
-    def _construct_lane_line_in_block(self, lane, construct_left_right=(True, True)):
+    def _construct_lane_line_in_block(self,
+                                      lane,
+                                      construct_left_right=(True, True)):
         """
         Construct lane line in the Panda3d world for getting contact information
         """
-        for idx, line_type, line_color, need, in zip([-1, 1], lane.line_types, lane.line_colors, construct_left_right):
+        for idx, line_type, line_color, need, in zip([-1, 1], lane.line_types,
+                                                     lane.line_colors,
+                                                     construct_left_right):
             if not need:
                 continue
             seg_len = PGDrivableAreaProperty.LANE_SEGMENT_LENGTH
             lateral = idx * lane.width / 2
             if line_type == PGLineType.CONTINUOUS:
-                self._construct_continuous_line(lane.get_polyline(seg_len, lateral=lateral), line_color, line_type)
+                self._construct_continuous_line(
+                    lane.get_polyline(seg_len, lateral=lateral), line_color,
+                    line_type)
             elif line_type == PGLineType.BROKEN:
-                self._construct_broken_line(lane, lateral, line_color, line_type)
+                self._construct_broken_line(lane, lateral, line_color,
+                                            line_type)
             elif line_type == PGLineType.SIDE:
-                self._construct_continuous_line(lane.get_polyline(seg_len, lateral=lateral), line_color, line_type)
+                self._construct_continuous_line(
+                    lane.get_polyline(seg_len, lateral=lateral), line_color,
+                    line_type)
                 self._generate_sidewalk_from_line(lane)
             elif line_type == PGLineType.GUARDRAIL:
-                self._construct_continuous_line(lane.get_polyline(seg_len, lateral=lateral), line_color, line_type)
+                self._construct_continuous_line(
+                    lane.get_polyline(seg_len, lateral=lateral), line_color,
+                    line_type)
                 self._generate_sidewalk_from_line(
-                    lane, sidewalk_height=PGDrivableAreaProperty.GUARDRAIL_HEIGHT, lateral_direction=idx
-                )
+                    lane,
+                    sidewalk_height=PGDrivableAreaProperty.GUARDRAIL_HEIGHT,
+                    lateral_direction=idx)
 
             elif line_type == PGLineType.NONE:
                 continue
             else:
                 raise ValueError(
-                    "You have to modify this function and implement a constructing method for line type: {}".
-                    format(line_type)
-                )
+                    "You have to modify this function and implement a constructing method for line type: {}"
+                    .format(line_type))

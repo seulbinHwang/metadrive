@@ -7,6 +7,7 @@ from metadrive.component.vehicle.base_vehicle import BaseVehicle
 from metadrive.envs.metadrive_env import MetaDriveEnv
 from metadrive.component.road_network.node_road_network import NodeRoadNetwork
 from metadrive.component.lane.abs_lane import AbstractLane
+from metadrive.envs.diffusion_planner_env import DiffusionPlannerEnv
 
 
 def extract_local_lanes_in_square_bbox(
@@ -300,27 +301,71 @@ def visualize_lanes_array(lanes_array: np.ndarray,
     # --- 정사각형 테두리 그리기 ---
     # 원점 중심으로 가로 200m, 세로 200m = x, y각각 [-100, +100]
     square = Rectangle(
-        (-100, -100),  # 좌측 하단 좌표
-        200,  # 너비 (100 - (-100))
-        200,  # 높이 (100 - (-100))
+        (-length//2, -length//2),  # 좌측 하단 좌표
+        length,  # 너비 (100 - (-100))
+        length,  # 높이 (100 - (-100))
         linewidth=2,
         edgecolor='cyan',
         facecolor='none')
     ax.add_patch(square)
 
+def visualize_static_objects(ax,
+                             static_objects: np.ndarray,
+                             edgecolor="purple",
+                             fill=False):
+    """
+    정적 객체 (5,10): [ x, y, cosθ, sinθ, width, length, ... one_hot(4) ]을
+    사각형(Rectangle)으로 표시. 색상=보라색
+    """
+    # static_objects.shape = (N, 10)
+    # row = [x, y, cosθ, sinθ, width, length, one_hot(4)]
+    N = static_objects.shape[0]
+    for i in range(N):
+        row = static_objects[i]
+        x, y     = row[0], row[1]
+        cos_h    = row[2]
+        sin_h    = row[3]
+        w        = row[4]
+        l        = row[5]
+        heading  = math.atan2(sin_h, cos_h)  # 라디안
+        heading_deg = math.degrees(heading)
+
+        # matplotlib Rectangle은 "왼쪽 하단"을 anchor로 하여 그려지므로,
+        # 중심 (x,y)를 anchor로 만들려면, anchor_x/y를 다음과 같이 조정:
+        anchor_x = x - l/2.0
+        anchor_y = y - w/2.0
+
+        rect = Rectangle(
+            (anchor_x, anchor_y),
+            l,
+            w,
+            angle=heading_deg,
+            edgecolor=edgecolor,
+            facecolor=edgecolor,
+            lw=1.5,
+            zorder=10,
+            alpha=1.0
+        )
+        ax.add_patch(rect)
 
 def main():
-    default_config = MetaDriveEnv.default_config()
-    default_config.update(
-        dict(use_render=False,
-             num_scenarios=1,
-             start_seed=0,
-             map=5,
-             traffic_density=0.1))
-    env = MetaDriveEnv(default_config)
+    config = {
+        "num_scenarios": 1,  # 사용할 랜덤 맵 수 (예: 1000개 맵)
+        "start_seed": 0,  # 시드 시작값 (0번부터 순차 생성)
+        "traffic_density": 0.1,  # 교통량 밀도 (기본값 0.1)
+        "map": 5,
+        # "discrete_action": False,  # 연속 행동 사용 (False가 기본값)
+        # 추가 필요 설정이 있다면 이곳에 작성
+        "traffic_mode": "trigger",
+        "random_traffic": True,
+        "use_render": False,
+    }
+
+    env = DiffusionPlannerEnv(config)
     env.reset()
-    action = [0.0, 0.1]
-    numpy_obs, _, _, _, _ = env.step(action)
+    observations = env.observations
+    observation = observations["default_agent"]
+
     ego = env.vehicle
     ego_x, ego_y = ego.position
     ego_yaw = ego.heading_theta
@@ -328,7 +373,7 @@ def main():
 
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_aspect("equal")
-    roi_len = 200.0
+    roi_len = observation.lane_roi_length
 
     # 1) 전체 RoadNetwork 표시 (흰색)
     visualize_entire_road_network(roadnet,
@@ -339,30 +384,44 @@ def main():
                                   roi_length=roi_len,
                                   ax=ax)
 
-    # 2) ROI 내 차선(배치연산) 추출
-    import time
-    start_time = time.time()
-    # ['>', '>>', '>>>', '1C0_0_', '1C0_1_', '2C0_0_', '2C0_1_', '3C0_0_', '3C0_1_', '4X0_0_', '4X0_1_', '5C0_0_', '5C0_1_']
-    roadnet = env.current_map.road_network
-    lanes_array, nav_lanes_array = extract_local_lanes_in_square_bbox(
-        ego,
-        roadnet,
-        roi_length=roi_len,
-        max_lane_num=70,
-        max_nav_lane_num=25,
-        num_points_per_lane=20)
-    print(f"elapsed time: {time.time()-start_time:.3f} sec")
-
+    # # 2) ROI 내 차선(배치연산) 추출
+    # import time
+    # start_time = time.time()
+    # # ['>', '>>', '>>>', '1C0_0_', '1C0_1_', '2C0_0_', '2C0_1_', '3C0_0_', '3C0_1_', '4X0_0_', '4X0_1_', '5C0_0_', '5C0_1_']
+    # roadnet = env.current_map.road_network
+    # lanes_array, nav_lanes_array = extract_local_lanes_in_square_bbox(
+    #     ego,
+    #     roadnet,
+    #     roi_length=roi_len,
+    #     max_lane_num=70,
+    #     max_nav_lane_num=25,
+    #     num_points_per_lane=20)
+    # print(f"elapsed time: {time.time()-start_time:.3f} sec")
+    observation_dict = observation.observe(ego)
+    lanes_array = observation_dict["lanes_array"] # (70, 20, 12)
+    nav_lanes_array = observation_dict["nav_lanes_array"] # (25, 20, 12)
+    """ static_objects
+    - 5: number of static objects
+    - 10: number of features
+        - x, y, cos(heading), sin(heading), width, length, one_hot(CZONE_SIGN, BARRIER, TRAFFIC_CONE, GENERIC_OBJECT)]
+    
+    """
+    static_objects = observation_dict["static_objects"] # (5, 10)
     # 3) ROI 차선(오렌지) 표시
     visualize_lanes_array(lanes_array, length=roi_len, color="orange", ax=ax)
-    # visualize_lanes_array(nav_lanes_array, length=roi_len, color="red", ax=ax)
+    visualize_lanes_array(nav_lanes_array, length=roi_len, color="red", ax=ax)
 
-    plt.title("Full Road (white) + ROI (orange) with Vectorization")
+
+    # 2) 정적 객체 시각화
+    visualize_static_objects(ax, static_objects, edgecolor="purple", fill=False)
+
+    ax.set_facecolor("black")
+    ax.set_title("ROI Lanes + Static Objects")
     plt.xlabel("Local X")
     plt.ylabel("Local Y")
-    plt.savefig("final_road_network.png", dpi=150, facecolor="black")
+    plt.savefig("lanes_and_static_objects.png", dpi=150, facecolor="black")
     plt.close()
-    print("Saved final_road_network.png")
+    print("Saved lanes_and_static_objects.png")
 
     env.close()
 

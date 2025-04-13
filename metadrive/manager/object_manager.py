@@ -6,6 +6,7 @@ from metadrive.component.road_network import Road
 from metadrive.component.static_object.traffic_object import TrafficCone, TrafficWarning, TrafficBarrier
 from metadrive.engine.engine_utils import get_engine
 from metadrive.manager.base_manager import BaseManager
+import numpy as np
 
 
 class TrafficObjectManager(BaseManager):
@@ -198,3 +199,91 @@ class TrafficObjectManager(BaseManager):
 
             ret[current_name] = name_obj[current_name]
         self.spawned_objects = ret
+
+    def get_static_object_array(self, ego_vehicle) -> np.ndarray:
+        """
+        최대 5개의 정적오브젝트를, 에고 로컬좌표계로 변환한 뒤 반환.
+        반환 shape=(5,10). 각 행은 [ x_local, y_local, cos(Δheading), sin(Δheading),
+                                 width, length, one_hot(4차원) ]
+        한편, x_local,y_local 및 heading은 "에고차" 기준으로 변환됨.
+        """
+        # 1) 현재 매니저가 가진 모든 정적 object
+        all_objs = list(self.spawned_objects.values())
+
+        # 2) 필요 객체 필터링 + 속성 추출: (x,y,heading,width,length,type_index)
+        static_candidates = []
+        for obj in all_objs:
+            if isinstance(obj, TrafficWarning):
+                obj_type = 0
+            elif isinstance(obj, TrafficBarrier):
+                obj_type = 1
+            elif isinstance(obj, TrafficCone):
+                obj_type = 2
+            else:
+                obj_type = 3  # generic
+
+            # object position, heading, width, length 추출
+            x, y = obj.position
+            heading = obj.heading_theta
+            w = getattr(obj, "WIDTH", 1.0)
+            l = getattr(obj, "LENGTH", 1.0)
+            static_candidates.append((x, y, heading, w, l, obj_type))
+
+        if len(static_candidates) == 0:
+            return np.zeros((5, 10), dtype=np.float32)
+
+        # 배열화 => shape=(N,6)
+        static_arr = np.array(static_candidates, dtype=np.float32)
+        # columns: 0=x,1=y,2=heading,3=width,4=length,5=type_idx
+
+        # 3) 에고 위치, heading
+        ego_x, ego_y = ego_vehicle.position
+        ego_yaw = ego_vehicle.heading_theta  # 라디안
+
+        # 4) 에고와의 거리 계산
+        dx = static_arr[:, 0] - ego_x  # (N,)
+        dy = static_arr[:, 1] - ego_y  # (N,)
+        dist_arr = np.hypot(dx, dy)    # (N,)
+        idx_sorted = np.argsort(dist_arr)  # 거리 오름차순 정렬 idx
+
+        max_obj = 5
+        sel_len = min(max_obj, len(idx_sorted))
+        selected_idx = idx_sorted[:sel_len]
+
+        # 최종 결과 (5,10)
+        result = np.zeros((max_obj, 10), dtype=np.float32)
+
+        # 5) 이제 local 변환
+        # ego좌표계 (dx,dy) => local_x, local_y
+        # heading relative => heading - ego_yaw
+        # rotation (batch)
+        # local_x = dx*cos(ego_yaw) + dy*sin(ego_yaw)
+        # local_y = -dx*sin(ego_yaw) + dy*cos(ego_yaw)
+        dx_sel = dx[selected_idx]
+        dy_sel = dy[selected_idx]
+        c = np.cos(ego_yaw)
+        s = np.sin(ego_yaw)
+        local_x = dx_sel * c + dy_sel * s
+        local_y = -dx_sel * s + dy_sel * c
+
+        heading_vals = static_arr[selected_idx, 2]  # (sel_len,) object heading
+        rel_heading = heading_vals - ego_yaw        # relative heading
+        cos_local = np.cos(rel_heading)
+        sin_local = np.sin(rel_heading)
+
+        width_vals = static_arr[selected_idx, 3]
+        length_vals = static_arr[selected_idx, 4]
+
+        type_int = static_arr[selected_idx, 5].astype(np.int64)  # (sel_len,)
+        one_hot_mat = np.eye(4, dtype=np.float32)[type_int]      # (sel_len,4)
+
+        # 6) 채우기
+        result[:sel_len, 0] = local_x
+        result[:sel_len, 1] = local_y
+        result[:sel_len, 2] = cos_local
+        result[:sel_len, 3] = sin_local
+        result[:sel_len, 4] = width_vals
+        result[:sel_len, 5] = length_vals
+        result[:sel_len, 6:10] = one_hot_mat
+
+        return result

@@ -293,14 +293,7 @@ class PGTrafficManager(BaseManager):
         data_list = []
         type_list = []
         for v in self._traffic_vehicles:
-            # id를 임의로 hash했거나 int로 변환해야 한다. 여기서는 그냥 id를 float로 cast 불가능하면 0
             # toy example
-            # velocity -> v.velocity
-            # heading -> v.heading_theta
-            # width -> v.WIDTH
-            # length -> v.LENGTH
-            # x -> v.position[0]
-            # y -> v.position[1]
             vehicle_id = self._get_float_id_for_vehicle(v.id)
 
 

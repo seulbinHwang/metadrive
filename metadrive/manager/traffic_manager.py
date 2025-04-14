@@ -13,8 +13,92 @@ from metadrive.component.vehicle.base_vehicle import BaseVehicle
 from metadrive.constants import TARGET_VEHICLES, TRAFFIC_VEHICLES, OBJECT_TO_AGENT, AGENT_TO_OBJECT
 from metadrive.manager.base_manager import BaseManager
 from metadrive.utils import merge_dicts
+from diffusion_planner.data_process.utils import convert_absolute_quantities_to_relative, TrackedObjectType, AgentInternalIndex, EgoInternalIndex
 
 BlockVehicles = namedtuple("block_vehicles", "trigger_road vehicles")
+
+def _filter_agents_array(agents, reverse: bool = False):
+    """
+    Filter detections to keep only agents which appear in the first frame (or last frame if reverse=True)
+    :param agents: The past agents in the scene. A list of [num_frames] arrays, each complying with the AgentInternalIndex schema
+    :param reverse: if True, the last element in the list will be used as the filter
+    :return: filtered agents in the same format as the input `agents` parameter
+    """
+    target_array = agents[-1] if reverse else agents[0]
+    for i in range(len(agents)):
+
+        rows = []
+        for j in range(agents[i].shape[0]):
+            if target_array.shape[0] > 0:
+                agent_id: float = float(
+                    agents[i][j, int(AgentInternalIndex.track_token())])
+                is_in_target_frame: bool = bool(
+                    (agent_id == target_array[:,
+                                              AgentInternalIndex.track_token()]
+                    ).max())
+                if is_in_target_frame:
+                    rows.append(agents[i][j, :].squeeze())
+
+        if len(rows) > 0:
+            agents[i] = np.stack(rows)
+        else:
+            agents[i] = np.empty((0, agents[i].shape[1]), dtype=np.float32)
+
+    return agents
+
+
+def _pad_agent_states(agent_trajectories, reverse: bool):
+    """
+    Pads the agent states with the most recent available states. The order of the agents is also
+    preserved. Note: only agents that appear in the current time step will be computed for. Agents appearing in the
+    future or past will be discarded.
+
+     t1      t2           t1      t2
+    |a1,t1| |a1,t2|  pad |a1,t1| |a1,t2|
+    |a2,t1| |a3,t2|  ->  |a2,t1| |a2,t1| (padded with agent 2 state at t1)
+    |a3,t1| |     |      |a3,t1| |a3,t2|
+
+
+    If reverse is True, the padding direction will start from the end of the trajectory towards the start
+
+     tN-1    tN             tN-1    tN
+    |a1,tN-1| |a1,tN|  pad |a1,tN-1| |a1,tN|
+    |a2,tN  | |a2,tN|  <-  |a3,tN-1| |a2,tN| (padded with agent 2 state at tN)
+    |a3,tN-1| |a3,tN|      |       | |a3,tN|
+
+    :param agent_trajectories: agent trajectories [num_frames, num_agents, AgentInternalIndex.dim()], corresponding to the AgentInternalIndex schema.
+    :param reverse: if True, the padding direction will start from the end of the list instead
+    :return: A trajectory of extracted states
+    """
+
+    track_id_idx = 0
+    if reverse:
+        agent_trajectories = agent_trajectories[::-1]
+
+    key_frame = agent_trajectories[0]
+
+    id_row_mapping: Dict[int, int] = {}
+    for idx, val in enumerate(key_frame[:, track_id_idx]):
+        id_row_mapping[int(val)] = idx
+
+    current_state = np.zeros((key_frame.shape[0], key_frame.shape[1]),
+                             dtype=np.float64)
+    for idx in range(len(agent_trajectories)):
+        frame = agent_trajectories[idx]
+
+        # Update current frame
+        for row_idx in range(frame.shape[0]):
+            mapped_row: int = id_row_mapping[int(frame[row_idx, track_id_idx])]
+            current_state[mapped_row, :] = frame[row_idx, :]
+
+        # Save current state
+        agent_trajectories[idx] = current_state.copy()
+
+    if reverse:
+        agent_trajectories = agent_trajectories[::-1]
+
+    return agent_trajectories
+
 
 class HistoryBuffer:
     """
@@ -26,11 +110,10 @@ class HistoryBuffer:
         time_duration (float): 저장할 총 시간 (초 단위).
         time_gap_per_step (float): 한 스텝이 시뮬레이션 시간에서 몇 초에 해당하는지 (예: 0.1초).
         output_time_gap (float): 버퍼에서 최종 조회 시 샘플링할 시간 간격 (예: 0.1초).
-        neighbor_agents_past_all (List[np.ndarray]): 각 시점의 이웃 차량 배열을 저장.
-            길이는 계속 증가하지만 time_duration을 넘어서는 오래된 부분은 제거함.
+        max_slot (int): time_duration을 time_gap_per_step로 나눈 최대 슬롯 수 + 1
+        neighbor_agents_past_all (List[np.ndarray]): 각 시점의 이웃 차량 배열(길이 max_slot).
             각 원소는 shape (N, 8)인 numpy array. (id, v_x, v_y, heading, width, length, x, y)
-        neighbor_agents_types_all (List[List[str]]): 이웃 차량의 타입 목록(예: 차량 클래스 이름 등).
-            neighbor_agents_past_all와 같은 길이를 가짐.
+        neighbor_agents_types_all (List[List[TrackedObjectType]]): 이웃 차량 타입 목록(길이 max_slot).
     """
 
     def __init__(self, time_duration: float, time_gap_per_step: float,
@@ -50,50 +133,49 @@ class HistoryBuffer:
             "time_duration must be divisible by output_time_gap"
         assert abs(time_gap_per_step / output_time_gap - round(time_gap_per_step / output_time_gap)) < 1e-6, \
             "time_gap_per_step must be divisible by output_time_gap"
+
         self.time_duration = time_duration
         self.time_gap_per_step = time_gap_per_step
         self.output_time_gap = output_time_gap
+        self.max_slot = int(round(self.time_duration / self.time_gap_per_step)) + 1
 
-        # 버퍼
         self.neighbor_agents_past_all: List[np.ndarray] = []
         self.neighbor_agents_types_all: List[List[str]] = []
+        self._time_elapsed_list: List[float] = []
 
-        # time_elapsed를 추적 (after_step마다 time_gap_per_step만큼 증가한다고 가정)
-        self._time_elapsed_list: List[float] = []  # 각 step별 누적시간
+        self.reset()
 
     def reset(self) -> None:
         """
-        버퍼 초기화.
+        버퍼를 초기화하고 길이를 self.max_slot으로 맞춘다.
+        아직 채워지지 않은 슬롯은 np.zeros((0,8)) / [] 로 채움.
         """
-        self.neighbor_agents_past_all.clear()
-        self.neighbor_agents_types_all.clear()
-        self._time_elapsed_list.clear()
+        self.neighbor_agents_past_all = [np.zeros((0, 8), dtype=np.float32) for _ in range(self.max_slot)]
+        self.neighbor_agents_types_all = [[] for _ in range(self.max_slot)]
+        # time_elapsed도 동일하게 self.max_slot 크기로 초기화
+        # (아직 의미 있는 시간이 아니므로 0.0으로 채우거나 None 등으로 채워도 됨)
+        self._time_elapsed_list = [0.0] * self.max_slot
 
-    def update(self, neighbor_agents: np.ndarray,
-               neighbor_types: List[str]) -> None:
+    def update(self, neighbor_agents: np.ndarray, neighbor_types: List[str]) -> None:
         """
-        버퍼에 새로운 이웃 차량 정보를 추가하고, time_duration을 초과한 오래된 데이터를 제거한다.
+        버퍼에 새로운 이웃 차량 정보를 추가하고, 가장 오래된 슬롯을 제거하여 길이를 유지한다.
 
         Args:
             neighbor_agents (np.ndarray): shape (N, 8)인 numpy array (id, vx, vy, heading, width, length, x, y)
             neighbor_types (List[str]): 길이 N인 리스트. 각 에이전트 타입(차량 클래스명 등)
         """
-        # 시뮬레이션 시간이 누적되어 들어온다고 가정
-        current_time = 0.0 if len(
-            self._time_elapsed_list) == 0 else (self._time_elapsed_list[-1] +
-                                                self.time_gap_per_step)
+        # 이번 스텝 시간(누적) 계산
+        current_time = 0.0 if len(self._time_elapsed_list) == 0 else \
+            (self._time_elapsed_list[-1] + self.time_gap_per_step)
+
+        # 오래된 슬롯을 pop(0)하고 새 데이터를 append
+        self.neighbor_agents_past_all.pop(0)
+        self.neighbor_agents_types_all.pop(0)
+        self._time_elapsed_list.pop(0)
 
         self.neighbor_agents_past_all.append(neighbor_agents)
         self.neighbor_agents_types_all.append(neighbor_types)
         self._time_elapsed_list.append(current_time)
-
-        # 오래된 데이터 제거
-        # time_elapsed_list 맨 끝 - 맨 앞 <= time_duration이 되도록 남긴다
-        while len(self._time_elapsed_list) > 0 and \
-                (self._time_elapsed_list[-1] - self._time_elapsed_list[0]) > self.time_duration:
-            self.neighbor_agents_past_all.pop(0)
-            self.neighbor_agents_types_all.pop(0)
-            self._time_elapsed_list.pop(0)
 
     def get_neighbor_agents_past(self) -> List[np.ndarray]:
         """
@@ -104,16 +186,17 @@ class HistoryBuffer:
         Returns:
             List[np.ndarray]: 필터링된 이웃 차량 목록 (time 순서). shape (N, 8).
         """
-        if len(self._time_elapsed_list) == 0:
+        # 길이가 0이면 빈 리스트 반환
+        if len(self.neighbor_agents_past_all) == 0:
             return []
 
-        # output_time_gap을 기준으로 샘플링
-        result: List[np.ndarray] = []
-        sampling_interval_steps = int(
-            round(self.output_time_gap / self.time_gap_per_step))
-        leftover_ = (len(self.neighbor_agents_past_all) -1) % sampling_interval_steps
-        for i in range(leftover_, len(self.neighbor_agents_past_all),
-                       sampling_interval_steps):
+        sampling_interval_steps = int(round(self.output_time_gap / self.time_gap_per_step))
+        # leftover 계산으로 인덱스를 맞춤
+        # 마지막 프레임(가장 최근)을 반드시 포함하기 위해 leftover를 사용
+        leftover_ = (len(self.neighbor_agents_past_all) - 1) % sampling_interval_steps
+
+        result = []
+        for i in range(leftover_, len(self.neighbor_agents_past_all), sampling_interval_steps):
             result.append(self.neighbor_agents_past_all[i])
         return result
 
@@ -124,15 +207,14 @@ class HistoryBuffer:
         Returns:
             List[List[str]]: 이웃 차량 타입 (time 순서).
         """
-        if len(self._time_elapsed_list) == 0:
+        if len(self.neighbor_agents_types_all) == 0:
             return []
 
-        result: List[List[str]] = []
-        sampling_interval_steps = int(
-            round(self.output_time_gap / self.time_gap_per_step))
-        leftover_ = (len(self.neighbor_agents_past_all) - 1) % sampling_interval_steps
-        for i in range(leftover_, len(self.neighbor_agents_types_all),
-                       sampling_interval_steps):
+        sampling_interval_steps = int(round(self.output_time_gap / self.time_gap_per_step))
+        leftover_ = (len(self.neighbor_agents_types_all) - 1) % sampling_interval_steps
+
+        result = []
+        for i in range(leftover_, len(self.neighbor_agents_types_all), sampling_interval_steps):
             result.append(self.neighbor_agents_types_all[i])
         return result
 
@@ -170,14 +252,130 @@ class PGTrafficManager(BaseManager):
         self.random_traffic = self.engine.global_config["random_traffic"]
         self.density = self.engine.global_config["traffic_density"]
         self.respawn_lanes = None
-
+        self.num_agents = 32
+        self.max_ped_bike = 0
+        self.time_duration = 2.0
+        self.time_gap_per_step = 0.1
+        self.output_time_gap = 0.1
+        self.max_slot = int(round(self.time_duration / self.output_time_gap)) + 1
         # 예시: time_duration=2., time_gap_per_step=0.1, output_time_gap=0.1
-        self.history_buffer = HistoryBuffer(time_duration=2.0,
-                                            time_gap_per_step=0.1,
-                                            output_time_gap=0.1)
-        # --- 새로 생성된 차량에 대해 버퍼 업데이트 ---
-        neighbor_agents, neighbor_types = self._collect_neighbor_data()
-        self.history_buffer.update(neighbor_agents, neighbor_types)
+        self.history_buffer = HistoryBuffer(time_duration=self.time_duration,
+                                            time_gap_per_step=self.time_gap_per_step,
+                                            output_time_gap=self.output_time_gap)
+
+
+    def get_neighbors_history(self, ego_vehicle: BaseVehicle) -> np.ndarray: # shape (num_agents, num_frames, 11)
+        ego_pose = np.array([ego_vehicle.position[0], ego_vehicle.position[1],
+                             ego_vehicle.heading_theta])
+        agents_states_dim = 8
+        neighbor_agents_past = self.history_buffer.get_neighbor_agents_past()
+        neighbor_agents_types = self.history_buffer.get_neighbor_agents_types()
+        track_token_ids = self._id_map
+        agent_history = _filter_agents_array(neighbor_agents_past, reverse=True)
+        agent_types: List[TrackedObjectType] = neighbor_agents_types[-1]
+
+        if agent_history[-1].shape[0] == 0:
+            # Return zero array when there are no agents in the scene
+            agents_array = np.zeros((len(agent_history), 0, agents_states_dim))
+        else:
+            local_coords_agent_states = []
+            padded_agent_states = _pad_agent_states(agent_history, reverse=True)
+            for agent_state in padded_agent_states:
+                # agent_state: np (last_frame_num_agents, 8)
+                local_coords_agent_states.append(
+                    convert_absolute_quantities_to_relative(agent_state,
+                                                            ego_pose,
+                                                            'agent'))
+            # Calculate yaw rate
+            # agents_array = (num_frames, last_Frame_num_agents, 8)
+            agents_array = np.zeros(
+                (len(local_coords_agent_states),
+                 local_coords_agent_states[0].shape[0], agents_states_dim))
+
+            for frame_idx in range(len(local_coords_agent_states)):
+                agents_array[frame_idx, :, 0] = local_coords_agent_states[
+                                                    frame_idx][:,
+                                                AgentInternalIndex.x()].squeeze()
+                agents_array[frame_idx, :, 1] = local_coords_agent_states[
+                                                    frame_idx][:,
+                                                AgentInternalIndex.y()].squeeze()
+                agents_array[frame_idx, :,
+                2] = np.cos(local_coords_agent_states[frame_idx]
+                            [:,
+                            AgentInternalIndex.heading()].squeeze())
+                agents_array[frame_idx, :,
+                3] = np.sin(local_coords_agent_states[frame_idx]
+                            [:,
+                            AgentInternalIndex.heading()].squeeze())
+                agents_array[frame_idx, :, 4] = local_coords_agent_states[
+                                                    frame_idx][:,
+                                                AgentInternalIndex.vx()].squeeze()
+                agents_array[frame_idx, :, 5] = local_coords_agent_states[
+                                                    frame_idx][:,
+                                                AgentInternalIndex.vy()].squeeze()
+                agents_array[frame_idx, :, 6] = local_coords_agent_states[
+                                                    frame_idx][:,
+                                                AgentInternalIndex.width()].squeeze()
+                agents_array[frame_idx, :, 7] = local_coords_agent_states[
+                                                    frame_idx][:,
+                                                AgentInternalIndex.length()].squeeze()
+        # Initialize the result array
+        # agents_array: (num_frames, last_Frame_num_agents, 8)
+        agents = np.zeros(
+            (self.num_agents, agents_array.shape[0], agents_array.shape[-1] + 3),
+            dtype=np.float32)  # (num_agents=32, num_frames, 11)
+        # agents_array: (num_frames, last_Frame_num_agents, 8)
+        # distance_to_ego: (last_Frame_num_agents,)
+        distance_to_ego = np.linalg.norm(agents_array[-1, :, :2],
+                                         axis=-1)  # (last_Frame_num_agents, )
+
+        # Sort indices by distance
+        sorted_indices = np.argsort(distance_to_ego)  # (last_Frame_num_agents)
+
+        # Collect the indices of pedestrians and bicycles
+        ped_bike_indices = [
+            i for i in sorted_indices
+            if agent_types[i] in (TrackedObjectType.PEDESTRIAN,
+                                  TrackedObjectType.BICYCLE)
+        ]  # len(ped_bike_indices) = num_pedestrian + num_bicycle
+        vehicle_indices = [
+            i for i in sorted_indices if agent_types[i] == TrackedObjectType.VEHICLE
+        ]  # len(vehicle_indices) = num_vehicle
+        # If the total number of available agents is less than or equal to num_agents, no need to filter further
+        if len(ped_bike_indices) + len(vehicle_indices) <= self.num_agents:
+            selected_indices = sorted_indices[:self.num_agents]
+        else:
+            # Limit the number of pedestrians and bicycles to max_ped_bike, while retaining the remaining ones for later use
+            selected_ped_bike_indices = ped_bike_indices[:self.max_ped_bike]
+            remaining_ped_bike_indices = ped_bike_indices[self.max_ped_bike:]
+
+            # Combine the limited pedestrians/bicycles and all available vehicles
+            selected_indices = selected_ped_bike_indices + vehicle_indices
+
+            # If the combined selection is still less than num_agents, fill the remaining slots with additional pedestrians and bicycles
+            remaining_slots = self.num_agents - len(selected_indices)
+            if remaining_slots > 0:
+                selected_indices += remaining_ped_bike_indices[:remaining_slots]
+
+            # Sort and limit the selected indices to num_agents
+            selected_indices = sorted(
+                selected_indices, key=lambda idx: distance_to_ego[idx])[:self.num_agents]
+
+        # Populate the final agents array with the selected agents' features
+        for i, sorted_idx in enumerate(
+                selected_indices):  # selected_indices:  (shrinked_num_agents = 10)
+            # agents # (num_agents=32, num_frames, 11)
+            # agents_array # (num_frames, last_Frame_num_agents, 8)
+            agents[i, :, :agents_array.
+                   shape[-1]] = agents_array[:, sorted_idx, :agents_array.shape[-1]]
+            if agent_types[sorted_idx] == TrackedObjectType.VEHICLE:
+                agents[i, :, agents_array.shape[-1]:] = [1, 0, 0]  # Mark as VEHICLE
+            elif agent_types[sorted_idx] == TrackedObjectType.PEDESTRIAN:
+                agents[i, :, agents_array.shape[-1]:] = [0, 1,
+                                                         0]  # Mark as PEDESTRIAN
+            else:  # TrackedObjectType.BICYCLE
+                agents[i, :, agents_array.shape[-1]:] = [0, 0, 1]  # Mark as BICYCLE
+        return agents
 
     def _get_float_id_for_vehicle(self, v_id_str: str) -> float:
         if v_id_str not in self._id_map:
@@ -278,7 +476,7 @@ class PGTrafficManager(BaseManager):
 
         return dict()
 
-    def _collect_neighbor_data(self) -> (np.ndarray, List[str]):
+    def _collect_neighbor_data(self) -> (np.ndarray, List[TrackedObjectType]):
         """
         이웃 차량 정보를 수집. 여기서는 간단히 self._traffic_vehicles 중,
         shape (N,8)를 구성해본다.
@@ -306,7 +504,8 @@ class PGTrafficManager(BaseManager):
             y_ = v.position[1]
             row = [vehicle_id, vx, vy, heading, w, l, x_, y_]
             data_list.append(row)
-            type_list.append(type(v).__name__)
+            type_list.append(TrackedObjectType.VEHICLE)
+
 
         arr = np.array(data_list, dtype=np.float32)
         return arr, type_list

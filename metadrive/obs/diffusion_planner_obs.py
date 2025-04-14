@@ -236,6 +236,11 @@ class DiffusionPlannerObservation(BaseObservation):
         object_manager = vehicle.engine.managers["object_manager"]
         return object_manager.get_static_object_array(vehicle) # (5, 10)
 
+    def _get_neighbors(self, vehicle: BaseVehicle) -> np.ndarray:
+        traffic_manager = vehicle.engine.managers["traffic_manager"]
+        return traffic_manager.get_neighbors_history(vehicle) # (5, 10)
+
+
     def observe(self,
                 vehicle: BaseVehicle = None,
                 *args,
@@ -246,11 +251,13 @@ class DiffusionPlannerObservation(BaseObservation):
         """
         lanes_array, nav_lanes_array = self._get_lanes(vehicle)
         static_objects = self._get_static_objects(vehicle)
+        neighbors_history = self._get_neighbors(vehicle)
         # 결과 Dict으로 포장
         observation_dict = {
             "lanes_array": lanes_array.astype(np.float32),
             "nav_lanes_array": nav_lanes_array.astype(np.float32),
-            "static_objects": static_objects.astype(np.float32)
+            "static_objects": static_objects.astype(np.float32),
+            "neighbors_history": neighbors_history.astype(np.float32),
         }
         # observation_dict = self.observation_normalizer(observation_dict)
         self.current_observation = observation_dict

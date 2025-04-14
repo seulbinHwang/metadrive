@@ -48,7 +48,7 @@ class VehicleAgentManager(BaseAgentManager):
                                     vehicle_config=v_config,
                                     name=obj_name)
             ret[agent_id] = obj
-            policy_cls = self.agent_policy
+            policy_cls = self.agent_policy # EnvInputPolicy
             args = [obj, self.generate_seed()]
             if policy_cls == TrajectoryIDMPolicy or issubclass(
                     policy_cls, TrajectoryIDMPolicy):
@@ -183,8 +183,10 @@ class VehicleAgentManager(BaseAgentManager):
 
     def try_actuate_agent(self, step_infos, stage="before_step"):
         """
-        Some policies should make decision before physics world actuation, in particular, those need decision-making
-        But other policies like ReplayPolicy should be called in after_step, as they already know the final state and
+        Some policies should make decision before physics world actuation,
+        in particular, those need decision-making
+        But other policies like ReplayPolicy should be called in after_step,
+        as they already know the final state and
         exempt the requirement for rolling out the dynamic system to get it.
         """
         assert stage == "before_step" or stage == "after_step"
@@ -202,16 +204,29 @@ class VehicleAgentManager(BaseAgentManager):
                         [0, 0])
             else:
                 if stage == "before_step":
-                    action = policy.act(agent_id)
-                    step_infos[agent_id] = policy.get_action_info()
-                    step_infos[agent_id].update(
-                        self.get_agent(agent_id).before_step(action))
 
+                    action = policy.act(agent_id)
+                    # policy.get_action_info(): "action": (steering, throttle)을 -1 ~ 1 범위로 clip
+                    """
+                    policy.get_action_info()
+                        {'action': [np.float32(-1.0), np.float32(0.65134305)] }
+                    self.get_agent(agent_id)
+                        DefaultVehicle, ID:03bd5bd0-3cf5-4702-8bdd-8e7c594427a1
+                    self.get_agent(agent_id)(=DefaultVehicle).before_step(action)
+                        {'raw_action': (np.float32(-1.0), np.float32(0.65134305))}
+                    최종적으로 step_infos[agent_id]에 저장되는 값은
+                        {'action': [np.float32(-1.0), np.float32(0.65134305)],
+                         'raw_action': (np.float32(-1.0), np.float32(0.65134305))}
+                    """
+                    a = self.get_agent(agent_id)
+                    b = a.before_step(action)
+                    step_infos[agent_id] = policy.get_action_info()
+                    step_infos[agent_id].update(b)
         return step_infos
 
     def before_step(self):
         # not in replay mode
-        step_infos = super(VehicleAgentManager, self).before_step()
+        step_infos = super(VehicleAgentManager, self).before_step() # try_actuate_agent
         self._agents_finished_this_frame = dict()
         finished = set()
         for v_name in self._dying_objects.keys():

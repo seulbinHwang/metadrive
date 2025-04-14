@@ -243,7 +243,7 @@ class TrafficObjectManager(BaseManager):
         # 4) 에고와의 거리 계산
         dx = static_arr[:, 0] - ego_x  # (N,)
         dy = static_arr[:, 1] - ego_y  # (N,)
-        dist_arr = np.hypot(dx, dy)    # (N,)
+        dist_arr = np.hypot(dx, dy)  # (N,)
         idx_sorted = np.argsort(dist_arr)  # 거리 오름차순 정렬 idx
 
         max_obj = 5
@@ -267,7 +267,7 @@ class TrafficObjectManager(BaseManager):
         local_y = -dx_sel * s + dy_sel * c
 
         heading_vals = static_arr[selected_idx, 2]  # (sel_len,) object heading
-        rel_heading = heading_vals - ego_yaw        # relative heading
+        rel_heading = heading_vals - ego_yaw  # relative heading
         cos_local = np.cos(rel_heading)
         sin_local = np.sin(rel_heading)
 
@@ -275,7 +275,7 @@ class TrafficObjectManager(BaseManager):
         length_vals = static_arr[selected_idx, 4]
 
         type_int = static_arr[selected_idx, 5].astype(np.int64)  # (sel_len,)
-        one_hot_mat = np.eye(4, dtype=np.float32)[type_int]      # (sel_len,4)
+        one_hot_mat = np.eye(4, dtype=np.float32)[type_int]  # (sel_len,4)
 
         # 6) 채우기
         result[:sel_len, 0] = local_x

@@ -352,11 +352,9 @@ def main():
     config = {
         "num_scenarios": 1,  # 사용할 랜덤 맵 수 (예: 1000개 맵)
         "start_seed": 0,  # 시드 시작값 (0번부터 순차 생성)
-        "traffic_density": 0.1,  # 교통량 밀도 (기본값 0.1)
         "map": 5,
         # "discrete_action": False,  # 연속 행동 사용 (False가 기본값)
         # 추가 필요 설정이 있다면 이곳에 작성
-        "traffic_mode": "trigger",
         "random_traffic": True,
         "use_render": False,
     }
@@ -365,8 +363,9 @@ def main():
     env.reset()
     observations = env.observations
     observation = observations["default_agent"]
-
     ego = env.vehicle
+
+    traffic_manager = ego.engine.traffic_manager
     ego_x, ego_y = ego.position
     ego_yaw = ego.heading_theta
     roadnet = env.current_map.road_network

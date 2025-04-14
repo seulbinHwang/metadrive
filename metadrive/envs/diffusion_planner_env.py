@@ -18,6 +18,7 @@ from metadrive.envs.metadrive_env import MetaDriveEnv
 
 from metadrive.obs.diffusion_planner_obs import DiffusionPlannerObservation
 
+
 def merge_dictionaries(*dicts: dict) -> dict:
     """
     여러 개의 dictionary를 하나로 합쳐 반환합니다.
@@ -40,15 +41,20 @@ def merge_dictionaries(*dicts: dict) -> dict:
 
     return merged_dict
 
+
 DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
-    agent_observation=DiffusionPlannerObservation,
-accident_prob= 1.0)
+    agent_observation=DiffusionPlannerObservation, accident_prob=1.0,
+traffic_mode=TrafficMode.Respawn,
+    traffic_density=0.5,
+)
 
 diffusion_planner_config = DiffusionPlannerConfig(
-    args_file="/home/user/PycharmProjects/metadrive/checkpoints/args.json").to_dict()
+    args_file="/home/user/PycharmProjects/metadrive/checkpoints/args.json"
+).to_dict()
 DIFFUSION_PLANNER_DEFAULT_CONFIG = merge_dictionaries(
-DIFFUSION_PLANNER_DEFAULT_CONFIG, diffusion_planner_config)
+    DIFFUSION_PLANNER_DEFAULT_CONFIG, diffusion_planner_config)
 # TODO: 위 코드 안먹음. 수정해야함
+
 
 class DiffusionPlannerEnv(MetaDriveEnv):
 

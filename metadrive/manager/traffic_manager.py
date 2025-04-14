@@ -1,7 +1,7 @@
 import copy
 import logging
 from collections import namedtuple
-from typing import Dict
+from typing import Dict, List, Optional
 
 import math
 import numpy as np
@@ -16,6 +16,125 @@ from metadrive.utils import merge_dicts
 
 BlockVehicles = namedtuple("block_vehicles", "trigger_road vehicles")
 
+class HistoryBuffer:
+    """
+    시간 기반 버퍼를 관리하여 최근 time_duration만큼의 이웃 차량 정보를 저장한다.
+    각 스텝마다 update()를 호출하여 새로운 데이터를 추가하고,
+    오래된 데이터는 time_duration을 초과하면 제거한다.
+
+    Attributes:
+        time_duration (float): 저장할 총 시간 (초 단위).
+        time_gap_per_step (float): 한 스텝이 시뮬레이션 시간에서 몇 초에 해당하는지 (예: 0.1초).
+        output_time_gap (float): 버퍼에서 최종 조회 시 샘플링할 시간 간격 (예: 0.1초).
+        neighbor_agents_past_all (List[np.ndarray]): 각 시점의 이웃 차량 배열을 저장.
+            길이는 계속 증가하지만 time_duration을 넘어서는 오래된 부분은 제거함.
+            각 원소는 shape (N, 8)인 numpy array. (id, v_x, v_y, heading, width, length, x, y)
+        neighbor_agents_types_all (List[List[str]]): 이웃 차량의 타입 목록(예: 차량 클래스 이름 등).
+            neighbor_agents_past_all와 같은 길이를 가짐.
+    """
+
+    def __init__(self, time_duration: float, time_gap_per_step: float,
+                 output_time_gap: float) -> None:
+        """
+        초기화.
+
+        Args:
+            time_duration (float): 버퍼에 저장할 총 시간 (초).
+            time_gap_per_step (float): 한 스텝이 시뮬레이션 시간에서 몇 초인지 (예: 0.1).
+            output_time_gap (float): 최종 데이터를 얻을 때 샘플링할 간격.
+        Raises:
+            AssertionError: time_duration이 output_time_gap으로 나누어떨어지지 않거나,
+                time_gap_per_step이 output_time_gap으로 나누어떨어지지 않을 경우.
+        """
+        assert abs(time_duration / output_time_gap - round(time_duration / output_time_gap)) < 1e-6, \
+            "time_duration must be divisible by output_time_gap"
+        assert abs(time_gap_per_step / output_time_gap - round(time_gap_per_step / output_time_gap)) < 1e-6, \
+            "time_gap_per_step must be divisible by output_time_gap"
+        self.time_duration = time_duration
+        self.time_gap_per_step = time_gap_per_step
+        self.output_time_gap = output_time_gap
+
+        # 버퍼
+        self.neighbor_agents_past_all: List[np.ndarray] = []
+        self.neighbor_agents_types_all: List[List[str]] = []
+
+        # time_elapsed를 추적 (after_step마다 time_gap_per_step만큼 증가한다고 가정)
+        self._time_elapsed_list: List[float] = []  # 각 step별 누적시간
+
+    def reset(self) -> None:
+        """
+        버퍼 초기화.
+        """
+        self.neighbor_agents_past_all.clear()
+        self.neighbor_agents_types_all.clear()
+        self._time_elapsed_list.clear()
+
+    def update(self, neighbor_agents: np.ndarray,
+               neighbor_types: List[str]) -> None:
+        """
+        버퍼에 새로운 이웃 차량 정보를 추가하고, time_duration을 초과한 오래된 데이터를 제거한다.
+
+        Args:
+            neighbor_agents (np.ndarray): shape (N, 8)인 numpy array (id, vx, vy, heading, width, length, x, y)
+            neighbor_types (List[str]): 길이 N인 리스트. 각 에이전트 타입(차량 클래스명 등)
+        """
+        # 시뮬레이션 시간이 누적되어 들어온다고 가정
+        current_time = 0.0 if len(
+            self._time_elapsed_list) == 0 else (self._time_elapsed_list[-1] +
+                                                self.time_gap_per_step)
+
+        self.neighbor_agents_past_all.append(neighbor_agents)
+        self.neighbor_agents_types_all.append(neighbor_types)
+        self._time_elapsed_list.append(current_time)
+
+        # 오래된 데이터 제거
+        # time_elapsed_list 맨 끝 - 맨 앞 <= time_duration이 되도록 남긴다
+        while len(self._time_elapsed_list) > 0 and \
+                (self._time_elapsed_list[-1] - self._time_elapsed_list[0]) > self.time_duration:
+            self.neighbor_agents_past_all.pop(0)
+            self.neighbor_agents_types_all.pop(0)
+            self._time_elapsed_list.pop(0)
+
+    def get_neighbor_agents_past(self) -> List[np.ndarray]:
+        """
+        버퍼에서 output_time_gap 간격으로 추출한 이웃 차량 데이터 목록을 반환한다.
+        예: time_gap_per_step=0.1, output_time_gap=0.1 → 모든 스텝 반환
+            time_gap_per_step=0.05, output_time_gap=0.1 → 두 스텝에 한 번씩 반환
+
+        Returns:
+            List[np.ndarray]: 필터링된 이웃 차량 목록 (time 순서). shape (N, 8).
+        """
+        if len(self._time_elapsed_list) == 0:
+            return []
+
+        # output_time_gap을 기준으로 샘플링
+        result: List[np.ndarray] = []
+        sampling_interval_steps = int(
+            round(self.output_time_gap / self.time_gap_per_step))
+        leftover_ = (len(self.neighbor_agents_past_all) -1) % sampling_interval_steps
+        for i in range(leftover_, len(self.neighbor_agents_past_all),
+                       sampling_interval_steps):
+            result.append(self.neighbor_agents_past_all[i])
+        return result
+
+    def get_neighbor_agents_types(self) -> List[List[str]]:
+        """
+        버퍼에서 output_time_gap 간격으로 추출한 이웃 차량 타입 목록.
+
+        Returns:
+            List[List[str]]: 이웃 차량 타입 (time 순서).
+        """
+        if len(self._time_elapsed_list) == 0:
+            return []
+
+        result: List[List[str]] = []
+        sampling_interval_steps = int(
+            round(self.output_time_gap / self.time_gap_per_step))
+        leftover_ = (len(self.neighbor_agents_past_all) - 1) % sampling_interval_steps
+        for i in range(leftover_, len(self.neighbor_agents_types_all),
+                       sampling_interval_steps):
+            result.append(self.neighbor_agents_types_all[i])
+        return result
 
 class TrafficMode:
     # Traffic vehicles will be spawned once
@@ -51,11 +170,21 @@ class PGTrafficManager(BaseManager):
         self.density = self.engine.global_config["traffic_density"]
         self.respawn_lanes = None
 
+        # 예시: time_duration=2., time_gap_per_step=0.1, output_time_gap=0.1
+        self.history_buffer = HistoryBuffer(time_duration=2.0,
+                                            time_gap_per_step=0.1,
+                                            output_time_gap=0.1)
+        # --- 새로 생성된 차량에 대해 버퍼 업데이트 ---
+        neighbor_agents, neighbor_types = self._collect_neighbor_data()
+        self.history_buffer.update(neighbor_agents, neighbor_types)
+
+
     def reset(self):
         """
         Generate traffic on map, according to the mode and density
         :return: List of Traffic vehicles
         """
+        self.history_buffer.reset()
         map = self.current_map
         logging.debug("load scene {}".format(
             "Use random traffic" if self.random_traffic else ""))
@@ -71,13 +200,15 @@ class PGTrafficManager(BaseManager):
         logging.debug(
             f"Resetting Traffic Manager with mode {self.mode} and density {traffic_density}"
         )
-
         if self.mode in {TrafficMode.Basic, TrafficMode.Respawn}:
             self._create_basic_vehicles(map, traffic_density)
         elif self.mode in {TrafficMode.Trigger, TrafficMode.Hybrid}:
             self._create_trigger_vehicles(map, traffic_density)
         else:
             raise ValueError(f"No such mode named {self.mode}")
+        # --- 새로 생성된 차량에 대해 버퍼 업데이트 ---
+        neighbor_agents, neighbor_types = self._collect_neighbor_data()
+        self.history_buffer.update(neighbor_agents, neighbor_types)
 
     def before_step(self):
         """
@@ -133,8 +264,53 @@ class PGTrafficManager(BaseManager):
                 self.add_policy(new_v.id, IDMPolicy, new_v,
                                 self.generate_seed())
                 self._traffic_vehicles.append(new_v)
+        neighbor_agents, neighbor_types = self._collect_neighbor_data()
+        self.history_buffer.update(neighbor_agents, neighbor_types)
 
         return dict()
+
+    def _collect_neighbor_data(self) -> (np.ndarray, List[str]):
+        """
+        이웃 차량 정보를 수집. 여기서는 간단히 self._traffic_vehicles 중,
+        shape (N,8)를 구성해본다.
+
+        Returns:
+            np.ndarray: shape (N,8), columns: [id, vx, vy, heading, width, length, x, y]
+            List[str]: 차량의 타입 문자열. e.g. vehicle_type.__name__ 등
+        """
+        if len(self._traffic_vehicles) == 0:
+            return np.zeros((0, 8), dtype=np.float32), []
+
+        data_list = []
+        type_list = []
+        for v in self._traffic_vehicles:
+            # id를 임의로 hash했거나 int로 변환해야 한다. 여기서는 그냥 id를 float로 cast 불가능하면 0
+            # toy example
+            # velocity -> v.velocity
+            # heading -> v.heading_theta
+            # width -> v.WIDTH
+            # length -> v.LENGTH
+            # x -> v.position[0]
+            # y -> v.position[1]
+            try:
+                # v.id가 UUID일 수 있으므로, 여기서는 hash를 통해 float로 변환 시도
+                vehicle_id = float(abs(hash(v.id)) % 100000)
+            except Exception:
+                vehicle_id = 0.0
+
+            vx = v.velocity[0]  # m/s
+            vy = v.velocity[1]  # m/s
+            heading = v.heading_theta  # rad
+            w = v.WIDTH
+            l = v.LENGTH
+            x_ = v.position[0]
+            y_ = v.position[1]
+            row = [vehicle_id, vx, vy, heading, w, l, x_, y_]
+            data_list.append(row)
+            type_list.append(type(v).__name__)
+
+        arr = np.array(data_list, dtype=np.float32)
+        return arr, type_list
 
     def before_reset(self) -> None:
         """

@@ -158,7 +158,8 @@ class PGTrafficManager(BaseManager):
         Control the whole traffic flow
         """
         super(PGTrafficManager, self).__init__()
-
+        self._id_map = {}
+        self._next_id = 1
         self._traffic_vehicles = []
 
         # triggered by the event. TODO(lqy) In the future, event trigger can be introduced
@@ -178,12 +179,20 @@ class PGTrafficManager(BaseManager):
         neighbor_agents, neighbor_types = self._collect_neighbor_data()
         self.history_buffer.update(neighbor_agents, neighbor_types)
 
+    def _get_float_id_for_vehicle(self, v_id_str: str) -> float:
+        if v_id_str not in self._id_map:
+            self._id_map[v_id_str] = self._next_id
+            self._next_id += 1
+        return float(self._id_map[v_id_str])
 
     def reset(self):
         """
         Generate traffic on map, according to the mode and density
         :return: List of Traffic vehicles
         """
+        # TODO: reset 해도 id를 유지해야 하는 부분이 있는지 궁금
+        self._id_map.clear()
+        self._next_id = 1
         self.history_buffer.reset()
         map = self.current_map
         logging.debug("load scene {}".format(
@@ -292,11 +301,8 @@ class PGTrafficManager(BaseManager):
             # length -> v.LENGTH
             # x -> v.position[0]
             # y -> v.position[1]
-            try:
-                # v.id가 UUID일 수 있으므로, 여기서는 hash를 통해 float로 변환 시도
-                vehicle_id = float(abs(hash(v.id)) % 100000)
-            except Exception:
-                vehicle_id = 0.0
+            vehicle_id = self._get_float_id_for_vehicle(v.id)
+
 
             vx = v.velocity[0]  # m/s
             vy = v.velocity[1]  # m/s

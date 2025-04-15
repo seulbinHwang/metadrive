@@ -237,6 +237,20 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         self._set_action(action)
         return step_info
 
+    def _set_action(self, action):
+        if action is None:
+            return
+        steering = action[0]
+        self.throttle_brake = action[1]
+        self.steering = steering
+        """
+        self.system: panda3d.bullet.BulletVehicle
+        self.max_steering: 40.0
+        """
+        self.system.setSteeringValue(self.steering * self.max_steering, 0)
+        self.system.setSteeringValue(self.steering * self.max_steering, 1)
+        self._apply_throttle_brake(action[1])
+
     def after_step(self):
         if self.navigation and self.config["navigation_module"]:
             self.navigation.update_localization(self)
@@ -494,16 +508,6 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         self._apply_throttle_brake(throttle_brake)
         self.throttle_brake = throttle_brake
 
-    def _set_action(self, action):
-        if action is None:
-            return
-        steering = action[0]
-        self.throttle_brake = action[1]
-        self.steering = steering
-        self.system.setSteeringValue(self.steering * self.max_steering, 0)
-        self.system.setSteeringValue(self.steering * self.max_steering, 1)
-        self._apply_throttle_brake(action[1])
-
     def _set_incremental_action(self, action: np.ndarray):
         if action is None:
             return
@@ -516,6 +520,10 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         self._apply_throttle_brake(action[1])
 
     def _apply_throttle_brake(self, throttle_brake):
+        """
+        max_engine_force 750.8599853515625
+        max_brake_force 80.85997772216797
+        """
         max_engine_force = self.config["max_engine_force"]
         max_brake_force = self.config["max_brake_force"]
         for wheel_index in range(4):

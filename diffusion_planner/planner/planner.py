@@ -21,14 +21,11 @@ from nuplan.planning.simulation.planner.ml_planner.transform_utils import transf
 
 
 def outputs_to_trajectory(
-        outputs: Dict[str, torch.Tensor],
+        predictions: np.ndarray,
         ego_state_history: Deque[EgoState],
 future_horizon = 8.,
 step_interval = 0.1
 ) -> List[InterpolatableState]:
-    # a = outputs['prediction'] # [B, P, V_future, 4] = (1, 11, 80, 4)
-    predictions = outputs['prediction'][0, 0].detach().cpu().numpy().astype(
-        np.float64)  # T, 4
     heading = np.arctan2(predictions[:, 3], predictions[:, 2])[...,
     None]  # T, 1
     predictions = np.concatenate([predictions[..., :2], heading],

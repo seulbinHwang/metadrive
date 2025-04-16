@@ -12,10 +12,23 @@ from metadrive.engine.logger import get_logger
 
 logger = get_logger()
 
-import numpy as np
+from collections import deque
 import math
+import numpy as np
+
+# NuPlan (example) imports
+from nuplan.common.actor_state.ego_state import EgoState
+from nuplan.common.actor_state.state_representation import TimePoint, StateSE2, StateVector2D
+from nuplan.common.actor_state.vehicle_parameters import VehicleParameters
+from nuplan.common.actor_state.dynamic_car_state import DynamicCarState
+from nuplan.common.actor_state.car_footprint import CarFootprint
+
+# MetaDrive imports
+from metadrive.component.vehicle.vehicle_type import DefaultVehicle
+from metadrive.utils.math import wrap_to_pi
 
 from metadrive.utils.math import clip, wrap_to_pi
+
 
 class DefaultVehicle(BaseVehicle):
     PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.DEFAULT_VEHICLE)
@@ -48,6 +61,208 @@ class DefaultVehicle(BaseVehicle):
         return self.DEFAULT_WIDTH
 
 
+class HistoryDefaultVehicle(DefaultVehicle):
+    """
+    - DefaultVehicle를 상속받아, 매 스텝마다 EgoState를 생성/저장하는 기능을 추가한 클래스입니다.
+    - ego_history: Deque[EgoState] 로 관리.
+    """
+
+    def __init__(self,
+                 vehicle_config=None,
+                 name=None,
+                 random_seed=None,
+                 position=None,
+                 heading=None,
+                 _calling_reset=True,
+                 ego_history_maxlen=100):
+        """
+        :param ego_history_maxlen: ego_history에 최대 몇 개의 EgoState를 저장할지
+        """
+        super().__init__(vehicle_config=vehicle_config,
+                         name=name,
+                         random_seed=random_seed,
+                         position=position,
+                         heading=heading,
+                         _calling_reset=_calling_reset)
+
+        # EgoState 기록용 덱
+        self.ego_history = deque(maxlen=ego_history_maxlen)
+
+
+        # -------------------------------
+        #  (1) NuPlan VehicleParameters 생성
+        # -------------------------------
+        #  DefaultVehicle에서:
+        #     self.LENGTH = 4.515 (ex)
+        #     self.WIDTH  = 1.852
+        #     self.HEIGHT = 1.19
+        #
+        #  또한:
+        #     self.FRONT_WHEELBASE = 1.05234
+        #     self.REAR_WHEELBASE  = 1.4166
+        #     -> wheel_base = FRONT_WHEELBASE + REAR_WHEELBASE = 2.46894
+        #
+        #  "front_length" = rear axle ~ front bumper distance
+        #  "rear_length"  = rear axle ~ rear bumper distance
+        #
+        #   (차 중점을 origin이라 가정시)
+        #   - center ~ front bumper: LENGTH/2 = 2.2575
+        #   - center ~ rear bumper : LENGTH/2 = 2.2575
+        #   - center ~ rear axle   : REAR_WHEELBASE=1.4166 (뒤쪽)
+        #
+        #   => rear axle ~ front bumper = (1.4166 + 2.2575) = 3.6741
+        #   => rear axle ~ rear bumper  = (2.2575 - 1.4166) = 0.8409
+        #
+        #  "cog_position_from_rear_axle" 는 rear axle ~ COG 거리
+        #   여기서는 "COG=차 중심"이라 가정 -> 1.4166 m
+        #
+        #  vehicle_name = self.name
+        #  vehicle_type = "MetaDrive" (등 적절히)
+        #
+        # -------------------------------
+        total_length = self.LENGTH  # 4.515
+        half_len = total_length / 2.0  # 2.2575
+        front_axle_dist = self.FRONT_WHEELBASE  # 1.05234
+        rear_axle_dist  = self.REAR_WHEELBASE   # 1.4166
+
+        # wheel_base
+        wheel_base_val = front_axle_dist + rear_axle_dist  # 2.46894
+
+        # rear axle -> front bumper
+        front_length_val = rear_axle_dist + half_len  # 1.4166 + 2.2575 = 3.6741
+        # rear axle -> rear bumper
+        rear_length_val  = abs(half_len - rear_axle_dist)  # 0.8409
+
+        # cog_position_from_rear_axle
+        cog_from_rear = rear_axle_dist  # 1.4166
+
+        self._nuplan_vehicle_params = VehicleParameters(
+            width=self.WIDTH,         # 1.852
+            front_length=front_length_val,
+            rear_length=rear_length_val,
+            cog_position_from_rear_axle=cog_from_rear,
+            wheel_base=wheel_base_val,
+            vehicle_name=self.name if self.name else "EgoVehicle",
+            vehicle_type="MetaDrive",
+            height=self.HEIGHT        # 1.19
+        )
+
+        # 이전 스텝 속도(배속) 등을 저장하여 가속도 계산 용도 (option)
+        # TODO: 이 부분이 수정 되어야 할 수도 있음
+        self._previous_velocity = None
+        self._previous_ang_vel = None
+
+        self._previous_time_s = 0.0
+
+    def reset(self, *args, **kwargs):
+        """에피소드 시작시 호출 – 기록 초기화"""
+        super().reset(*args, **kwargs)
+        self.ego_history.clear()
+
+    def after_step(self):
+        """
+        MetaDrive에서 매 스텝 후에 불리는 메서드.
+        여기서 NuPlan의 EgoState를 생성하고, ego_history 덱에 쌓아둡니다.
+        """
+        # 1) 기존 DefaultVehicle의 after_step 수행
+        step_info = super().after_step()
+
+        # 2) EgoState 생성
+        current_ego_state = self._create_ego_state()
+        # 3) 덱에 추가
+        self.ego_history.append(current_ego_state)
+
+        return step_info
+
+    def _create_ego_state(self) -> EgoState:
+        """
+        DefaultVehicle 상태 -> NuPlan EgoState 변환
+        """
+        # 1) 시뮬레이션 시간 (초 -> 마이크로초)
+        """
+        TODO: 
+`self.engine.global_config["physics_world_step_size"] * 
+self.engine.global_config["decision_repeat"]` 의 배수
+
+reset 되면 time_us가 0으로 초기화 되는지 확인
+        """
+        step_index = self.engine.episode_step
+
+        # engine.global_config에서 dt 가져오기
+        # dt = physics_world_step_size * decision_repeat
+        dt = (self.engine.global_config["physics_world_step_size"] *
+              self.engine.global_config["decision_repeat"])
+
+        # step_index * dt => 현재까지 진행된 시뮬레이션 시간 [s]
+        current_time_s = step_index * dt
+
+        # float(s) -> 마이크로초로 변환
+        time_us = int(current_time_s * 1e6)
+        time_point = TimePoint(time_us)
+
+        dt = current_time_s - self._previous_time_s
+
+        # 2) 차량 중심 좌표를 StateSE2 로 생성
+        #    (DefaultVehicle.position 은 (x, y), heading_theta는 라디안)
+        x_c = float(self.position[0])
+        y_c = float(self.position[1])
+        yaw_c = wrap_to_pi(self.heading_theta)  # 라디안, -π ~ +π
+        center_pose = StateSE2(x_c, y_c, yaw_c)
+
+        # 3) 속도(중심) / 가속도(중심)
+        #    - self.velocity => (vx, vy) in m/s (world coords)
+        vx = float(self.velocity[0])
+        vy = float(self.velocity[1])
+        center_velocity_2d = StateVector2D(vx, vy)
+
+        #    간단한 finite difference로 a = (v - v_prev) / dt
+        if self._previous_velocity is None:
+            center_acc_2d = StateVector2D(0.0, 0.0)
+        else:
+            v_prev = self._previous_velocity
+            ax = (vx - v_prev[0]) / dt
+            ay = (vy - v_prev[1]) / dt
+            center_acc_2d = StateVector2D(ax, ay)
+
+        # 4) 타이어 조향각 (radians)
+        #    self.steering: -1 ~ +1
+        #    max_steering=40 (deg) => 약 0.698 rad
+        max_steer_deg = self.max_steering  # default=40 deg
+        max_steer_rad = math.radians(max_steer_deg)
+        tire_angle = float(self.steering) * max_steer_rad
+
+        # 5) BulletVehicle의 각속도(회전)는 rad/s, Z축에 해당
+        #    -> (ang_vel_z = self.body.getAngularVelocity()[2])  # (ZUp)
+        #    (기본적으로 z-index가 2지만, 여기서는 -1일 수도 있음. 실제 값 확인 필요)
+        #    일단 Panda3D에서 ZUp이므로 getAngularVelocity()[-1] 사용
+        ang_vel_z = self.body.getAngularVelocity()[-1]  # float, rad/s
+        #    각가속도도 finite diff
+        if self._previous_ang_vel is None:
+            ang_acc_z = 0.0
+        else:
+            prev_ang_vel = self._previous_ang_vel
+            ang_acc_z = (ang_vel_z - prev_ang_vel) / dt
+
+        # 6) EgoState 생성
+        ego_state = EgoState.build_from_center(
+            center=center_pose,
+            center_velocity_2d=center_velocity_2d,
+            center_acceleration_2d=center_acc_2d,
+            tire_steering_angle=tire_angle,
+            time_point=time_point,
+            vehicle_parameters=self._nuplan_vehicle_params,
+            is_in_auto_mode=True,
+            angular_vel=ang_vel_z,  # [rad/s]
+            angular_accel=ang_acc_z,  # [rad/s²]
+        )
+
+        # 기록 갱신
+        self._previous_velocity = np.array([vx, vy], dtype=float)
+        self._previous_time_s = current_time_s
+        self._previous_ang_vel = ang_vel_z
+
+        return ego_state
+
 
 
 class KinematicBicycleVehicle(DefaultVehicle):
@@ -59,7 +274,13 @@ class KinematicBicycleVehicle(DefaultVehicle):
     We manually integrate position, heading, speed, etc. each step
     and override the Bullet physical force-based approach.
     """
-    def __init__(self, vehicle_config=None, name=None, random_seed=None, position=None, heading=None):
+
+    def __init__(self,
+                 vehicle_config=None,
+                 name=None,
+                 random_seed=None,
+                 position=None,
+                 heading=None):
         super().__init__(
             vehicle_config=vehicle_config,
             name=name,
@@ -70,24 +291,29 @@ class KinematicBicycleVehicle(DefaultVehicle):
         )
 
         # Initialize internal states for kinematic model
-        self.steering_angle = 0.0    # current steering angle, in radians
-        self.current_speed = 0.0     # current forward speed, in m/s
+        self.steering_angle = 0.0  # current steering angle, in radians
+        self.current_speed = 0.0  # current forward speed, in m/s
         self.angular_velocity_z = 0.0  # current yaw rate (rad/s)
 
-    def reset(self, vehicle_config=None, name=None, random_seed=None, position=None, heading=0.0, *args, **kwargs):
+    def reset(self,
+              vehicle_config=None,
+              name=None,
+              random_seed=None,
+              position=None,
+              heading=0.0,
+              *args,
+              **kwargs):
         """
         Called when resetting the vehicle. We'll also set it static so bullet won't move it.
         """
         # Use parent's reset to do basic config, set position, etc.
-        super().reset(
-            vehicle_config=vehicle_config,
-            name=name,
-            random_seed=random_seed,
-            position=position,
-            heading=heading,
-            *args,
-            **kwargs
-        )
+        super().reset(vehicle_config=vehicle_config,
+                      name=name,
+                      random_seed=random_seed,
+                      position=position,
+                      heading=heading,
+                      *args,
+                      **kwargs)
 
         # Let the bullet engine see this as static, so it won't update via forces
         self.set_static(True)
@@ -114,19 +340,22 @@ class KinematicBicycleVehicle(DefaultVehicle):
             pass
 
         # parse user action
-        accel_m_s2     = float(action[0])  # linear acceleration
-        steering_rate  = float(action[1])  # how fast steering angle changes (rad/s)
+        accel_m_s2 = float(action[0])  # linear acceleration
+        steering_rate = float(
+            action[1])  # how fast steering angle changes (rad/s)
 
         # get time step: dt = physics_world_step_size * decision_repeat
         # (in MetaDrive global_config, these keys exist)
-        dt = (self.engine.global_config["physics_world_step_size"]
-              * self.engine.global_config["decision_repeat"])
+        dt = (self.engine.global_config["physics_world_step_size"] *
+              self.engine.global_config["decision_repeat"])
 
         # 1) update steering angle by steering_rate
         self.steering_angle += steering_rate * dt
         # clamp steering angle to maximum (in radians)
-        max_steer_rad = (self.max_steering * math.pi / 180.0)  # e.g. 60 deg => ~1.047 rad
-        self.steering_angle = clip(self.steering_angle, -max_steer_rad, max_steer_rad)
+        max_steer_rad = (self.max_steering * math.pi / 180.0
+                        )  # e.g. 60 deg => ~1.047 rad
+        self.steering_angle = clip(self.steering_angle, -max_steer_rad,
+                                   max_steer_rad)
 
         # 2) update speed from acceleration
         old_speed = self.current_speed
@@ -140,7 +369,8 @@ class KinematicBicycleVehicle(DefaultVehicle):
         # Here we approximate wheelbase = LENGTH, or any custom param
         wheelbase = self.LENGTH  # or a separate param if you prefer
         heading_now = self.heading_theta
-        heading_rate = (self.current_speed * math.tan(self.steering_angle) / wheelbase)
+        heading_rate = (self.current_speed * math.tan(self.steering_angle) /
+                        wheelbase)
 
         new_heading = heading_now + heading_rate * dt
         new_heading = wrap_to_pi(new_heading)
@@ -610,6 +840,7 @@ vehicle_type = {
     "l": LVehicle,
     "xl": XLVehicle,
     "default": DefaultVehicle,
+    "history_default": HistoryDefaultVehicle,
     "bicycle_default": KinematicBicycleVehicle,
     "static_default": StaticDefaultVehicle,
     "varying_dynamics": VaryingDynamicsVehicle,

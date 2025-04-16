@@ -4,6 +4,9 @@ from nuplan.planning.simulation.trajectory.interpolated_trajectory import Interp
 from nuplan.planning.simulation.controller.tracker.lqr import LQRTracker
 from nuplan.planning.simulation.simulation_time_controller.simulation_iteration import SimulationIteration
 from nuplan.common.actor_state.state_representation import TimePoint
+import gym
+import numpy as np
+
 class LQRPolicy(BasePolicy):
     """
     LQR policy for controlling the vehicle in the simulation environment.
@@ -44,6 +47,17 @@ class LQRPolicy(BasePolicy):
             time_point=ego_state.time_point + time_gap,
             index=self.control_object.engine.episode_step + 1,
         )
-        dynamic_state = self._tracker.track_trajectory(current_iteration,
+        action = self._tracker.track_trajectory(current_iteration,
                                                        next_iteration,
                                                         ego_state, trajectory)
+        self.action_info["action"] = action
+        return action
+
+
+    @classmethod
+    def get_input_space(cls):
+        _input_space = gym.spaces.Box(-1.0,
+                                      1.0,
+                                      shape=(2,),
+                                      dtype=np.float32)
+        return _input_space

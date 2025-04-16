@@ -1,7 +1,7 @@
 import copy
 from metadrive.component.navigation_module.node_network_navigation import NodeNetworkNavigation
 from typing import Union
-
+from metadrive.policy.lqr_policy import LQRPolicy
 import numpy as np
 
 from metadrive.component.algorithm.blocks_prob_dist import PGBlockDistConfig
@@ -46,6 +46,9 @@ DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
     agent_observation=DiffusionPlannerObservation, accident_prob=1.0,
 traffic_mode=TrafficMode.Respawn,
     traffic_density=0.5,
+agent_policy=LQRPolicy,
+vehicle_config=dict(
+vehicle_model="bicycle_default",)
 )
 
 diffusion_planner_config = DiffusionPlannerConfig(

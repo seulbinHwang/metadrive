@@ -316,3 +316,10 @@ class EgoState(InterpolatableState):
             time_point=time_point,
             is_in_auto_mode=is_in_auto_mode,
         )
+
+class EgoStateDot(EgoState):
+    """
+    A class representing the dynamics of the EgoState. This class exist mostly for clarity sake.
+    """
+
+    pass

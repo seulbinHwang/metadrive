@@ -22,6 +22,7 @@ from nuplan.common.actor_state.state_representation import TimePoint, StateSE2, 
 from nuplan.common.actor_state.vehicle_parameters import VehicleParameters
 from nuplan.common.actor_state.dynamic_car_state import DynamicCarState
 from nuplan.common.actor_state.car_footprint import CarFootprint
+from nuplan.planning.simulation.controller.motion_model.kinematic_bicycle import KinematicBicycleModel
 
 # MetaDrive imports
 from metadrive.component.vehicle.vehicle_type import DefaultVehicle
@@ -154,10 +155,23 @@ class HistoryDefaultVehicle(DefaultVehicle):
 
         self._previous_time_s = 0.0
 
+    @property
+    def ego_state(self):
+        """
+        현재까지 기록된 EgoState를 반환합니다.
+        :return: EgoState
+        """
+        return self.ego_history[-1] if len(self.ego_history) > 0 else None
     def reset(self, *args, **kwargs):
         """에피소드 시작시 호출 – 기록 초기화"""
         super().reset(*args, **kwargs)
         self.ego_history.clear()
+
+        # 2) EgoState 생성
+        current_ego_state = self._create_ego_state()
+        # 3) 덱에 추가
+        self.ego_history.append(current_ego_state)
+
 
     def after_step(self):
         """
@@ -265,7 +279,7 @@ reset 되면 time_us가 0으로 초기화 되는지 확인
 
 
 
-class KinematicBicycleVehicle(DefaultVehicle):
+class KinematicBicycleVehicle(HistoryDefaultVehicle):
     """
     A custom vehicle class implementing a simple Kinematic Bicycle Model.
     Action format: [acceleration, steering_rate]
@@ -289,7 +303,7 @@ class KinematicBicycleVehicle(DefaultVehicle):
             heading=heading,
             _calling_reset=False  # we'll manually call reset() below
         )
-
+        self._motion_model = KinematicBicycleModel(self._nuplan_vehicle_params)
         # Initialize internal states for kinematic model
         self.steering_angle = 0.0  # current steering angle, in radians
         self.current_speed = 0.0  # current forward speed, in m/s
@@ -323,6 +337,9 @@ class KinematicBicycleVehicle(DefaultVehicle):
         self.current_speed = 0.0
         self.angular_velocity_z = 0.0
 
+
+
+
     def before_step(self, action=None):
         """
         This function is called each simulation step before the physics engine updates.
@@ -338,16 +355,31 @@ class KinematicBicycleVehicle(DefaultVehicle):
         else:
             # typically, env might clip it to [-1,1], but we can interpret in real physical range
             pass
-
         # parse user action
         accel_m_s2 = float(action[0])  # linear acceleration
         steering_rate = float(
             action[1])  # how fast steering angle changes (rad/s)
+        dynamic_state = DynamicCarState.build_from_rear_axle(
+            rear_axle_to_center_dist=self.ego_state.car_footprint.
+            rear_axle_to_center_dist,
+            rear_axle_velocity_2d=self.ego_state.dynamic_car_state.
+            rear_axle_velocity_2d,
+            rear_axle_acceleration_2d=StateVector2D(accel_m_s2, 0),
+            tire_steering_rate=steering_rate,
+        )
+        dt = (self.engine.global_config["physics_world_step_size"] *
+              self.engine.global_config["decision_repeat"])
+        sampling_time = TimePoint(int(dt * 1e6))
+        current_state: EgoState = self._motion_model.propagate_state(
+            state=self.ego_state, ideal_dynamic_state=dynamic_state, sampling_time=sampling_time
+        )
+
+
+
 
         # get time step: dt = physics_world_step_size * decision_repeat
         # (in MetaDrive global_config, these keys exist)
-        dt = (self.engine.global_config["physics_world_step_size"] *
-              self.engine.global_config["decision_repeat"])
+
 
         # 1) update steering angle by steering_rate
         self.steering_angle += steering_rate * dt

@@ -152,7 +152,7 @@ class LQRTracker(AbstractTracker):
         next_iteration: SimulationIteration,
         initial_state: EgoState,
         trajectory: AbstractTrajectory,
-    ) -> DynamicCarState:
+    ) -> Tuple[float, float]:
         """Inherited, see superclass."""
         (initial_velocity, initial_lateral_state_vector
         ) = self._compute_initial_velocity_and_lateral_state(
@@ -179,15 +179,7 @@ class LQRTracker(AbstractTracker):
             steering_rate_cmd = self._lateral_lqr_controller(
                 initial_lateral_state_vector, velocity_profile,
                 curvature_profile)
-
-        return DynamicCarState.build_from_rear_axle(
-            rear_axle_to_center_dist=initial_state.car_footprint.
-            rear_axle_to_center_dist,
-            rear_axle_velocity_2d=initial_state.dynamic_car_state.
-            rear_axle_velocity_2d,
-            rear_axle_acceleration_2d=StateVector2D(accel_cmd, 0),
-            tire_steering_rate=steering_rate_cmd,
-        )
+        return accel_cmd, steering_rate_cmd
 
     def _compute_initial_velocity_and_lateral_state(
         self,

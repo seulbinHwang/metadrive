@@ -7,16 +7,15 @@ from metadrive.component.pg_space import VehicleParameterSpace, ParameterSpace
 from metadrive.constants import Semantics
 from metadrive.engine.asset_loader import AssetLoader
 
-import numpy as np
-import math
-
 from metadrive.component.vehicle.base_vehicle import BaseVehicle
-from metadrive.utils.math import clip, wrap_to_pi
 from metadrive.engine.logger import get_logger
 
 logger = get_logger()
 
+import numpy as np
+import math
 
+from metadrive.utils.math import clip, wrap_to_pi
 
 class DefaultVehicle(BaseVehicle):
     PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.DEFAULT_VEHICLE)
@@ -51,142 +50,146 @@ class DefaultVehicle(BaseVehicle):
 
 
 
-class KinematicBicycleVehicle(BaseVehicle):
+class KinematicBicycleVehicle(DefaultVehicle):
     """
-    이 차량 클래스는, '가속도 + 조향속도'로 ego 차량 상태를 업데이트하는
-    운동학적 자전거 모델(kineamtic bicycle)을 구현한 예시입니다.
+    A custom vehicle class implementing a simple Kinematic Bicycle Model.
+    Action format: [acceleration, steering_rate]
+      - acceleration: (float) desired linear acceleration in m/s^2
+      - steering_rate: (float) desired steering angular velocity in rad/s
+    We manually integrate position, heading, speed, etc. each step
+    and override the Bullet physical force-based approach.
     """
+    def __init__(self, vehicle_config=None, name=None, random_seed=None, position=None, heading=None):
+        super().__init__(
+            vehicle_config=vehicle_config,
+            name=name,
+            random_seed=random_seed,
+            position=position,
+            heading=heading,
+            _calling_reset=False  # we'll manually call reset() below
+        )
 
-    def __init__(self, vehicle_config=None, name=None, random_seed=None,
-                 position=None, heading=None, _calling_reset=True):
-        super().__init__(vehicle_config=vehicle_config,
-                         name=name,
-                         random_seed=random_seed,
-                         position=position,
-                         heading=heading,
-                         _calling_reset=_calling_reset)
-        # 조향각 (rad)
+        # Initialize internal states for kinematic model
+        self.steering_angle = 0.0    # current steering angle, in radians
+        self.current_speed = 0.0     # current forward speed, in m/s
+        self.angular_velocity_z = 0.0  # current yaw rate (rad/s)
+
+    def reset(self, vehicle_config=None, name=None, random_seed=None, position=None, heading=0.0, *args, **kwargs):
+        """
+        Called when resetting the vehicle. We'll also set it static so bullet won't move it.
+        """
+        # Use parent's reset to do basic config, set position, etc.
+        super().reset(
+            vehicle_config=vehicle_config,
+            name=name,
+            random_seed=random_seed,
+            position=position,
+            heading=heading,
+            *args,
+            **kwargs
+        )
+
+        # Let the bullet engine see this as static, so it won't update via forces
+        self.set_static(True)
+
+        # Initialize states
         self.steering_angle = 0.0
-        # 선속도 (m/s)
         self.current_speed = 0.0
-        # 바퀴 간 거리 (휠베이스). 예: 보통은 vehicle 길이와 유사하거나 작은 값
-        # 여기서는 일단 self.LENGTH 를 사용하거나, 필요하면 config 에서 wheelbase 를 읽을 수도 있음
-        self.wheelbase = self.LENGTH
-
-        # 만약 Bullet 물리에 의한 이동을 완전히 끄고 싶다면,
-        # reset() 시점에 self.set_static(True) 등을 적용해서 '정적 바디'로 두는 방법을 추천합니다.
+        self.angular_velocity_z = 0.0
 
     def before_step(self, action=None):
         """
-        매 스텝에, 액션 = [가속도(m/s^2), 조향속도(rad/s)]를 받아
-        kinematic bicycle 식으로 상태를 적분한 뒤,
-        self.set_position() / self.set_heading_theta() / self.set_velocity() / self.set_angular_velocity() 등으로
-        위치, 헤딩, 속도, 각속도를 반영합니다.
+        This function is called each simulation step before the physics engine updates.
+        We'll override the default bullet-based logic with a kinematic bicycle step.
         """
-        # 1) bullet 의 기본 로직처럼 action을 -1~1로 클립 후, 실제 accel/steer_rate로 변환해도 되지만,
-        #    여기서는 "이미 [accel, steering_rate]" 로 들어온다고 가정
+        # Skip parent's before_step so we don't invoke `_set_action` from Bullet
+        # We can still do some data recording:
+        step_info = {"raw_action": action}
+
         if action is None:
-            # 아무 입력이 없으면 가속도=0, 조향속도=0 으로 처리
+            # if no action given, assume zero accel / zero steering_rate
             action = [0.0, 0.0]
+        else:
+            # typically, env might clip it to [-1,1], but we can interpret in real physical range
+            pass
 
-        accel = float(action[0])           # m/s^2
-        steering_rate = float(action[1])   # rad/s
+        # parse user action
+        accel_m_s2     = float(action[0])  # linear acceleration
+        steering_rate  = float(action[1])  # how fast steering angle changes (rad/s)
 
-        # 2) 시뮬레이션에서 dt를 가져옴: decision_repeat × physics_world_step_size
-        engine_config = self.engine.global_config
-        decision_repeat = engine_config["decision_repeat"]
-        physics_step = engine_config["physics_world_step_size"]
-        dt = decision_repeat * physics_step
+        # get time step: dt = physics_world_step_size * decision_repeat
+        # (in MetaDrive global_config, these keys exist)
+        dt = (self.engine.global_config["physics_world_step_size"]
+              * self.engine.global_config["decision_repeat"])
 
-        # 3) 현재 스티어링 각도(steering_angle)에 steering_rate * dt 더함
+        # 1) update steering angle by steering_rate
         self.steering_angle += steering_rate * dt
-
-        # 스티어링 최대각 (기존 self.max_steering 는 deg 단위이므로 rad 로 바꿔야 함)
-        max_steer_rad = float(self.max_steering) * math.pi / 180.0
+        # clamp steering angle to maximum (in radians)
+        max_steer_rad = (self.max_steering * math.pi / 180.0)  # e.g. 60 deg => ~1.047 rad
         self.steering_angle = clip(self.steering_angle, -max_steer_rad, max_steer_rad)
 
-        # 4) 현재 헤딩/속도 가져오기
-        old_heading = self.heading_theta  # rad
-        old_speed = self.current_speed    # m/s
-
-        # 5) 운동학 자전거 모델 공식: 요레이트 = v * tan(delta) / wheelbase
-        heading_rate = old_speed * math.tan(self.steering_angle) / self.wheelbase
-
-        # 6) 속도 적분: new_speed = old_speed + accel * dt
-        new_speed = old_speed + accel * dt
-        # 속도 하한(0) 제한 (필요시 clip)
+        # 2) update speed from acceleration
+        old_speed = self.current_speed
+        new_speed = old_speed + accel_m_s2 * dt
         if new_speed < 0.0:
+            # if we don't allow reverse movement, you can clamp at 0.0; or allow negative speed
             new_speed = 0.0
+        self.current_speed = new_speed
 
-        # 7) 헤딩 적분: new_heading = old_heading + heading_rate * dt
-        new_heading = old_heading + heading_rate * dt
+        # 3) heading dynamics: heading_rate = v / L * tan(steering_angle)
+        # Here we approximate wheelbase = LENGTH, or any custom param
+        wheelbase = self.LENGTH  # or a separate param if you prefer
+        heading_now = self.heading_theta
+        heading_rate = (self.current_speed * math.tan(self.steering_angle) / wheelbase)
+
+        new_heading = heading_now + heading_rate * dt
         new_heading = wrap_to_pi(new_heading)
 
-        # 8) 위치 업데이트 (전방속도 * dt, heading 기준)
-        #    여기서는 old_heading 기준(또는 new_heading 근사) 사용가능
-        #    취향에 따라 midpoint 방정식 등도 가능
-        old_x, old_y = self.position
-        dx = old_speed * math.cos(old_heading) * dt
-        dy = old_speed * math.sin(old_heading) * dt
-        new_x = old_x + dx
-        new_y = old_y + dy
+        # 4) position update in world frame (simple integration)
+        #   x(t+dt) = x(t) + v * cos(heading) * dt
+        #   y(t+dt) = y(t) + v * sin(heading) * dt
+        #   (We can use current heading or an average; here we use the old heading for simpler euler step)
+        pos_x, pos_y = self.position
+        dx = self.current_speed * math.cos(heading_now) * dt
+        dy = self.current_speed * math.sin(heading_now) * dt
+        new_x = pos_x + dx
+        new_y = pos_y + dy
 
-        # 9) 차량 상태에 반영
-        # (A) 위치/헤딩
-        self.set_position((new_x, new_y))
+        # 5) angular velocity (yaw rate) and apply them for debug or visualization
+        self.angular_velocity_z = heading_rate
+        # we could also set bullet's angular velocity if we want collision detection to use that
+        # self.set_angular_velocity(heading_rate, in_rad=True)
+
+        # apply the new state to vehicle
+        self.set_position((new_x, new_y))  # set (x,y); z is unchanged
         self.set_heading_theta(new_heading, in_rad=True)
 
-        # (B) 선속도/조향각 업데이트
-        self.current_speed = new_speed  # 내부적으로 보관하는 현재 속도(m/s)
+        # optionally store velocity in bullet's velocity for sensor or collision usage
+        # direction is (cos(heading), sin(heading)), magnitude is current_speed
+        vel_dir = np.array([math.cos(new_heading), math.sin(new_heading)])
+        self.set_velocity(vel_dir, value=self.current_speed)
 
-        # (C) Bullet 엔진에 속도/각속도 동기화 (렌더/센서 등)
-        #     "정적 바디"일 경우 Bullet 이 실제로 힘을 가하지 않으므로,
-        #     충돌 감지 용도로만 velocity가 필요하다면 아래처럼 set
-        heading_vec = np.array([math.cos(new_heading), math.sin(new_heading)])
-        self.set_velocity(heading_vec, value=new_speed)
+        # If we want to store or return any step info:
+        step_info["accel_m_s2"] = accel_m_s2
+        step_info["steering_rate"] = steering_rate
+        step_info["steering_angle"] = self.steering_angle
+        step_info["heading_rate"] = heading_rate
+        step_info["speed"] = self.current_speed
+        step_info["angular_velocity_z"] = self.angular_velocity_z
 
-        # 각속도 (yaw rate). Bullet 의 setAngularVelocity 는 [0,0,angular_vel_z]
-        self.set_angular_velocity(heading_rate, in_rad=True)
-
-        # 10) 만약 "조향각"도 Bullet Vehicle 의 setSteeringValue 에 반영해주면,
-        #     시각적으로 바퀴가 돌아가는 모습(차모델 휠)에 반영 가능 (필요시):
-        #     --> self.system.setSteeringValue(self.steering_angle, 0)
-        #         self.system.setSteeringValue(self.steering_angle, 1)
-
-        # parent 클래스인 BaseVehicle.before_step() 처럼, 추가로 step_info 를 dict로 반환할 수도 있음
-        step_info = {
-            "raw_action": (accel, steering_rate),
-            "steering_angle_rad": self.steering_angle,
-            "speed_m_s": self.current_speed,
-            "heading_rate_rad_s": heading_rate,
-        }
         return step_info
 
-    def reset(self, vehicle_config=None, name=None, random_seed=None,
-              position=None, heading=0.0, *args, **kwargs):
-        # super().reset(...) 로 기본적인 vehicle 초기화
-        super().reset(vehicle_config=vehicle_config,
-                      name=name,
-                      random_seed=random_seed,
-                      position=position,
-                      heading=heading,
-                      *args,
-                      **kwargs)
-        # 추가로, 조향각과 속도를 0으로 초기화
-        self.steering_angle = 0.0
-        self.current_speed = 0.0
-
-        # 만약 Bullet 물리를 완전히 끄고 싶다면, 여기서 set_static(True) 호출
-        self.set_static(True)
-
-        # 예: wheel friction, engine force 등도 무의미하게 만듦
-        self.config["no_wheel_friction"] = True
-        #    --> 필요 시, config에서 세팅
-
-        # 필요한 경우 상위 reset()이 반환하는 값(step_info 등) 반환
-        # 그러나 보통 base_vehicle.reset()은 None 리턴,
-        # 굳이 반환하고 싶다면 return super(...).reset(...)
-
+    def get_state(self):
+        """
+        Override for convenience: include our custom kinematic states in the dictionary.
+        """
+        base_state = super().get_state()
+        base_state.update({
+            "current_speed": self.current_speed,
+            "steering_angle": self.steering_angle,
+            "angular_velocity_z": self.angular_velocity_z,
+        })
+        return base_state
 
 
 # When using DefaultVehicle as traffic, please use this class.

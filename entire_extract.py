@@ -9,6 +9,61 @@ from metadrive.component.vehicle.base_vehicle import BaseVehicle
 from metadrive.component.road_network.node_road_network import NodeRoadNetwork
 from metadrive.envs.diffusion_planner_env import DiffusionPlannerEnv
 
+import numpy as np
+import math
+
+
+def extract_centerline_in_ego_frame(
+        lane,
+        ego_position_world: np.ndarray,
+        ego_heading_world: float,
+        step: float = 0.5,
+        M_max: int = 200
+) -> np.ndarray:
+    """
+    lane: StraightLane 혹은 CircularLane 객체 (AbstractLane 상속)
+    ego_position_world: shape=(2,)  - (전역 좌표계에서) ego 차량의 (x, y) 위치
+    ego_heading_world: float       - (전역 좌표계에서) ego 차량의 heading (rad)
+    step: float = 0.5             - 각 점 사이의 간격(m)
+    M_max: int = 200              - 최대 몇 개의 점을 저장할지 제한
+
+    return: shape=(M,4) numpy array
+      - M은 추출된 점의 개수 (최대 M_max)
+      - 각 row = [x_local, y_local, cos_heading_local, sin_heading_local]
+        (Ego 좌표계에서의 값)
+    """
+    s_ego, r_ego = lane.local_coordinates(ego_position_world)
+    s_current = max(s_ego, 0.0)
+    s_list = []
+    while s_current <= lane.length and len(s_list) < M_max:
+        s_list.append(s_current)
+        s_current += step
+    if not s_list:
+        return np.zeros((0, 4), dtype=np.float32)
+
+    out_list = []
+    cos_ego = math.cos(ego_heading_world)
+    sin_ego = math.sin(ego_heading_world)
+
+    for s in s_list:
+        world_xy = lane.position(s, 0)
+        world_yaw = lane.heading_theta_at(s)
+
+        dx = world_xy[0] - ego_position_world[0]
+        dy = world_xy[1] - ego_position_world[1]
+        x_local = dx * cos_ego + dy * sin_ego
+        y_local = -dx * sin_ego + dy * cos_ego
+
+        yaw_local = world_yaw - ego_heading_world
+        yaw_local = (yaw_local + math.pi) % (2 * math.pi) - math.pi
+
+        c_h = math.cos(yaw_local)
+        s_h = math.sin(yaw_local)
+
+        out_list.append((x_local, y_local, c_h, s_h))
+
+    return np.array(out_list, dtype=np.float32)
+
 
 def _to_local_coords_batch(px: np.ndarray, py: np.ndarray, ego_x: float,
                            ego_y: float, ego_yaw: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -78,10 +133,10 @@ def visualize_entire_road_network(road_network: NodeRoadNetwork,
     c_wid = roi_length / 100.0
     rx = -c_len * 0.5
     ry = -c_wid * 0.5
-    rect = Rectangle((rx, ry), c_len, c_wid, edgecolor="lime", facecolor="none", zorder=5)
+    rect = Rectangle((rx, ry), c_len, c_wid, edgecolor="white", facecolor="none", zorder=5)
     ax.add_patch(rect)
     ax.arrow(0, 0, c_len, 0, width=0.002 * roi_length, head_width=0.01 * roi_length,
-             color="lime", length_includes_head=True, zorder=6)
+             color="white", length_includes_head=True, zorder=6)
 
 
 def visualize_lanes_array(lanes_array: np.ndarray,
@@ -165,20 +220,14 @@ def visualize_neighbors_history(ax, neighbors_history: np.ndarray):
         color = colors[i]
         for t in range(max_time_steps):
             row = neighbors_history[i, t]
-            # row: [x, y, cosθ, sinθ, v_x, v_y, width, length, 1, 0, 0]
             x = row[0]
             y = row[1]
             cos_h = row[2]
             sin_h = row[3]
             w = row[6]
             l = row[7]
-            # 빈 값(0,0,0,0,0,...) 은 건너뛴다
-            # 간단히 norm(x,y,cosh,sinh,l,w)==0 -> skip
-            if (abs(x) < 1e-6 and abs(y) < 1e-6 and abs(cos_h) < 1e-6 and abs(sin_h) < 1e-6):
+            if (abs(x)+abs(y)+abs(cos_h)+abs(sin_h)+abs(w)+abs(l))<1e-8:
                 continue
-            if (abs(l) < 1e-6 and abs(w) < 1e-6):
-                continue
-
             heading = math.atan2(sin_h, cos_h)
             heading_deg = math.degrees(heading)
             anchor_x = x - l/2.0
@@ -192,7 +241,7 @@ def visualize_neighbors_history(ax, neighbors_history: np.ndarray):
                              facecolor="none",
                              lw=1.0,
                              zorder=12,
-                             alpha=0.8)  # 0.5 투명도로 한다
+                             alpha=0.8)
             ax.add_patch(rect)
 
 def main():
@@ -207,54 +256,120 @@ def main():
 
     env = DiffusionPlannerEnv(config)
     env.reset()
+    # 2) env.step 반복
+    action = [0.0, 0.3]
+    for i in range(120):
+        env.step(action)
     observations = env.observations
     observation = observations["default_agent"]
     ego = env.vehicle
-    # step 한 번
-    action = [0.0, 0.1]
-    iter_num = 332
-    for i in range(iter_num):
-        env.step(action)
 
+    # 1) 특정 ref_lane(현재 + 다음)에서 추출한 path (로컬 좌표계)
+    current_lane = ego.navigation.current_lane
+    current_ref_lanes: list = ego.navigation.current_ref_lanes
+    current_lane_idx = -1
+    current_ref_lane = None
+    for i, lane in enumerate(current_ref_lanes):
+        if lane == current_lane:
+            current_lane_idx = i
+            current_ref_lane = lane
+            break
+    next_ref_lanes = ego.navigation.next_ref_lanes
+    next_ref_lane = next_ref_lanes[current_lane_idx]
+
+    # Ego 자세
     ego_x, ego_y = ego.position
     ego_yaw = ego.heading_theta
+
+    # 첫 번째 레인에서 path 일부
+    ref_path1 = extract_centerline_in_ego_frame(current_ref_lane,
+                                                np.array([ego_x, ego_y], dtype=float),
+                                                ego_yaw,
+                                                step=0.5,
+                                                M_max=80)
+    ref_path_number = ref_path1.shape[0]
+    leftover_number_from_max = 80 - ref_path_number
+
+    # 두 번째 레인
+    ref_path2 = np.zeros((0,4), dtype=np.float32)
+    if leftover_number_from_max>0:
+        ref_path2 = extract_centerline_in_ego_frame(next_ref_lane,
+                                                    np.array([ego_x, ego_y], dtype=float),
+                                                    ego_yaw,
+                                                    step=0.5,
+                                                    M_max=leftover_number_from_max)
+    # 이어붙임
+    ref_path = np.concatenate((ref_path1, ref_path2), axis=0)
+    dist_btw_points = np.linalg.norm(ref_path[:,0:2], axis=1)
+
+    # 남은 slot이 있으면 마지막 점 복사
+    leftover_number_from_max = 80 - ref_path.shape[0]
+    if leftover_number_from_max>0 and ref_path.shape[0]>0:
+        last_point = ref_path[-1]
+        tile_pts = np.tile(last_point, (leftover_number_from_max,1))
+        ref_path = np.concatenate((ref_path, tile_pts), axis=0)
+
+
+
+    # 3) 시각화
     roadnet = env.current_map.road_network
+
+    obs_dict = observation.observe(ego)
+    lanes_array = obs_dict["lanes_array"]           # (70, 20, 12)
+    nav_lanes_array = obs_dict["nav_lanes_array"]   # (25, 20, 12)
+    static_objects = obs_dict["static_objects"]      # (N, 10)
+    neighbors_history = obs_dict["neighbors_history"]# (32, 21, 11)
+    roi_len = observation.lane_roi_length
 
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_aspect("equal")
-    roi_len = observation.lane_roi_length
 
-    # 1) 전체 RoadNetwork 표시 (흰색)
+    # (a) RoadNetwork
     visualize_entire_road_network(roadnet,
-                                  ego_x,
-                                  ego_y,
-                                  ego_yaw,
+                                  ego_x, ego_y, ego_yaw,
                                   sampling_interval=1.0,
                                   roi_length=roi_len,
                                   ax=ax)
 
-    # observation 정보 얻기
-    observation_dict = observation.observe(ego)
-    lanes_array = observation_dict["lanes_array"]           # (70, 20, 12)
-    nav_lanes_array = observation_dict["nav_lanes_array"]   # (25, 20, 12)
-    static_objects = observation_dict["static_objects"]      # (N, 10)
-    neighbors_history = observation_dict["neighbors_history"]# (32, 21, 11)
-
-    # 2) 차선/내비 차선 시각화
+    # (b) lane_array
     visualize_lanes_array(lanes_array, length=roi_len, color="orange", ax=ax)
     visualize_lanes_array(nav_lanes_array, length=roi_len, color="red", ax=ax)
-    # 3) 정적 객체
+
+    # (c) static
     visualize_static_objects(ax, static_objects, edgecolor="purple", fill=False)
-    # 4) 이웃 vehicle 히스토리 시각화
+
+    # (d) neighbor history
     visualize_neighbors_history(ax, neighbors_history)
 
+    # (e) ref_path 시각화 (초록선 + 방향 화살표)
+    if ref_path.shape[0]>0:
+        # ref_path: (N,4) => [x_local,y_local, cosθ, sinθ]
+        ax.plot(ref_path[:,0], ref_path[:,1],
+                color="white", linewidth=1.0,
+                label="ref_path")
+
+        # 화살표(방향) 표시: 작은 scaled arrow로 표현
+        arrow_scale = 0.3  # 화살표 길이
+        for i in range(0, ref_path.shape[0], 5):
+            px, py, cth, sth = ref_path[i]
+            ax.arrow(px, py,
+                     cth*arrow_scale,
+                     sth*arrow_scale,
+                     width=1.0,
+                     head_width=1.0,
+                     color="white",
+                     length_includes_head=True,
+                     zorder=9,
+                     alpha=0.9)
+    # 스타일 정리
     ax.set_facecolor("black")
-    ax.set_title("ROI Lanes + Static Objects + NeighborsHistory")
+    ax.set_title("ROI Lanes + Static Objects + NeighborsHistory + ref_path")
     plt.xlabel("Local X")
     plt.ylabel("Local Y")
-    plt.savefig("lanes_static_neigh_history.png", dpi=150, facecolor="black")
+    plt.legend(loc="upper right", facecolor="black", edgecolor="white", labelcolor="white")
+    plt.savefig("lanes_static_neigh_history_refpath.png", dpi=150, facecolor="black")
     plt.close()
-    print("Saved lanes_static_neigh_history.png")
+    print("Saved lanes_static_neigh_history_refpath.png")
 
     env.close()
 

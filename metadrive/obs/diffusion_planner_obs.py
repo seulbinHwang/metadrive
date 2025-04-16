@@ -47,6 +47,89 @@ def _rotate_vectors_batch(vx: np.ndarray, vy: np.ndarray,
     return x2, y2
 
 
+
+def extract_centerline_in_ego_frame(
+        lane,
+        ego_position_world: np.ndarray,
+        ego_heading_world: float,
+        step: float = 0.5,
+        M_max: int = 200
+) -> np.ndarray:
+    """
+    lane: StraightLane 혹은 CircularLane 객체 (AbstractLane 상속)
+    ego_position_world: shape=(2,)  - (전역 좌표계에서) ego 차량의 (x, y) 위치
+    ego_heading_world: float       - (전역 좌표계에서) ego 차량의 heading (rad)
+    step: float = 0.5             - 각 점 사이의 간격(m)
+    M_max: int = 200              - 최대 몇 개의 점을 저장할지 제한
+
+    return: shape=(M,4) numpy array
+      - M은 추출된 점의 개수 (최대 M_max)
+      - 각 row = [x_local, y_local, cos_heading_local, sin_heading_local]
+        (Ego 좌표계에서의 값)
+    """
+    # 1) 우선 ego가 lane 상에서 어느 지점에 있는지(즉, s_ego)를 찾음
+    #    - local_coordinates() 이용
+    s_ego, r_ego = lane.local_coordinates(ego_position_world)
+    #  (여기서 r_ego>0 이면 lane의 왼쪽 / r_ego<0 이면 lane의 오른쪽에 있음.)
+    #  (관심있는 건 “lane상 앞쪽”이므로, s_ego보다 큰 s값 구간만 사용)
+    #  s_ego가 lane.length 이상이면 이미 lane 끝을 넘어간 것이므로 반환값 없음
+
+    # 2) s_ego ~ lane.length 구간을 step간격으로 샘플링
+    s_list = []
+    # s_ego보다 약간 앞에서부터 시작(필요하면 0.1m 등 추가 오프셋 가능)
+    s_current = max(s_ego, 0.0)
+    while s_current <= lane.length and len(s_list) < M_max:
+        s_list.append(s_current)
+        s_current += step
+    if not s_list:
+        # lane 앞부분이 없으면 곧바로 빈 배열 반환
+        return np.zeros((0, 4), dtype=np.float32)
+
+    # 3) 각 s에 대해 world 좌표계에서의 (x,y)와 yaw 구하고, -> Ego 좌표계로 변환
+    #    - lane.position(s, 0) : 중심선이므로 lateral=0
+    #    - lane.heading_theta_at(s)
+    #    - Ego 좌표계 변환 => (x_local, y_local, heading_local)
+    #      heading_local = (yaw_world - ego_heading_world)
+    #      2D local pos는 아래처럼
+    #         dx = x_world - ego_x
+    #         dy = y_world - ego_y
+    #         # Ego heading = ego_heading_world
+    #         x_local =  dx*cos(ego_h) + dy*sin(ego_h)
+    #         y_local = -dx*sin(ego_h) + dy*cos(ego_h)
+    #      (또는 다른 관용적 방식 사용해도 OK)
+
+    out_list = []
+    cos_ego = math.cos(ego_heading_world)
+    sin_ego = math.sin(ego_heading_world)
+
+    for s in s_list:
+        # (1) lane 상 world 좌표
+        world_xy = lane.position(s, 0)  # np.array([x,y])
+        world_yaw = lane.heading_theta_at(s)
+
+        # (2) world -> ego 변환 (x_local,y_local)
+        dx = world_xy[0] - ego_position_world[0]
+        dy = world_xy[1] - ego_position_world[1]
+        # ego 좌표계에서 x축은 ego_heading_world 방향이 “정면”
+        #   x_local =  dx*cos(ego_h) + dy*sin(ego_h)
+        #   y_local = -dx*sin(ego_h) + dy*cos(ego_h)
+        x_local = dx * cos_ego + dy * sin_ego
+        y_local = -dx * sin_ego + dy * cos_ego
+
+        # (3) yaw_local
+        #     = (world_yaw - ego_heading_world) 을 -π~+π 범위로 정규화
+        yaw_local = world_yaw - ego_heading_world
+        # 보통 wrap
+        yaw_local = (yaw_local + math.pi) % (2 * math.pi) - math.pi
+
+        # (4) cos(yaw_local), sin(yaw_local)
+        c_h = math.cos(yaw_local)
+        s_h = math.sin(yaw_local)
+
+        out_list.append((x_local, y_local, c_h, s_h))
+
+    return np.array(out_list, dtype=np.float32)
+
 def extract_local_lanes_in_square_bbox(
         ego: BaseVehicle, lane_roi_length: float,
         max_lane_num: int, max_route_num: int,

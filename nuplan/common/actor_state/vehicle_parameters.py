@@ -125,12 +125,12 @@ def get_pacifica_parameters() -> VehicleParameters:
     :return VehicleParameters containing parameters of Pacifica Vehicle.
     """
     return VehicleParameters(
-        vehicle_name="pacifica",
-        vehicle_type="gen1",
-        width=1.1485 * 2.0,
-        front_length=4.049,
-        rear_length=1.127,
-        wheel_base=3.089,
-        cog_position_from_rear_axle=1.67,
-        height=1.777,
+        vehicle_name="pacifica", #
+        vehicle_type="gen1", #
+        width=1.1485 * 2.0, #
+        front_length=4.049, # distance between rear axle and front bumper
+        rear_length=1.127, # distance between rear axle and rear bumper
+        wheel_base=3.089, # wheel base of the vehicle
+        cog_position_from_rear_axle=1.67, # distance between rear axle and center of gravity (cog)
+        height=1.777, #
     )

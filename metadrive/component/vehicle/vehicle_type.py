@@ -89,7 +89,6 @@ class HistoryDefaultVehicle(DefaultVehicle):
         # EgoState 기록용 덱
         self.ego_history = deque(maxlen=ego_history_maxlen)
 
-
         # -------------------------------
         #  (1) NuPlan VehicleParameters 생성
         # -------------------------------
@@ -124,7 +123,7 @@ class HistoryDefaultVehicle(DefaultVehicle):
         total_length = self.LENGTH  # 4.515
         half_len = total_length / 2.0  # 2.2575
         front_axle_dist = self.FRONT_WHEELBASE  # 1.05234
-        rear_axle_dist  = self.REAR_WHEELBASE   # 1.4166
+        rear_axle_dist = self.REAR_WHEELBASE  # 1.4166
 
         # wheel_base
         wheel_base_val = front_axle_dist + rear_axle_dist  # 2.46894
@@ -132,20 +131,20 @@ class HistoryDefaultVehicle(DefaultVehicle):
         # rear axle -> front bumper
         front_length_val = rear_axle_dist + half_len  # 1.4166 + 2.2575 = 3.6741
         # rear axle -> rear bumper
-        rear_length_val  = abs(half_len - rear_axle_dist)  # 0.8409
+        rear_length_val = abs(half_len - rear_axle_dist)  # 0.8409
 
         # cog_position_from_rear_axle
         cog_from_rear = rear_axle_dist  # 1.4166
 
         self._nuplan_vehicle_params = VehicleParameters(
-            width=self.WIDTH,         # 1.852
+            width=self.WIDTH,  # 1.852
             front_length=front_length_val,
             rear_length=rear_length_val,
             cog_position_from_rear_axle=cog_from_rear,
             wheel_base=wheel_base_val,
             vehicle_name=self.name if self.name else "EgoVehicle",
             vehicle_type="MetaDrive",
-            height=self.HEIGHT        # 1.19
+            height=self.HEIGHT  # 1.19
         )
 
         # 이전 스텝 속도(배속) 등을 저장하여 가속도 계산 용도 (option)
@@ -162,6 +161,7 @@ class HistoryDefaultVehicle(DefaultVehicle):
         :return: EgoState
         """
         return self.ego_history[-1] if len(self.ego_history) > 0 else None
+
     def reset(self, *args, **kwargs):
         """에피소드 시작시 호출 – 기록 초기화"""
         super().reset(*args, **kwargs)
@@ -171,7 +171,6 @@ class HistoryDefaultVehicle(DefaultVehicle):
         current_ego_state = self._create_ego_state()
         # 3) 덱에 추가
         self.ego_history.append(current_ego_state)
-
 
     def after_step(self):
         """
@@ -278,7 +277,6 @@ reset 되면 time_us가 0으로 초기화 되는지 확인
         return ego_state
 
 
-
 class KinematicBicycleVehicle(HistoryDefaultVehicle):
     """
     A custom vehicle class implementing a simple Kinematic Bicycle Model.
@@ -288,6 +286,20 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
     We manually integrate position, heading, speed, etc. each step
     and override the Bullet physical force-based approach.
     """
+    PARAMETER_SPACE = ParameterSpace(
+        VehicleParameterSpace.KINEMATIC_BICYCLE_VEHICLE)
+    TIRE_RADIUS = 0.313
+    TIRE_WIDTH = 0.25
+    MASS = 1100
+    LATERAL_TIRE_TO_CENTER = 1.1485
+    FRONT_WHEELBASE = 1.419
+    REAR_WHEELBASE = 1.67
+    path = ('ferra/vehicle.gltf', (1, 1, 1), (0, 0.075, 0.), (0, 0, 0)
+           )  # asset path, scale, offset, HPR
+
+    DEFAULT_LENGTH = 4.049 + 1.127  # meters
+    DEFAULT_HEIGHT = 1.777  # meters
+    DEFAULT_WIDTH = 1.1485 * 2.  # meters
 
     def __init__(self,
                  vehicle_config=None,
@@ -303,9 +315,9 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
             heading=heading,
             _calling_reset=False  # we'll manually call reset() below
         )
-        self._motion_model = KinematicBicycleModel(self._nuplan_vehicle_params,
-                                                   max_steering_angle=self.max_steering * math.pi / 180.0
-                                                   )
+        self._motion_model = KinematicBicycleModel(
+            self._nuplan_vehicle_params,
+            max_steering_angle=self.max_steering * math.pi / 180.0)
         # Initialize internal states for kinematic model
 
     def reset(self,
@@ -331,9 +343,6 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
         # Let the bullet engine see this as static, so it won't update via forces
         self.set_static(True)
         # Initialize states
-
-
-
 
     def before_step(self, action=None):
         """
@@ -366,8 +375,9 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
               self.engine.global_config["decision_repeat"])
         sampling_time = TimePoint(int(dt * 1e6))
         current_state: EgoState = self._motion_model.propagate_state(
-            state=self.ego_state, ideal_dynamic_state=dynamic_state, sampling_time=sampling_time
-        )
+            state=self.ego_state,
+            ideal_dynamic_state=dynamic_state,
+            sampling_time=sampling_time)
         """
         I have to call(to update) below state & methods using the current_state
         state
@@ -382,11 +392,13 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
             
         """
         steering = current_state.tire_steering_angle
-        self._set_action([steering, 0.0]) # TODO: check
+        self._set_action([steering, 0.0])  # TODO: check
         self.set_position(current_state.center.point.array)
         self.set_heading_theta(current_state.center.heading)
-        self.set_velocity(current_state.dynamic_car_state.center_velocity_2d.array)
-        self.set_angular_velocity(current_state.dynamic_car_state.angular_velocity)
+        self.set_velocity(
+            current_state.dynamic_car_state.center_velocity_2d.array)
+        self.set_angular_velocity(
+            current_state.dynamic_car_state.angular_velocity)
         # If we want to store or return any step info:
         return step_info
 

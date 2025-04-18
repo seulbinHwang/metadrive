@@ -148,7 +148,7 @@ class Dict(Space):
 
     def to_jsonable(self, sample_n):
         # serialize as dict-repr of vectors
-        return {key: space.to_jsonable([sample[key] for sample in sample_n])     \
+        return {key: space.to_jsonable([sample[key] for sample in sample_n])       \
                 for key, space in self.spaces.items()}
 
     def from_jsonable(self, sample_n):
@@ -261,7 +261,13 @@ class VehicleParameterSpace:
         max_speed_km_h=ConstantSpace(80),
     )
     DEFAULT_VEHICLE = BASE_VEHICLE
-
+    KINEMATIC_BICYCLE_VEHICLE = dict(
+        wheel_friction=ConstantSpace(0.9),
+        max_engine_force=BoxSpace(750, 850),
+        max_brake_force=BoxSpace(80, 180),
+        max_steering=ConstantSpace(60),
+        max_speed_km_h=ConstantSpace(200),
+    )
     S_VEHICLE = dict(
         wheel_friction=ConstantSpace(0.9),
         max_engine_force=BoxSpace(350, 550),

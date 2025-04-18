@@ -66,6 +66,7 @@ class LQRTracker(AbstractTracker):
 
     def __init__(
             self,
+            discretization_time: float,
             vehicle: VehicleParameters = get_pacifica_parameters(),
     ):
         """
@@ -91,7 +92,6 @@ class LQRTracker(AbstractTracker):
         r_longitudinal = np.array([1.], dtype=np.float64)
         q_lateral = np.array([1.0, 10.0, 0.0], dtype=np.float64)
         r_lateral = np.array([1.0], dtype=np.float64)
-        discretization_time = 0.1
         tracking_horizon = 10
         jerk_penalty = 1e-4 # Penalty for jerk in velocity profile estimation.
         curvature_rate_penalty = 1e-2 # Penalty for curvature rate in curvature profile estimation.

@@ -244,27 +244,8 @@ def visualize_neighbors_history(ax, neighbors_history: np.ndarray):
                              alpha=0.8)
             ax.add_patch(rect)
 
-def main():
-    from metadrive.envs.diffusion_planner_env import DiffusionPlannerEnv
-    config = {
-        "num_scenarios": 1,
-        "start_seed": 0,
-        "map": 5,
-        "random_traffic": True,
-        "use_render": False,
-    }
+def get_ref_path(ego: BaseVehicle) -> np.ndarray: # (80, 4)
 
-    env = DiffusionPlannerEnv(config)
-    env.reset()
-    # 2) env.step 반복
-    action = [0.0, 0.3]
-    for i in range(120):
-        env.step(action)
-    observations = env.observations
-    observation = observations["default_agent"]
-    ego = env.vehicle
-
-    # 1) 특정 ref_lane(현재 + 다음)에서 추출한 path (로컬 좌표계)
     current_lane = ego.navigation.current_lane
     current_ref_lanes: list = ego.navigation.current_ref_lanes
     current_lane_idx = -1
@@ -300,7 +281,6 @@ def main():
                                                     M_max=leftover_number_from_max)
     # 이어붙임
     ref_path = np.concatenate((ref_path1, ref_path2), axis=0)
-    dist_btw_points = np.linalg.norm(ref_path[:,0:2], axis=1)
 
     # 남은 slot이 있으면 마지막 점 복사
     leftover_number_from_max = 80 - ref_path.shape[0]
@@ -308,6 +288,29 @@ def main():
         last_point = ref_path[-1]
         tile_pts = np.tile(last_point, (leftover_number_from_max,1))
         ref_path = np.concatenate((ref_path, tile_pts), axis=0)
+    return ref_path
+def main():
+    from metadrive.envs.diffusion_planner_env import DiffusionPlannerEnv
+    config = {
+        "num_scenarios": 1,
+        "start_seed": 0,
+        "map": 5,
+        "random_traffic": True,
+        "use_render": False,
+    }
+
+    env = DiffusionPlannerEnv(config)
+    env.reset()
+    # 2) env.step 반복
+    action = [0.0, 0.3]
+    for i in range(120):
+        env.step(action)
+    observations = env.observations
+    observation = observations["default_agent"]
+    ego = env.vehicle
+
+    # 1) 특정 ref_lane(현재 + 다음)에서 추출한 path (로컬 좌표계)
+    ref_path = get_ref_path(ego)
 
 
 

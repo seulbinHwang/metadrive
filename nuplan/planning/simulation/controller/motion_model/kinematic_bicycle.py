@@ -25,12 +25,16 @@ class KinematicBicycleModel(AbstractMotionModel):
         Construct KinematicBicycleModel.
 
         :param vehicle: Vehicle parameters.
-        :param max_steering_angle: [rad] Maximum absolute value steering angle allowed by model.
-        :param accel_time_constant: low pass filter time constant for acceleration in s
-        :param steering_angle_time_constant: low pass filter time constant for steering angle in s
+        :param max_steering_angle:
+            [rad] Maximum absolute value steering angle allowed by model.
+        :param accel_time_constant:
+            low pass filter time constant for acceleration in s
+        :param steering_angle_time_constant:
+            low pass filter time constant for steering angle in s
         """
         self._vehicle = vehicle
         self._max_steering_angle = max_steering_angle
+        # TODO check if this is the correct value
         self._accel_time_constant = accel_time_constant
         self._steering_angle_time_constant = steering_angle_time_constant
 

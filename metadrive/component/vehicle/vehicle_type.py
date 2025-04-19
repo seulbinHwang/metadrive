@@ -392,7 +392,7 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
             
         """
         steering = current_state.tire_steering_angle
-        self._set_action([steering, 0.0])  # TODO: check
+        self._set_action([steering, 0.0])  # TODO: steering이 system에 반영되어도 되는지 체크
         self.set_position(current_state.center.point.array)
         self.set_heading_theta(current_state.center.heading)
         self.set_velocity(

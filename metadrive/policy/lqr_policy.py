@@ -59,5 +59,5 @@ class LQRPolicy(BasePolicy):
 
     @classmethod
     def get_input_space(cls):
-        _input_space = gym.spaces.Box(-1.0, 1.0, shape=(2,), dtype=np.float32)
+        _input_space = gym.spaces.Box(-1e10, 1e10, shape=(2,), dtype=np.float32)
         return _input_space

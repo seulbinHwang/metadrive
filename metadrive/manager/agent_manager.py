@@ -218,10 +218,10 @@ class VehicleAgentManager(BaseAgentManager):
                         {'action': [np.float32(-1.0), np.float32(0.65134305)],
                          'raw_action': (np.float32(-1.0), np.float32(0.65134305))}
                     """
-                    a = self.get_agent(agent_id)
-                    b = a.before_step(action)
+                    agent_ = self.get_agent(agent_id)
+                    agent_info = agent_.before_step(action)
                     step_infos[agent_id] = policy.get_action_info()
-                    step_infos[agent_id].update(b)
+                    step_infos[agent_id].update(agent_info)
         return step_infos
 
     def before_step(self):

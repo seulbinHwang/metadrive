@@ -595,7 +595,7 @@ class DiffusionTrafficManager(PGTrafficManager):
 
 
     def get_neighbors_history(self, ego_vehicle: BaseVehicle) -> np.ndarray: # shape (num_agents, num_frames, 11)
-        ego_pose = np.array([ego_vehicle.position[0], ego_vehicle.position[1],
+        ego_pose = np.array([ego_vehicle.rear_axle_xy[0], ego_vehicle.rear_axle_xy[1],
                              ego_vehicle.heading_theta])
         agents_states_dim = 8
         neighbor_agents_past = self.history_buffer.get_neighbor_agents_past()

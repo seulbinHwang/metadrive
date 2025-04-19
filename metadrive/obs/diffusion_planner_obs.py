@@ -136,7 +136,7 @@ def extract_local_lanes_in_square_bbox(
         lane_len: int) -> Tuple[np.ndarray, np.ndarray]:
     road_network = ego.engine.current_map.road_network
     checkpoint_node_ids = ego.navigation.checkpoints
-    ego_x, ego_y = ego.position
+    ego_x, ego_y = ego.rear_axle_xy
     ego_yaw = ego.heading_theta
 
     half_len = lane_roi_length * 0.5
@@ -316,7 +316,9 @@ class DiffusionPlannerObservation(BaseObservation):
         return lanes_array, nav_lanes_array
 
     def _get_static_objects(self, vehicle: BaseVehicle) -> np.ndarray:
-        object_manager = vehicle.engine.managers["object_manager"]
+        object_manager = vehicle.engine.managers.get("object_manager")
+        if object_manager is None:
+            return np.zeros((5, 10), dtype=np.float32)
         return object_manager.get_static_object_array(vehicle) # (5, 10)
 
     def _get_neighbors(self, vehicle: BaseVehicle) -> np.ndarray:

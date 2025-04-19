@@ -237,7 +237,7 @@ class TrafficObjectManager(BaseManager):
         # columns: 0=x,1=y,2=heading,3=width,4=length,5=type_idx
 
         # 3) 에고 위치, heading
-        ego_x, ego_y = ego_vehicle.position
+        ego_x, ego_y = ego_vehicle.rear_axle_xy
         ego_yaw = ego_vehicle.heading_theta  # 라디안
 
         # 4) 에고와의 거리 계산

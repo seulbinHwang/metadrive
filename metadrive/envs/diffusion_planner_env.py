@@ -48,9 +48,9 @@ def merge_dicts(first: Dict[K, V], second: Dict[K, V]) -> Dict[K, V]:
     """
     return {**first, **second}
 DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
-    agent_observation=DiffusionPlannerObservation, accident_prob=1.0,
+    agent_observation=DiffusionPlannerObservation, accident_prob=0.,
 traffic_mode=TrafficMode.Respawn,
-    traffic_density=0.5,
+    traffic_density=0.,
 agent_policy=LQRPolicy,
 vehicle_config=dict(
 vehicle_model="bicycle_default",)

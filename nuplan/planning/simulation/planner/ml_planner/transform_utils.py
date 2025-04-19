@@ -96,7 +96,10 @@ def _get_velocity_and_acceleration(
         [np.array(state.rear_axle.serialize()) for state in ego_history])
 
     # Planned
-    dt = current_ego_state.time_point.time_s - ego_history[-2].time_point.time_s
+    if ego_history_len > 1:
+        dt = current_ego_state.time_point.time_s - ego_history[-2].time_point.time_s
+    else:
+        dt = timesteps[0] - current_ego_state.time_point.time_s
     timesteps_current_planned: npt.NDArray[np.float32] = np.array(
         [current_ego_state.time_point.time_s] + timesteps)
     ego_poses_current_planned: npt.NDArray[

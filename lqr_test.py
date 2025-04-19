@@ -33,7 +33,7 @@ def extract_centerline_in_ego_frame(
         (Ego 좌표계에서의 값)
     """
     s_ego, r_ego = lane.local_coordinates(ego_position_world)
-    s_current = max(s_ego, 0.0)
+    s_current = max(s_ego + step, 0.0)
     s_list = []
     while s_current <= lane.length and len(s_list) < M_max:
         s_list.append(s_current)
@@ -99,7 +99,7 @@ def get_ref_path(ego: BaseVehicle) -> np.ndarray: # (80, 4)
     next_ref_lane = next_ref_lanes[current_lane_idx]
 
     # Ego 자세
-    ego_x, ego_y = ego.position
+    ego_x, ego_y = ego.rear_axle_xy
     ego_yaw = ego.heading_theta
 
     # 첫 번째 레인에서 path 일부
@@ -131,7 +131,6 @@ def get_ref_path(ego: BaseVehicle) -> np.ndarray: # (80, 4)
     return ref_path
 def main():
 
-    from metadrive.envs.diffusion_planner_env import DiffusionPlannerEnv
     config = {
     "num_scenarios": 1,
     "start_seed": 0,

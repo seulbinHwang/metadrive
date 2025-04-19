@@ -155,7 +155,13 @@ class HistoryDefaultVehicle(DefaultVehicle):
                          heading=heading,
                          _calling_reset=_calling_reset)
 
-
+    @property
+    def rear_axle_xy(self) -> np.ndarray:
+        """
+        :param vehicle: BaseVehicle (ego)
+        :return: np.array([x, y])  # 월드 좌표계
+        """
+        return self.position - self.heading * self.REAR_WHEELBASE
     @property
     def ego_state(self):
         """
@@ -168,11 +174,11 @@ class HistoryDefaultVehicle(DefaultVehicle):
         """에피소드 시작시 호출 – 기록 초기화"""
         super().reset(*args, **kwargs)
         self.ego_history.clear()
-
-        # 2) EgoState 생성
-        current_ego_state = self._create_ego_state()
-        # 3) 덱에 추가
-        self.ego_history.append(current_ego_state)
+        #
+        # # 2) EgoState 생성
+        # current_ego_state = self._create_ego_state()
+        # # 3) 덱에 추가
+        # self.ego_history.append(current_ego_state)
 
     def after_step(self):
         """

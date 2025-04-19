@@ -374,8 +374,9 @@ class BaseEngine(EngineCore, Randomizable):
                 cm = lm
         self.terrain.before_reset()
         self._object_clean_check()
-
+        print("[BaseEngine](reset) start ============================")
         for manager_name, manager in self.managers.items():
+            print(" manager_name", manager_name)
             if self.replay_episode and self.only_reset_when_replay and manager is not self.replay_manager:
                 # The scene will be generated from replay manager in only reset replay mode
                 continue
@@ -399,7 +400,6 @@ class BaseEngine(EngineCore, Randomizable):
                     print("{}: After Reset! Mem Change {:.3f}MB".format(
                         manager_name, (lm - cm) / 1e6))
                 cm = lm
-
         # reset terrain
         # center_p = self.current_map.get_center_point() if isinstance(self.current_map, PGMap) else [0, 0]
         center_p = [0, 0]

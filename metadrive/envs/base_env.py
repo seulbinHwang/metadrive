@@ -631,7 +631,6 @@ self.agents: Dict[str, Vehicle]
     value:  DefaultVehicle, ID:db2d6fe4-86e2-48fc-8492-93ccffa7c1b1
 
         """
-        print("type(reset_info): ", type(reset_info))
         # TODO: figure out how to get the information of the before step
         scene_manager_before_step_infos = reset_info
         scene_manager_after_step_infos = self.engine.after_step()
@@ -645,8 +644,9 @@ self.agents: Dict[str, Vehicle]
                                   allow_new_keys=True,
                                   without_copy=True)
         for v_id, v in self.agents.items():
-            self.observations[v_id].reset(self, v)
-            obses[v_id] = self.observations[v_id].observe(v)
+            a_observation = self.observations[v_id]
+            a_observation.reset(self, v)
+            obses[v_id] = a_observation.observe(v)
             _, reward_infos[v_id] = self.reward_function(v_id)
             _, done_infos[v_id] = self.done_function(v_id)
             _, cost_infos[v_id] = self.cost_function(v_id)

@@ -130,24 +130,33 @@ def get_ref_path(ego: BaseVehicle) -> np.ndarray: # (80, 4)
         ref_path = np.concatenate((ref_path, tile_pts), axis=0)
     return ref_path
 def main():
+
     from metadrive.envs.diffusion_planner_env import DiffusionPlannerEnv
     config = {
-        "num_scenarios": 1,
-        "start_seed": 0,
-        "map": 5,
-        "random_traffic": True,
-        "use_render": False,
-    }
+    "num_scenarios": 1,
+    "start_seed": 0,
+    "map": 5,
+    "random_traffic": True,
+    "use_render": True,          # <- 화면 창 활성화
+    "debug": False,
+}
 
     env = DiffusionPlannerEnv(config)
     env.reset()
-    ego = env.vehicle
-    ref_path = get_ref_path(ego)
+    done = False
+    while not done:
+        ego: BaseVehicle = env.vehicle         # 최신 ego
+        ref_path = get_ref_path(ego)           # 매 스텝마다 새로운 목표 경로
 
-    # 2) env.step 반복
-    for i in range(120):
-        env.step(ref_path)
+        # MetaDrive(Gym) 규격: obs, reward, terminated, truncated, info
+        obs, reward, terminated, truncated, info = env.step(ref_path)
+        done = terminated or truncated
 
+        # env.render()                           # 3) 한 프레임 그리기
+
+        # 사람이 보기 편하도록 살짝 쉬어 줍니다 (fps ≈ 60)
+        # time.sleep(env.engine.global_config["physics_world_step_size"])
+    env.close()
 
 if __name__ == "__main__":
     main()

@@ -15,7 +15,7 @@ logger = get_logger()
 from collections import deque
 import math
 import numpy as np
-
+from panda3d.core import LVector3
 # NuPlan (example) imports
 from nuplan.common.actor_state.ego_state import EgoState
 from nuplan.common.actor_state.state_representation import TimePoint, StateSE2, StateVector2D
@@ -25,7 +25,6 @@ from nuplan.common.actor_state.car_footprint import CarFootprint
 from nuplan.planning.simulation.controller.motion_model.kinematic_bicycle import KinematicBicycleModel
 
 # MetaDrive imports
-from metadrive.component.vehicle.vehicle_type import DefaultVehicle
 from metadrive.utils.math import wrap_to_pi
 
 from metadrive.utils.math import clip, wrap_to_pi
@@ -79,15 +78,17 @@ class HistoryDefaultVehicle(DefaultVehicle):
         """
         :param ego_history_maxlen: ego_history에 최대 몇 개의 EgoState를 저장할지
         """
-        super().__init__(vehicle_config=vehicle_config,
-                         name=name,
-                         random_seed=random_seed,
-                         position=position,
-                         heading=heading,
-                         _calling_reset=_calling_reset)
-
         # EgoState 기록용 덱
         self.ego_history = deque(maxlen=ego_history_maxlen)
+
+        # 이전 스텝 속도(배속) 등을 저장하여 가속도 계산 용도 (option)
+        # TODO: 이 부분이 수정 되어야 할 수도 있음
+        self._previous_velocity = None
+        self._previous_ang_vel = None
+
+        self._previous_time_s = 0.0
+
+
 
         # -------------------------------
         #  (1) NuPlan VehicleParameters 생성
@@ -142,17 +143,18 @@ class HistoryDefaultVehicle(DefaultVehicle):
             rear_length=rear_length_val,
             cog_position_from_rear_axle=cog_from_rear,
             wheel_base=wheel_base_val,
-            vehicle_name=self.name if self.name else "EgoVehicle",
+            vehicle_name=name if name is not None else "EgoVehicle",
             vehicle_type="MetaDrive",
             height=self.HEIGHT  # 1.19
         )
 
-        # 이전 스텝 속도(배속) 등을 저장하여 가속도 계산 용도 (option)
-        # TODO: 이 부분이 수정 되어야 할 수도 있음
-        self._previous_velocity = None
-        self._previous_ang_vel = None
+        super().__init__(vehicle_config=vehicle_config,
+                         name=name,
+                         random_seed=random_seed,
+                         position=position,
+                         heading=heading,
+                         _calling_reset=_calling_reset)
 
-        self._previous_time_s = 0.0
 
     @property
     def ego_state(self):
@@ -212,8 +214,6 @@ reset 되면 time_us가 0으로 초기화 되는지 확인
         # float(s) -> 마이크로초로 변환
         time_us = int(current_time_s * 1e6)
         time_point = TimePoint(time_us)
-
-        dt = current_time_s - self._previous_time_s
 
         # 2) 차량 중심 좌표를 StateSE2 로 생성
         #    (DefaultVehicle.position 은 (x, y), heading_theta는 라디안)
@@ -306,19 +306,23 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
                  name=None,
                  random_seed=None,
                  position=None,
-                 heading=None):
+                 heading=None,
+                 _calling_reset=True,
+                 ego_history_maxlen=100):
         super().__init__(
             vehicle_config=vehicle_config,
             name=name,
             random_seed=random_seed,
             position=position,
             heading=heading,
-            _calling_reset=False  # we'll manually call reset() below
-        )
+            _calling_reset=_calling_reset,
+            ego_history_maxlen=ego_history_maxlen)
         self._motion_model = KinematicBicycleModel(
             self._nuplan_vehicle_params,
             max_steering_angle=self.max_steering * math.pi / 180.0)
         # Initialize internal states for kinematic model
+        self.current_velocity = np.zeros(2, dtype=float)
+        self.current_angular_velocity = 0.0
 
     def reset(self,
               vehicle_config=None,
@@ -339,9 +343,12 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
                       heading=heading,
                       *args,
                       **kwargs)
-
+        self.current_velocity = np.zeros(2, dtype=float)
+        self.current_angular_velocity = 0.0
         # Let the bullet engine see this as static, so it won't update via forces
-        self.set_static(True)
+        self.set_static(False)
+        self.config["no_wheel_friction"] = True
+        # self.body.setKinematic(True)
         # Initialize states
 
     def before_step(self, action=None):
@@ -378,28 +385,24 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
             state=self.ego_state,
             ideal_dynamic_state=dynamic_state,
             sampling_time=sampling_time)
-        """
-        I have to call(to update) below state & methods using the current_state
-        state
-            self.steering : steering
-                self._set_action 으로 먼저 해보고, 이상하면 바꾸자.
-        
-        methods
-            self.set_position : x, y
-            self.set_heading_theta : theta
-            self.set_velocity : velocity
-            self.set_angular_velocity : 
-            
-        """
+
         steering = current_state.tire_steering_angle
-        self._set_action([steering, 0.0])  # TODO: steering이 system에 반영되어도 되는지 체크
+        self._set_action([steering, 0.0])
         self.set_position(current_state.center.point.array)
         self.set_heading_theta(current_state.center.heading)
-        self.set_velocity(
-            current_state.dynamic_car_state.center_velocity_2d.array)
-        self.set_angular_velocity(
-            current_state.dynamic_car_state.angular_velocity)
+        self.current_velocity = current_state.dynamic_car_state.center_velocity_2d.array
+        self.current_angular_velocity = current_state.dynamic_car_state.angular_velocity
+        self._body.setLinearVelocity(
+            LVector3(0.0, 0.0, 0.0))
+        self._body.setAngularVelocity(LVector3(0, 0, 0))
+
         # If we want to store or return any step info:
+        return step_info
+
+    def after_step(self):
+        self.set_velocity(self.current_velocity)
+        self.set_angular_velocity(self.current_angular_velocity)
+        step_info = super().after_step()
         return step_info
 
     def get_state(self):

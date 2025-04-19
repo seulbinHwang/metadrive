@@ -13,35 +13,40 @@ from metadrive.envs.base_env import BaseEnv
 from metadrive.manager.traffic_manager import TrafficMode
 from metadrive.utils import clip, Config
 from diffusion_planner.utils.config import Config as DiffusionPlannerConfig
-
-from metadrive.envs.metadrive_env import MetaDriveEnv
-
+from metadrive.manager.record_manager import RecordManager
+from metadrive.manager.replay_manager import ReplayManager
+from metadrive.envs.metadrive_env import MetaDriveEnv, METADRIVE_DEFAULT_CONFIG
+from metadrive.manager.traffic_manager import DiffusionTrafficManager
+from metadrive.manager.pg_map_manager import PGMapManager
+from metadrive.manager.object_manager import TrafficObjectManager
 from metadrive.obs.diffusion_planner_obs import DiffusionPlannerObservation
+from pathlib import Path
+args_path = Path('~/PycharmProjects/metadrive/checkpoints/args.json').expanduser()
 
+from typing import Dict, TypeVar
 
-def merge_dictionaries(*dicts: dict) -> dict:
+K = TypeVar("K")  # 키 타입 (hashable)
+V = TypeVar("V")  # 값 타입 (Any)
+
+def merge_dicts(first: Dict[K, V], second: Dict[K, V]) -> Dict[K, V]:
     """
-    여러 개의 dictionary를 하나로 합쳐 반환합니다.
+    두 딕셔너리를 병합하여 반환합니다.
 
     Args:
-        dicts (dict): 병합할 딕셔너리들의 가변 인자.
+        first (Dict[K, V]): 우선순위가 낮은(기본) 딕셔너리.
+        second (Dict[K, V]): 우선순위가 높은(덮어쓰기) 딕셔너리.
 
     Returns:
-        dict: 모든 딕셔너리를 병합한 결과로 생성된 딕셔너리.
+        Dict[K, V]: `first`와 `second`를 합친 새 딕셔너리.
+            - 동일 키가 있을 경우 `second`의 값이 최종 결과에 반영됩니다.
 
-    Raises:
-        KeyError: 두 개 이상의 딕셔너리에서 같은 키가 발견될 경우 발생.
+    예시:
+        >>> a = {"x": 1, "y": 2}
+        >>> b = {"y": 99, "z": 3}
+        >>> merge_dicts(a, b)
+        {'x': 1, 'y': 99, 'z': 3}
     """
-    merged_dict = {}
-    for d in dicts:
-        for key, value in d.items():
-            if key in merged_dict:
-                raise KeyError(f"키 '{key}' 가 중복되었습니다.")
-            merged_dict[key] = value
-
-    return merged_dict
-
-
+    return {**first, **second}
 DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
     agent_observation=DiffusionPlannerObservation, accident_prob=1.0,
 traffic_mode=TrafficMode.Respawn,
@@ -50,11 +55,10 @@ agent_policy=LQRPolicy,
 vehicle_config=dict(
 vehicle_model="bicycle_default",)
 )
-
-diffusion_planner_config = DiffusionPlannerConfig(
-    args_file="/home/user/PycharmProjects/metadrive/checkpoints/args.json"
-).to_dict()
-DIFFUSION_PLANNER_DEFAULT_CONFIG = merge_dictionaries(
+DIFFUSION_PLANNER_DEFAULT_CONFIG = merge_dicts(
+    METADRIVE_DEFAULT_CONFIG, DIFFUSION_PLANNER_DEFAULT_CONFIG)
+diffusion_planner_config = DiffusionPlannerConfig(args_file=str(args_path)).to_dict()
+DIFFUSION_PLANNER_DEFAULT_CONFIG = merge_dicts(
     DIFFUSION_PLANNER_DEFAULT_CONFIG, diffusion_planner_config)
 # TODO: 위 코드 안먹음. 수정해야함
 
@@ -69,3 +73,23 @@ class DiffusionPlannerEnv(MetaDriveEnv):
 
     def __init__(self, config: Union[dict, None] = None):
         super().__init__(config)
+
+    def setup_engine(self):
+        """
+        Engine setting after launching
+        """
+        self.engine.accept("r", self.reset)
+        self.engine.accept("c", self.capture)
+        self.engine.accept("p", self.stop)
+        self.engine.accept("b", self.switch_to_top_down_view)
+        self.engine.accept("q", self.switch_to_third_person_view)
+        self.engine.accept("]", self.next_seed_reset)
+        self.engine.accept("[", self.last_seed_reset)
+        self.engine.register_manager("agent_manager", self.agent_manager)
+        self.engine.register_manager("record_manager", RecordManager())
+        self.engine.register_manager("replay_manager", ReplayManager())
+        self.engine.register_manager("map_manager", PGMapManager())
+        self.engine.register_manager("traffic_manager", DiffusionTrafficManager())
+        if abs(self.config["accident_prob"] - 0) > 1e-2:
+            self.engine.register_manager("object_manager",
+                                         TrafficObjectManager())

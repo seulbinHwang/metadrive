@@ -4,7 +4,7 @@ from nuplan.planning.simulation.trajectory.interpolated_trajectory import Interp
 from nuplan.planning.simulation.controller.tracker.lqr import LQRTracker
 from nuplan.planning.simulation.simulation_time_controller.simulation_iteration import SimulationIteration
 from nuplan.common.actor_state.state_representation import TimePoint
-import gym
+import gymnasium as gym
 import numpy as np
 
 
@@ -15,8 +15,8 @@ class LQRPolicy(BasePolicy):
     to compute the control inputs based on the current state of the vehicle.
     """
 
-    def __init__(self, control_object):
-        super().__init__(control_object)
+    def __init__(self, control_object, random_seed=None, config=None):
+        super().__init__(control_object, random_seed, config)
         self.dt = (
             self.control_object.engine.global_config["physics_world_step_size"]
             * self.control_object.engine.global_config["decision_repeat"])

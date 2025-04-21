@@ -8,6 +8,7 @@ from nuplan.common.geometry.compute import principal_value
 from nuplan.planning.simulation.trajectory.abstract_trajectory import AbstractTrajectory
 
 DoubleMatrix = npt.NDArray[np.float64]
+np.set_printoptions(suppress=True)  # 과학적 표기 억제
 
 # Default regularization weight for initial curvature fit.  Users shouldn't really need to modify this,
 # we just want it positive and small for improved conditioning of the associated least squares problem.
@@ -285,7 +286,6 @@ def get_velocity_curvature_profiles_with_derivatives_from_poses(
         derivatives=acceleration_profile,
         discretization_time=discretization_time,
     )
-
     # Compute initial curvature + curvature rate least squares solution and extract results.  It relies on velocity fit.
     initial_curvature, curvature_rate_profile = _fit_initial_curvature_and_curvature_rate_profile(
         heading_displacements=heading_displacements,

@@ -682,6 +682,14 @@ class BaseVehicle(BaseObject, BaseVehicleState):
 
     def _add_visualization(self):
         if self.render:
+            """
+scale: 
+    로컬 x‑y‑z 축에 곱해지는 크기 비율.
+    차체가 물리 길이·폭·높이와 맞지 않으면 여기서 배율을 조정
+offset
+    모델 원점을 물리 원점(차체 중심)에서 얼마나 옮길지[m].
+    특히 z 값은 “모델이 땅에 발 붙이도록” 손대야 할 때가 있음.    
+            """
             [path, scale, offset, HPR] = self.path
             should_update = (path not in BaseVehicle.model_collection) or (
                 self.config["scale"] is not None)

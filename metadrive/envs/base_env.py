@@ -1,3 +1,4 @@
+from print import TRIGGER
 import logging
 import time
 from collections import defaultdict
@@ -494,6 +495,8 @@ class BaseEnv(gym.Env):
         return actions
 
     def _step_simulator(self, actions):
+        if TRIGGER:
+            print("[BaseEnv](_step_simulator) start =============================")
         # prepare for stepping the simulation
         scene_manager_before_step_infos = self.engine.before_step(actions)
         # step all entities and the simulator
@@ -502,10 +505,13 @@ class BaseEnv(gym.Env):
         scene_manager_after_step_infos = self.engine.after_step()
 
         # Note that we use shallow update for info dict in this function! This will accelerate system.
-        return merge_dicts(scene_manager_after_step_infos,
+        return_ = merge_dicts(scene_manager_after_step_infos,
                            scene_manager_before_step_infos,
                            allow_new_keys=True,
                            without_copy=True)
+        if TRIGGER:
+            print("[BaseEnv](_step_simulator) end =============================")
+        return return_
 
     def reward_function(self, object_id: str) -> Tuple[float, Dict]:
         """
@@ -559,6 +565,8 @@ class BaseEnv(gym.Env):
         :param seed: The seed to set the env. It is actually the scenario index you intend to choose
         :return: None
         """
+        if TRIGGER:
+            print("[BaseEnv](reset) start =============================")
         if self.logger is None:
             self.logger = get_logger()
             log_level = self.config.get(
@@ -590,7 +598,10 @@ class BaseEnv(gym.Env):
             "Agents: {} != Num_agents: {}".format(len(self.agents), self.num_agents)
         assert self.config is self.engine.global_config is get_global_config(
         ), "Inconsistent config may bring errors!"
-        return self._get_reset_return(reset_info)
+        return_ = self._get_reset_return(reset_info)
+        if TRIGGER:
+            print("[BaseEnv](reset) end =============================")
+        return return_
 
     def reset_sensors(self):
         """

@@ -1,3 +1,4 @@
+from print import TRIGGER
 import os
 import pickle
 import time
@@ -374,9 +375,11 @@ class BaseEngine(EngineCore, Randomizable):
                 cm = lm
         self.terrain.before_reset()
         self._object_clean_check()
-        print("[BaseEngine](reset) start ============================")
+        if TRIGGER:
+            print("[BaseEngine](reset) start ============================")
         for manager_name, manager in self.managers.items():
-            print(" manager_name", manager_name)
+            if TRIGGER:
+                print(" manager_name", manager_name)
             if self.replay_episode and self.only_reset_when_replay and manager is not self.replay_manager:
                 # The scene will be generated from replay manager in only reset replay mode
                 continue
@@ -430,6 +433,8 @@ class BaseEngine(EngineCore, Randomizable):
         # print(len(BaseEngine.COLORS_FREE), len(BaseEngine.COLORS_OCCUPIED))
         self.c_id = new_c2i
         self.id_c = new_i2c
+        if TRIGGER:
+            print("[BaseEngine](reset) end ============================")
         return step_infos
 
     def before_step(self, external_actions: Dict[AnyStr, np.array]):
@@ -439,12 +444,20 @@ class BaseEngine(EngineCore, Randomizable):
         :param external_actions: Dict[agent_id:action]
         :return:
         """
+        if TRIGGER:
+            print("[BaseEngine](before_step) start ============================")
+
         self.episode_step += 1
         step_infos = {}
         self.external_actions = external_actions
         for manager in self.managers.values():
+            if TRIGGER:
+                print( "manager", manager.class_name)
             new_step_infos = manager.before_step()
             step_infos = concat_step_infos([step_infos, new_step_infos])
+        if TRIGGER:
+            print("[BaseEngine](before_step) end ============================")
+
         return step_infos
 
     def step(self, step_num: int = 1) -> None:
@@ -452,12 +465,19 @@ class BaseEngine(EngineCore, Randomizable):
         Step the dynamics of each entity on the road.
         :param step_num: Decision of all entities will repeat *step_num* times
         """
+        if TRIGGER:
+            print("[BaseEngine](step) start ============================")
+
         for i in range(step_num):
             # simulate or replay
             for name, manager in self.managers.items():
+                if TRIGGER:
+                    print("[BaseEngine][step] manager_name", name, "manager", manager)
                 if name != "record_manager":
                     manager.step()
             self.step_physics_world()
+            if TRIGGER:
+                print("[BaseEngine][step] step_physics_world")
             # the recording should happen after step physics world
             if "record_manager" in self.managers and i < step_num - 1:
                 # last recording should be finished in after_step(), as some objects may be created in after_step.
@@ -477,12 +497,16 @@ class BaseEngine(EngineCore, Randomizable):
         self.task_manager.step()
         if self.on_screen_message is not None:
             self.on_screen_message.render()
+        if TRIGGER:
+            print("[BaseEngine](step) end ============================")
 
     def after_step(self, *args, **kwargs) -> Dict:
         """
         Update states after finishing movement
         :return: if this episode is done
         """
+        if TRIGGER:
+            print("[BaseEngine](after_step) start ============================")
 
         step_infos = {}
         if self.record_episode:
@@ -490,6 +514,8 @@ class BaseEngine(EngineCore, Randomizable):
                 self.managers.keys()
             )[-1] == "record_manager", "Record Manager should have lowest priority"
         for manager in self.managers.values():
+            if TRIGGER:
+                print("[BaseEngine][after_step] manager_name", manager.class_name)
             new_step_info = manager.after_step(*args, **kwargs)
             step_infos = concat_step_infos([step_infos, new_step_info])
         self.interface.after_step()
@@ -511,6 +537,9 @@ class BaseEngine(EngineCore, Randomizable):
 
         # cull distant blocks
         # poses = [v.position for v in self.agent_manager.active_agents.values()]
+        if TRIGGER:
+            print("[BaseEngine](after_step) end ============================")
+
         return step_infos
 
     def dump_episode(self, pkl_file_name=None) -> None:

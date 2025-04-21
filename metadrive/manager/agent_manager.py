@@ -204,7 +204,6 @@ class VehicleAgentManager(BaseAgentManager):
                         [0, 0])
             else:
                 if stage == "before_step":
-
                     action = policy.act(agent_id)
                     # policy.get_action_info(): "action": (steering, throttle)을 -1 ~ 1 범위로 clip
                     """

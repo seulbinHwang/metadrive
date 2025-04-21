@@ -47,16 +47,22 @@ def merge_dicts(first: Dict[K, V], second: Dict[K, V]) -> Dict[K, V]:
         {'x': 1, 'y': 99, 'z': 3}
     """
     return {**first, **second}
+
 DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
     agent_observation=DiffusionPlannerObservation, accident_prob=0.,
-traffic_mode=TrafficMode.Respawn,
+    traffic_mode=TrafficMode.Respawn,
     traffic_density=0.,
+random_spawn_lane_index = False,
 agent_policy=LQRPolicy,
-vehicle_config=dict(
-vehicle_model="bicycle_default",)
+    agent_configs={
+        DEFAULT_AGENT:
+            dict(
+                use_special_color=True,
+                spawn_lane_index=(FirstPGBlock.NODE_1, FirstPGBlock.NODE_2, 1),
+            )
+    },
+vehicle_config=dict(vehicle_model="bicycle_default",)
 )
-DIFFUSION_PLANNER_DEFAULT_CONFIG = merge_dicts(
-    METADRIVE_DEFAULT_CONFIG, DIFFUSION_PLANNER_DEFAULT_CONFIG)
 diffusion_planner_config = DiffusionPlannerConfig(args_file=str(args_path)).to_dict()
 DIFFUSION_PLANNER_DEFAULT_CONFIG = merge_dicts(
     DIFFUSION_PLANNER_DEFAULT_CONFIG, diffusion_planner_config)
@@ -71,8 +77,6 @@ class DiffusionPlannerEnv(MetaDriveEnv):
         config.update(DIFFUSION_PLANNER_DEFAULT_CONFIG)
         return config
 
-    def __init__(self, config: Union[dict, None] = None):
-        super().__init__(config)
 
     def setup_engine(self):
         """

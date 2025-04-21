@@ -251,7 +251,6 @@ class LQRTracker(AbstractTracker):
             jerk_penalty=self._jerk_penalty,
             curvature_rate_penalty=self._curvature_rate_penalty,
         )
-
         reference_time = current_iteration.time_point.time_s + self._tracking_horizon * self._discretization_time
         reference_velocity = np.interp(reference_time, times_s[:-1],
                                        velocity_profile)

@@ -15,6 +15,8 @@ logger = get_logger()
 from collections import deque
 import math
 import numpy as np
+np.set_printoptions(suppress=True)  # 과학적 표기 억제
+
 from panda3d.core import LVector3
 # NuPlan (example) imports
 from nuplan.common.actor_state.ego_state import EgoState
@@ -81,12 +83,7 @@ class HistoryDefaultVehicle(DefaultVehicle):
         # EgoState 기록용 덱
         self.ego_history = deque(maxlen=ego_history_maxlen)
 
-        # 이전 스텝 속도(배속) 등을 저장하여 가속도 계산 용도 (option)
-        # TODO: 이 부분이 수정 되어야 할 수도 있음
-        self._previous_velocity = None
-        self._previous_ang_vel = None
 
-        self._previous_time_s = 0.0
 
 
 
@@ -136,18 +133,30 @@ class HistoryDefaultVehicle(DefaultVehicle):
 
         # cog_position_from_rear_axle
         cog_from_rear = rear_axle_dist  # 1.4166
-
+        """
+    return VehicleParameters(
+        vehicle_name="pacifica",
+        vehicle_type="gen1",
+        width=1.1485 * 2.0,
+        front_length=4.049,
+        rear_length=1.127,
+        wheel_base=3.089,
+        cog_position_from_rear_axle=1.67,
+        height=1.777,
+    )
+        """
         self._nuplan_vehicle_params = VehicleParameters(
             width=self.WIDTH,  # 1.852
             front_length=front_length_val,
             rear_length=rear_length_val,
             cog_position_from_rear_axle=cog_from_rear,
             wheel_base=wheel_base_val,
-            vehicle_name=name if name is not None else "EgoVehicle",
-            vehicle_type="MetaDrive",
+            vehicle_name=name if name is not None else "pacifica",
+            vehicle_type="gen1",
             height=self.HEIGHT  # 1.19
         )
-
+        self._previous_velocity = None
+        self._previous_ang_vel = None
         super().__init__(vehicle_config=vehicle_config,
                          name=name,
                          random_seed=random_seed,
@@ -174,6 +183,8 @@ class HistoryDefaultVehicle(DefaultVehicle):
         """에피소드 시작시 호출 – 기록 초기화"""
         super().reset(*args, **kwargs)
         self.ego_history.clear()
+        self._previous_velocity = None
+        self._previous_ang_vel = None
         #
         # # 2) EgoState 생성
         # current_ego_state = self._create_ego_state()
@@ -244,11 +255,8 @@ reset 되면 time_us가 0으로 초기화 되는지 확인
             center_acc_2d = StateVector2D(ax, ay)
 
         # 4) 타이어 조향각 (radians)
-        #    self.steering: -1 ~ +1
-        #    max_steering=40 (deg) => 약 0.698 rad
-        max_steer_deg = self.max_steering  # default=40 deg
-        max_steer_rad = math.radians(max_steer_deg)
-        tire_angle = float(self.steering) * max_steer_rad
+        max_steering_rad = self.max_steering * np.pi / 180.0
+        tire_angle = float(self.steering * max_steering_rad) # rad
 
         # 5) BulletVehicle의 각속도(회전)는 rad/s, Z축에 해당
         #    -> (ang_vel_z = self.body.getAngularVelocity()[2])  # (ZUp)
@@ -277,7 +285,6 @@ reset 되면 time_us가 0으로 초기화 되는지 확인
 
         # 기록 갱신
         self._previous_velocity = np.array([vx, vy], dtype=float)
-        self._previous_time_s = current_time_s
         self._previous_ang_vel = ang_vel_z
 
         return ego_state
@@ -300,13 +307,56 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
     LATERAL_TIRE_TO_CENTER = 1.1485
     FRONT_WHEELBASE = 1.419
     REAR_WHEELBASE = 1.67
-    path = ('ferra/vehicle.gltf', (1, 1, 1), (0, 0.075, 0.), (0, 0, 0)
-           )  # asset path, scale, offset, HPR
+    # path = ('ferra/vehicle.gltf', (1, 1, 1), (0, 0.075, 0.), (0, 0, 0)
+    #        )  # asset path, scale, offset, HPR
 
     DEFAULT_LENGTH = 4.049 + 1.127  # meters
     DEFAULT_HEIGHT = 1.777  # meters
     DEFAULT_WIDTH = 1.1485 * 2.  # meters
 
+    @classmethod
+    def _get_model_size_from_default(cls):
+        """
+        DefaultVehicle 의 GLTF(ferra/vehicle.gltf)가 실제로 가진
+        원본 길이·폭·높이를 계산해서 반환.
+        """
+        base_path, base_scale, _, _ = DefaultVehicle.path     # ('ferra/vehicle.gltf', (sx, sy, sz), …)
+
+        # DefaultVehicle 의 ‘물리적’ 치수 (scale 이 적용된 최종 길이/폭/높이)
+        phys_len = DefaultVehicle.DEFAULT_LENGTH
+        phys_wid = DefaultVehicle.DEFAULT_WIDTH
+        phys_hei = DefaultVehicle.DEFAULT_HEIGHT
+
+        # 원본(GLTF) 치수 =  (물리 치수) / (DefaultVehicle 에서 주었던 scale 값)
+        model_len = phys_len / base_scale[1]   # Y축(scale_y)
+        model_wid = phys_wid / base_scale[0]   # X축(scale_x)
+        model_hei = phys_hei / base_scale[2]   # Z축(scale_z)
+
+        return base_path, (model_wid, model_len, model_hei), base_scale
+    @property
+    def path(self):
+        base_path, model_size, default_scale = self._get_model_size_from_default()
+        model_wid, model_len, model_hei = model_size  # 원본 GLTF 실제 크기
+
+        # 지금 Vehicle 인스턴스의 목표 물리 크기(폭‧길이‧높이)에 맞춰 배율을 산출
+        scale_x = self.WIDTH  / model_wid    # 폭 (X축)
+        scale_y = self.LENGTH / model_len    # 길이(Y축)
+        scale_z = self.HEIGHT / model_hei    # 높이(Z축)
+
+        # offset / HPR 은 DefaultVehicle 값 그대로 재사용
+        _, _, base_offset, base_hpr = DefaultVehicle.path
+        # 스케일이 바뀌면, 원본 모델 길이(model_len) 대비
+        #   0.075m 가 모델 좌표계에서 얼마인지 다시 환산
+        offset_y_model_units = 0.075 / model_len  # 비율
+        offset_y_new = offset_y_model_units * scale_y  # 새 스케일로 보정
+        offset = (base_offset[0], offset_y_new, base_offset[2])
+
+        return (
+            base_path,                      # asset 경로: 그대로 'ferra/vehicle.gltf'
+            (scale_x, scale_y, scale_z),    # **계산된 배율**
+            offset,                    # 모델 오프셋은 그대로
+            base_hpr,                       # HPR 도 그대로
+        )
     def __init__(self,
                  vehicle_config=None,
                  name=None,
@@ -327,8 +377,9 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
             self._nuplan_vehicle_params,
             max_steering_angle=self.max_steering * math.pi / 180.0)
         # Initialize internal states for kinematic model
-        self.current_velocity = np.zeros(2, dtype=float)
-        self.current_angular_velocity = 0.0
+        self.current_velocity = self.velocity
+        self.current_angular_velocity = self.body.getAngularVelocity()[-1]
+        self.ego_result_state = None
 
     def reset(self,
               vehicle_config=None,
@@ -349,12 +400,12 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
                       heading=heading,
                       *args,
                       **kwargs)
-        self.current_velocity = np.zeros(2, dtype=float)
-        self.current_angular_velocity = 0.0
+        self.current_velocity = self.velocity
+        self.current_angular_velocity = self.body.getAngularVelocity()[-1]
         # Let the bullet engine see this as static, so it won't update via forces
-        self.set_static(False)
-        self.config["no_wheel_friction"] = True
-        # self.body.setKinematic(True)
+        # self.config["no_wheel_friction"] = True
+        self.ego_result_state = None
+        self.body.setKinematic(True)
         # Initialize states
 
     def before_step(self, action=None):
@@ -391,16 +442,25 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
             state=self.ego_state,
             ideal_dynamic_state=dynamic_state,
             sampling_time=sampling_time)
-
-        steering = current_state.tire_steering_angle
-        self._set_action([steering, 0.0])
+        self.ego_result_state = current_state
+        ##############
+        max_steering_rad = self.max_steering * np.pi / 180.0
+        steering_rad = current_state.tire_steering_angle # rad
+        # steering_rad = clip(current_state.tire_steering_angle,
+        #                     -max_steering_rad,
+        #                     max_steering_rad) # rad
+        normalized_steering = steering_rad * ( 1 / max_steering_rad)
+        self._set_action([normalized_steering, 0.0])
+        ##############
         self.set_position(current_state.center.point.array)
         self.set_heading_theta(current_state.center.heading)
         self.current_velocity = current_state.dynamic_car_state.center_velocity_2d.array
         self.current_angular_velocity = current_state.dynamic_car_state.angular_velocity
-        self._body.setLinearVelocity(
-            LVector3(0.0, 0.0, 0.0))
-        self._body.setAngularVelocity(LVector3(0, 0, 0))
+        self.set_velocity(self.current_velocity)
+        self.set_angular_velocity(self.current_angular_velocity)
+        # self._body.setLinearVelocity(
+        #     LVector3(0.0, 0.0, 0.0))
+        # self._body.setAngularVelocity(LVector3(0, 0, 0))
 
         # If we want to store or return any step info:
         return step_info
@@ -411,13 +471,14 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
         step_info = super().after_step()
         return step_info
 
-    def get_state(self):
-        """
-        Override for convenience: include our custom kinematic states in the dictionary.
-        """
-        base_state = super().get_state()
+    def _create_ego_state(self) -> EgoState:
+        if self.ego_result_state is None:
+            ego_state = super()._create_ego_state()
+        else:
+            ego_state = self.ego_result_state
 
-        return base_state
+
+        return ego_state
 
 
 # When using DefaultVehicle as traffic, please use this class.

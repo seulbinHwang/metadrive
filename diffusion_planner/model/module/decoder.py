@@ -24,11 +24,6 @@ class Decoder(nn.Module):
 
         self.dit = DiT(
             sde=self._sde,
-            route_encoder=RouteEncoder(
-                config.route_num,
-                config.lane_len,
-                drop_path_rate=config.encoder_drop_path_rate,
-                hidden_dim=config.hidden_dim),
             depth=config.decoder_depth,
             output_dim=(config.future_len + 1) * 4,  # x, y, cos, sin
             hidden_dim=config.hidden_dim,
@@ -78,20 +73,11 @@ class Decoder(nn.Module):
                 }
 
         """
-        neighbor_agents_token_str = inputs.get("neighbor_agents_token_str",
-                                               None)  # List[List[str]]
         # Extract ego & neighbor current states
         ego_current = inputs['ego_current_state'][:, None, :4]  # [B, 1, 4]
         neighbors_current = inputs[
             "neighbor_agents_past"][:, :self._predicted_neighbor_num,
                                     -1, :4]  # [B, P, 4]
-        neighbor_selected_agents_token_str = []
-        if neighbor_agents_token_str is not None:
-            for neighbor_agents_token_str_ in neighbor_agents_token_str:
-                a: List[
-                    str] = neighbor_agents_token_str_[:self.
-                                                      _predicted_neighbor_num]
-                neighbor_selected_agents_token_str.append(a)
         not_zero = torch.ne(neighbors_current[..., :4], 0)  # [B, P, 4]
         sum_ = torch.sum(not_zero, dim=-1)  # [B, P]
         neighbor_current_mask = sum_ == 0  # [B, P] -> 차량 정보가 없는 경우 True
@@ -103,8 +89,8 @@ class Decoder(nn.Module):
         assert P == (1 + self._predicted_neighbor_num)
 
         # Extract context encoding
-        ego_neighbor_encoding = encoder_outputs['encoding']
-        route_lanes = inputs['route_lanes']
+        ego_neighbor_encoding = encoder_outputs['encoding'] # [B, P, D]
+        route_encoding = encoder_outputs['route_encoding'] # [B, D]
 
         if self.training:
             sampled_trajectories = inputs['sampled_trajectories'].reshape(
@@ -114,7 +100,7 @@ class Decoder(nn.Module):
             return {
                 "score":
                     self.dit(sampled_trajectories, diffusion_time,
-                             ego_neighbor_encoding, route_lanes,
+                             ego_neighbor_encoding, route_encoding,
                              neighbor_current_mask).reshape(B, P, -1, 4)
             }
         else:
@@ -123,9 +109,9 @@ class Decoder(nn.Module):
                 [
                     current_states[:, :, None],  # [B, P, 1, 4]
                     torch.randn(B, P, self._future_len, 4).to(
-                        current_states.device) * 0.5
+                        current_states.device) * 0.5 # [B, P, V_future, 4] # (0, 1) -> (0, 0.5)
                 ],
-                dim=2).reshape(B, P, -1)
+                dim=2).reshape(B, P, -1) # [B, P, (1 + V_future) * 4]
 
             def initial_state_constraint(xt, t, step):
                 xt = xt.reshape(B, P, -1, 4)
@@ -133,10 +119,10 @@ class Decoder(nn.Module):
                 return xt.reshape(B, P, -1)
 
             x0 = dpm_sampler(self.dit,
-                             xT,
+                             xT, # [B, P, (1 + V_future) * 4]
                              other_model_params={
                                  "cross_c": ego_neighbor_encoding,
-                                 "route_lanes": route_lanes,
+                                 "route_encoding": route_encoding,
                                  "neighbor_current_mask": neighbor_current_mask
                              },
                              dpm_solver_params={
@@ -146,9 +132,7 @@ class Decoder(nn.Module):
                                                                          1:]
             return {
                 "prediction":
-                    x0,  # [B, P, V_future, 4] # Exclude current state
-                "neighbor_selected_agents_token_str":
-                    neighbor_selected_agents_token_str
+                    x0,  # [B, P, V_future, 4] # Include Ego, Neighbors # Exclude current state
             }
 
 
@@ -222,7 +206,6 @@ class DiT(nn.Module):
 
     def __init__(self,
                  sde: SDE,
-                 route_encoder: nn.Module,
                  depth,
                  output_dim,
                  hidden_dim=192,
@@ -235,7 +218,6 @@ class DiT(nn.Module):
         assert model_type in ["score",
                               "x_start"], f"Unknown model type: {model_type}"
         self._model_type = model_type
-        self.route_encoder = route_encoder
         self.agent_embedding = nn.Embedding(2, hidden_dim)
         self.preproj = Mlp(in_features=output_dim,
                            hidden_features=512,
@@ -255,7 +237,7 @@ class DiT(nn.Module):
     def model_type(self):
         return self._model_type
 
-    def forward(self, x, t, cross_c, route_lanes, neighbor_current_mask):
+    def forward(self, x, t, cross_c, route_encoding, neighbor_current_mask):
         """
         Forward pass of DiT.
         x: (B, P, output_dim)   -> Embedded out of DiT
@@ -274,7 +256,6 @@ class DiT(nn.Module):
         x_embedding = x_embedding[None, :, :].expand(B, -1, -1)  # (B, P, D)
         x = x + x_embedding
 
-        route_encoding = self.route_encoder(route_lanes)
         y = route_encoding
         y = y + self.t_embedder(t)
 

@@ -1,4 +1,5 @@
 from typing import Optional, Union, Dict
+from diffusion_planner.utils.config import Config as DiffusionPlannerConfig
 
 import gymnasium as gym
 import torch
@@ -13,6 +14,8 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 from diffusion_planner.model.diffusion_planner import Diffusion_Planner_Encoder
 from diffusion_planner.model.module.decoder import RouteEncoder
+
+
 class DiffusionExtractor(BaseFeaturesExtractor):
     """
     Combined features extractor for Dict observation spaces.
@@ -23,12 +26,10 @@ class DiffusionExtractor(BaseFeaturesExtractor):
     :param observation_space:
     """
 
-    def __init__(
-        self,
-        observation_space: spaces.Dict,
-        features_dim: int,
-            config
-    ) -> None:
+    def __init__(self,
+                 observation_space: spaces.Dict,
+                 features_dim: int = 1,
+                 config: Optional[DiffusionPlannerConfig] = None) -> None:
         super().__init__(observation_space, features_dim)
         """
         Neighbors: MLP Mixer
@@ -39,24 +40,30 @@ class DiffusionExtractor(BaseFeaturesExtractor):
         """
         self.encoder = Diffusion_Planner_Encoder(config)
         self.route_encoder = RouteEncoder(
-                config.route_num,
-                config.lane_len,
-                drop_path_rate=config.encoder_drop_path_rate,
-                hidden_dim=config.hidden_dim)
+            config.route_num,
+            config.lane_len,
+            drop_path_rate=config.encoder_drop_path_rate,
+            hidden_dim=config.hidden_dim)
+
     def forward(self, observations: TensorDict) -> Dict[str, torch.Tensor]:
         # TODO
         # add "lanes_speed_limit" (B, P, 1)
         # add "lanes_has_speed_limit" (B, P, 1)
         B, P, _, _ = observations['lanes'].shape
-        observations['lanes_speed_limit'] = torch.ones((B, P, 1), device=observations['lanes'].device)
+        observations['lanes_speed_limit'] = torch.ones(
+            (B, P, 1), device=observations['lanes'].device)
         observations['lanes_speed_limit'] *= 100 / 3.6
-        observations['lanes_has_speed_limit'] = torch.zeros((B, P, 1), device=observations['lanes'].device)
+        observations['lanes_has_speed_limit'] = torch.zeros(
+            (B, P, 1), device=observations['lanes'].device)
         # encoder_outputs:
         # (B, self.token_dim(=agent_num + static_num + lane_num), self.hidden_dim)
         encoder_outputs = self.encoder(observations)
 
         route_lanes = observations['route_lanes']
         route_encoding = self.route_encoder(route_lanes)
-        outputs = {"encoder_outputs": encoder_outputs,
-                  "route_encoding": route_encoding}
+        # TODO: dict 말고 torch.Tensor 로 출력해서, features_dim 을 의미있게 만들지 고민해보기
+        outputs = {
+            "encoding": encoder_outputs,
+            "route_encoding": route_encoding
+        }
         return outputs

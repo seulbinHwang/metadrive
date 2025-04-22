@@ -6,10 +6,9 @@ import copy
 import warnings
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union, Dict
 
 import numpy as np
-import torch as th
 from gymnasium import spaces
 from torch import nn
 from core.common.torch_layers import DiffusionExtractor
@@ -31,13 +30,100 @@ from stable_baselines3.common.torch_layers import (
     NatureCNN,
     create_mlp,
 )
+from diffusion_planner.model.module.decoder import Decoder
 from stable_baselines3.common.type_aliases import PyTorchObs, Schedule
 from stable_baselines3.common.utils import get_device, is_vectorized_observation, obs_as_tensor
 from diffusion_planner.utils.config import Config as DiffusionPlannerConfig
 from pathlib import Path
-args_path = Path('~/PycharmProjects/metadrive/checkpoints/args.json').expanduser()
+
+args_path = Path(
+    '~/PycharmProjects/metadrive/checkpoints/args.json').expanduser()
 
 SelfBaseModel = TypeVar("SelfBaseModel", bound="BaseModel")
+
+import torch
+import torch.nn as nn
+
+
+class TransformerCritic(nn.Module):
+    """
+    inputs
+      - seq_encoding : Tensor (B, T, D)      ← encoder_outputs
+      - route_encoding : Tensor (B, D)       ← route_encoding
+    output
+      - value : Tensor (B,) 또는 (B,1)        ← V(s)
+    """
+
+    def __init__(
+        self,
+        hidden_dim: int = 192,
+        n_layers: int = 4,
+        n_heads: int = 8,
+        dropout: float = 0.1,
+        add_pos_emb: bool = True,
+    ):
+        super().__init__()
+
+        self.hidden_dim = hidden_dim
+
+        # ------- ① 토큰 준비 --------------------------------------------------
+        #   • value_token : 값 추정용 가상 토큰 (learnable)
+        self.value_token = nn.Parameter(torch.zeros(1, 1, hidden_dim))
+        nn.init.trunc_normal_(self.value_token, std=0.02)
+
+        # 선택적 위치 임베딩 (T 길이만큼 learnable하거나 sinusoidal)
+        self.add_pos_emb = add_pos_emb
+        if add_pos_emb:
+            self.pos_emb = nn.Parameter(torch.zeros(
+                1, 1024, hidden_dim))  # 1024 = 최대 T 길이(넉넉히)
+            nn.init.trunc_normal_(self.pos_emb, std=0.02)
+
+        # ------- ② Transformer 인코더 ----------------------------------------
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_dim,
+            nhead=n_heads,
+            dim_feedforward=hidden_dim * 4,
+            dropout=dropout,
+            batch_first=True,
+            norm_first=True,  # LayerNorm → Attention 순서
+            activation="gelu",
+        )
+        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
+
+        # ------- ③ Head -------------------------------------------------------
+        self.head = nn.Sequential(
+            nn.LayerNorm(hidden_dim),
+            nn.Linear(hidden_dim, 1, bias=False)  # V(s) 스칼라
+        )
+
+    # ------------------------------------------------------------------------
+    def forward(self, seq_encoding: torch.Tensor,
+                route_encoding: torch.Tensor) -> torch.Tensor:
+        """
+        seq_encoding : (B, T, D)
+        route_encoding : (B, D)
+        return        : (B, 1)
+        """
+        B, T, D = seq_encoding.shape
+        assert D == self.hidden_dim, "hidden_dim mismatch"
+
+        # (1) value 토큰, route 토큰 붙이기
+        value_tok = self.value_token.expand(B, -1, -1)  # (B, 1, D)
+        route_tok = route_encoding.unsqueeze(1)  # (B, 1, D)
+
+        x = torch.cat([value_tok, seq_encoding, route_tok],
+                      dim=1)  # (B, 1+T+1, D)
+
+        # (2) 위치 임베딩 추가
+        if self.add_pos_emb:
+            x = x + self.pos_emb[:, :x.size(1)]
+
+        # (3) Transformer 인코딩
+        x = self.encoder(x)  # (B, 1+T+1, D)
+
+        # (4) 맨 앞 value_token 의 표현을 MLP로 -> 스칼라 V(s)
+        value = self.head(x[:, 0])  # (B, 1)
+        return value.squeeze(-1)  # (B,) 로 쓸 수도 있어 편의상 squeeze
 
 
 class DiffusionActorCriticPolicy(BasePolicy):
@@ -67,7 +153,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
     :param normalize_images: Whether to normalize images or not,
          dividing by 255.0 (True by default)
     :param optimizer_class: The optimizer to use,
-        ``th.optim.Adam`` by default
+        ``torch.optim.Adam`` by default
     :param optimizer_kwargs: Additional keyword arguments,
         excluding the learning rate, to pass to the optimizer
 
@@ -82,7 +168,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
         lr_schedule: Schedule,  ###
         net_arch: Optional[Union[list[int], dict[str, list[int]]]] = None,
         activation_fn: type[nn.Module] = nn.Tanh,
-        ortho_init: bool = True,
+        ortho_init: bool = False,
         use_sde: bool = False,  ###
         log_std_init: float = 0.0,
         full_std: bool = True,
@@ -93,18 +179,18 @@ class DiffusionActorCriticPolicy(BasePolicy):
         features_extractor_kwargs: Optional[dict[str, Any]] = None,
         share_features_extractor: bool = True,
         normalize_images: bool = True,
-        optimizer_class: type[th.optim.Optimizer] = th.optim.Adam,
+        optimizer_class: type[torch.optim.Optimizer] = torch.optim.Adam,
         optimizer_kwargs: Optional[dict[str, Any]] = None,
     ):
         if optimizer_kwargs is None:
             optimizer_kwargs = {}
             # Small values to avoid NaN in Adam optimizer
-            if optimizer_class == th.optim.Adam:
+            if optimizer_class == torch.optim.Adam:
                 optimizer_kwargs["eps"] = 1e-5
-        diffusion_planner_config = DiffusionPlannerConfig(
+        self.diffusion_planner_config = DiffusionPlannerConfig(
             args_file=str(args_path)).to_dict()
-        # TODO: features_dim
-        features_extractor_kwargs["config"] = diffusion_planner_config
+        # TODO: features_extractor_kwargs 에 , features_dim 을 넣어야 하는지 고민
+        features_extractor_kwargs["config"] = self.diffusion_planner_config
         super().__init__(
             observation_space,
             action_space,
@@ -115,24 +201,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             squash_output=squash_output,
             normalize_images=normalize_images,
         )
-
-        if isinstance(net_arch, list) and len(net_arch) > 0 and isinstance(
-                net_arch[0], dict):
-            warnings.warn((
-                "As shared layers in the mlp_extractor are removed since SB3 v1.8.0, "
-                "you should now pass directly a dictionary and not a list "
-                "(net_arch=dict(pi=..., vf=...) instead of net_arch=[dict(pi=..., vf=...)])"
-            ),)
-            net_arch = net_arch[0]
-
         # Default network architecture, from stable-baselines
-        if net_arch is None:
-            if features_extractor_class == NatureCNN:
-                net_arch = []
-            else:
-                net_arch = dict(pi=[64, 64], vf=[64, 64])
-
-        self.net_arch = net_arch
         self.activation_fn = activation_fn
         self.ortho_init = ortho_init
 
@@ -147,33 +216,16 @@ class DiffusionActorCriticPolicy(BasePolicy):
             self.vf_features_extractor = self.make_features_extractor()
 
         self.log_std_init = log_std_init
-        dist_kwargs = None
 
         assert not (
             squash_output and not use_sde
         ), "squash_output=True is only available when using gSDE (use_sde=True)"
-        # Keyword arguments for gSDE distribution
-        if use_sde:
-            dist_kwargs = {
-                "full_std": full_std,
-                "squash_output": squash_output,
-                "use_expln": use_expln,
-                "learn_features": False,
-            }
-
         self.use_sde = use_sde
-        self.dist_kwargs = dist_kwargs
-
-        # Action distribution
-        self.action_dist = make_proba_distribution(action_space,
-                                                   use_sde=use_sde,
-                                                   dist_kwargs=dist_kwargs)
-
         self._build(lr_schedule)
 
     def _predict(self,
                  observation: PyTorchObs,
-                 deterministic: bool = False) -> th.Tensor:
+                 deterministic: bool = False) -> torch.Tensor:
         """
         Get the action according to the policy for a given observation.
 
@@ -198,14 +250,25 @@ class DiffusionActorCriticPolicy(BasePolicy):
 
         :param lr_schedule: Learning rate schedule
             lr_schedule(1) is the initial learning rate
+
+        - diffusion_transformer 을 만들어야 함
+        - critic_net 을 만들어야 함
+        - value_net 은 그대로 사용하면 됨
+
         """
-        pass
+        self.diffusion_transformer = Decoder(self.diffusion_planner_config)
+        self.critic_net = TransformerCritic(hidden_dim=self.diffusion_planner_config.hidden_dim)
+        # Setup optimizer with initial learning rate
+        self.optimizer = self.optimizer_class(
+            self.parameters(),
+            lr=lr_schedule(1),  # type: ignore[call-arg]
+            **self.optimizer_kwargs)
 
     def forward(
-            self,
-            obs: th.Tensor,
-            deterministic: bool = False
-    ) -> tuple[th.Tensor, th.Tensor, th.Tensor]:
+        self,
+        obs: torch.Tensor,
+        deterministic: bool = False
+    ) -> tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor]:
         """
         Forward pass in all the networks (actor and critic)
 
@@ -213,13 +276,56 @@ class DiffusionActorCriticPolicy(BasePolicy):
         :param deterministic: Whether to sample or use deterministic actions
         :return: action, value and log probability of the action
         """
+        log_likelihood = None
+        # TODO: obs 가 normalized 되어서 오는건지 확인
         features = self.extract_features(obs)
+        if self.share_features_extractor:
+            features: Dict[str, torch.Tensor]
+            # decoder_outputs: {"prediction": (B, P, V_future, 4)
+            # TODO: obs 에 "ego_current_state" 을 포함시켜야 함
+            decoder_outputs: Dict[str,
+                                  torch.Tensor] = self.diffusion_transformer(
+                                      features, obs)
+            predictions = decoder_outputs['prediction'] # (B, P, V_future, 4)
+            ego_predictions = predictions[0].detach().cpu().numpy().astype(
+                np.float64) # (B, 80, 4)
+            # TODO: log_likelihood 구하기? ( https://velog.io/@ad_official/DPM-Solver-에서-log-likelihood-구하기 )
+            # TODO: train/eval 에 맞는 설정 어떻게 하는지 확인하기
+            # TODO: batch 로 출력되는게 맞는지 확인하기
+            values = self.critic_net(features['encoding'], features['route_encoding']) # shape (B)
+        else:
+            pi_features, vf_features = features
+            decoder_outputs: Dict[str,
+                                  torch.Tensor] = self.diffusion_transformer(
+                                      pi_features, obs)
+            predictions = decoder_outputs['prediction']
+            ego_predictions = predictions[0].detach().cpu().numpy().astype(
+                np.float64)
+            values = self.critic_net(vf_features['encoding'],
+                                        vf_features['route_encoding'])
+
+        return ego_predictions, values, log_likelihood
+
+    def _extract_features(
+            self, obs: PyTorchObs, features_extractor: BaseFeaturesExtractor
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Preprocess the observation if needed and extract features.
+
+        :param obs: Observation
+        :param features_extractor: The features extractor to use.
+        :return: The extracted features
+        """
+        preprocessed_obs = preprocess_obs(
+            obs, self.observation_space, normalize_images=self.normalize_images)
+        return features_extractor(preprocessed_obs)
 
     def extract_features(  # type: ignore[override]
         self,
         obs: PyTorchObs,
         features_extractor: Optional[BaseFeaturesExtractor] = None
-    ) -> Union[th.Tensor, tuple[th.Tensor, th.Tensor]]:
+    ) -> Union[Dict[str, torch.Tensor], tuple[Dict[str, torch.Tensor], Dict[
+            str, torch.Tensor]]]:
         """
         Preprocess the observation if needed and extract features.
 
@@ -229,7 +335,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             features for the actor and the features for the critic.
         """
         if self.share_features_extractor:
-            return super().extract_features(
+            return self._extract_features(
                 obs, self.features_extractor
                 if features_extractor is None else features_extractor)
         else:
@@ -239,8 +345,8 @@ class DiffusionActorCriticPolicy(BasePolicy):
                     UserWarning,
                 )
 
-            pi_features = super().extract_features(obs,
-                                                   self.pi_features_extractor)
-            vf_features = super().extract_features(obs,
-                                                   self.vf_features_extractor)
+            pi_features = self._extract_features(obs,
+                                                 self.pi_features_extractor)
+            vf_features = self._extract_features(obs,
+                                                 self.vf_features_extractor)
             return pi_features, vf_features

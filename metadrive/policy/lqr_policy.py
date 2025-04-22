@@ -31,7 +31,7 @@ class LQRPolicy(BasePolicy):
     def act(self, agent_id):
         future_trajectory = self.engine.external_actions[agent_id]
         ego_history = list(self.control_object.ego_history)
-        # future_trajectory: np.ndarray (80, 4) # 80: number of future steps, 4: x, y, vx, vy
+        # future_trajectory: np.ndarray (80, 4) # 80: number of future steps, 4: x, y, cos(yaw), sin(yaw)
         # Convert future_trajectory to control inputs(acceleration and steering rate)
         # List[EgoState]
         trajectory = InterpolatedTrajectory(
@@ -108,7 +108,17 @@ class LQRPolicy(BasePolicy):
             # **중요!** 월드에 부착해야 보인다
             np_dot.reparentTo(engine.render)
             self._traj_np_list.append(np_dot)
+
     @classmethod
     def get_input_space(cls):
-        _input_space = gym.spaces.Box(-1e10, 1e10, shape=(2,), dtype=np.float32)
-        return _input_space
+        """
+        The planner passes an (80, 4) array:
+            80  : prediction horizon steps
+             4  : [x, y, cos(yaw), sin(yaw)]
+        """
+        return gym.spaces.Box(
+            low=-1e10,
+            high=1e10,
+            shape=(80, 4),  # <-- 수정된 부분
+            dtype=np.float32,
+        )

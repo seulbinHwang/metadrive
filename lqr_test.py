@@ -169,28 +169,28 @@ def get_ref_path(ego: BaseVehicle,
 
     ref_path = np.concatenate([ref1, ref2], axis=0)
 
-    # ── 4) ego → 첫 점 사이 보간점 삽입 ───────────────────────────
-    if ref_path.shape[0] > 0:
-        first_pt = ref_path[0]                       # [x_l, y_l, cos, sin]
-        dist     = math.hypot(first_pt[0], first_pt[1])
-        n_insert = int(dist // step_)                # 넣어야 할 점 개수
-
-        if n_insert > 0:
-            # 방향 단위 벡터 (ego 로컬)
-            dir_vec = np.array(first_pt[:2]) / dist
-            ins_list = []
-            for k in range(n_insert):
-                d = step_ * (k + 1)
-                if d >= dist:        # 첫 점과 겹치지 않도록
-                    break
-                xy = dir_vec * d
-                yaw_local = math.atan2(dir_vec[1], dir_vec[0])
-                ins_list.append([xy[0], xy[1],
-                                 math.cos(yaw_local), math.sin(yaw_local)])
-
-            if ins_list:
-                ref_path = np.vstack([np.array(ins_list, np.float32),
-                                      ref_path])
+    # # ── 4) ego → 첫 점 사이 보간점 삽입 ───────────────────────────
+    # if ref_path.shape[0] > 0:
+    #     first_pt = ref_path[0]                       # [x_l, y_l, cos, sin]
+    #     dist     = math.hypot(first_pt[0], first_pt[1])
+    #     n_insert = int(dist // step_)                # 넣어야 할 점 개수
+    #
+    #     if n_insert > 0:
+    #         # 방향 단위 벡터 (ego 로컬)
+    #         dir_vec = np.array(first_pt[:2]) / dist
+    #         ins_list = []
+    #         for k in range(n_insert):
+    #             d = step_ * (k + 1)
+    #             if d >= dist:        # 첫 점과 겹치지 않도록
+    #                 break
+    #             xy = dir_vec * d
+    #             yaw_local = math.atan2(dir_vec[1], dir_vec[0])
+    #             ins_list.append([xy[0], xy[1],
+    #                              math.cos(yaw_local), math.sin(yaw_local)])
+    #
+    #         if ins_list:
+    #             ref_path = np.vstack([np.array(ins_list, np.float32),
+    #                                   ref_path])
 
     # ── 5) 길이 맞추기 (앞에서 늘렸으니 뒤에서 자름) ────────────────
     if ref_path.shape[0] > max_point:

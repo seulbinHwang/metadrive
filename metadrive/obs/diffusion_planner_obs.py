@@ -184,7 +184,7 @@ def extract_local_lanes_in_square_bbox(
     selected_indices = [p[1] for p in selected_pairs]
 
     # --- 결과 ---
-    lanes_array = np.zeros((max_lane_num, lane_len, 12),
+    lanes = np.zeros((max_lane_num, lane_len, 12),
                            dtype=np.float32)
     nav_lanes_array = np.zeros((max_route_num, lane_len, 12),
                                dtype=np.float32)
@@ -215,10 +215,10 @@ def extract_local_lanes_in_square_bbox(
 
         diffs[-1] = 0.0  # 마지막=0
         # 저장
-        lanes_array[idx, :, 0] = local_cx
-        lanes_array[idx, :, 1] = local_cy
-        lanes_array[idx, :, 2] = diffs[:, 0]
-        lanes_array[idx, :, 3] = diffs[:, 1]
+        lanes[idx, :, 0] = local_cx
+        lanes[idx, :, 1] = local_cy
+        lanes[idx, :, 2] = diffs[:, 0]
+        lanes[idx, :, 3] = diffs[:, 1]
 
         # 방향(단위벡터)
         norms = np.hypot(diffs[:, 0], diffs[:, 1])
@@ -249,21 +249,21 @@ def extract_local_lanes_in_square_bbox(
         left_off[:, 1] = dirs[:, 0] * half_w
         right_off = -left_off
 
-        lanes_array[idx, :, 4] = left_off[:, 0]
-        lanes_array[idx, :, 5] = left_off[:, 1]
-        lanes_array[idx, :, 6] = right_off[:, 0]
-        lanes_array[idx, :, 7] = right_off[:, 1]
+        lanes[idx, :, 4] = left_off[:, 0]
+        lanes[idx, :, 5] = left_off[:, 1]
+        lanes[idx, :, 6] = right_off[:, 0]
+        lanes[idx, :, 7] = right_off[:, 1]
         # 신호원핫
-        lanes_array[idx, :, 8] = 1.0  # [1,0,0,0]
+        lanes[idx, :, 8] = 1.0  # [1,0,0,0]
         start_node_str = ln_idx_tuple[0]
         end_node_str = ln_idx_tuple[1]
         if nav_idx < max_route_num:
             if (start_node_str
                     in checkpoint_node_ids) and (end_node_str
                                                  in checkpoint_node_ids):
-                nav_lanes_array[nav_idx] = lanes_array[idx]
+                nav_lanes_array[nav_idx] = lanes[idx]
                 nav_idx += 1
-    return lanes_array, nav_lanes_array
+    return lanes, nav_lanes_array
 
 
 class DiffusionPlannerObservation(BaseObservation):
@@ -281,13 +281,14 @@ class DiffusionPlannerObservation(BaseObservation):
         self.max_lane_num = self.config.get("max_lane_num", 70)
         self.max_route_num = self.config.get("max_route_num", 25)
         self.lane_len = self.config.get("lane_len", 20)
+        self.max_obj = self.config.get("max_obj", 5)
 
-        # lanes_array shape: (max_lane_num, lane_len, 12)
+        # lanes shape: (max_lane_num, lane_len, 12)
         # nav_lanes_array shape: (max_route_num, lane_len, 12)
         # dtype=float32, 값 범위는 특정 제한 없으므로 Box(-inf, inf, ... ) etc.
         # 필요 시에는 관습적으로 아주 넓은 범위를 clip해도 됨
         self._observation_space = gym.spaces.Dict({
-            "lanes_array":
+            "lanes":
                 gym.spaces.Box(low=-1e10,
                                high=1e10,
                                shape=(self.max_lane_num,
@@ -299,6 +300,16 @@ class DiffusionPlannerObservation(BaseObservation):
                                shape=(self.max_route_num,
                                       self.lane_len, 12),
                                dtype=np.float32),
+            "static_objects":
+                gym.spaces.Box(low=-1e10,
+                               high=1e10,
+                               shape=(self.max_obj, 10),
+                               dtype=np.float32),
+            "neighbor_agents_past":
+                gym.spaces.Box(low=-1e10,
+                               high=1e10,
+                               shape=(32, 21, 11), # TODO: hard coding 제거
+                               dtype=np.float32),
         })
 
     @property
@@ -307,23 +318,23 @@ class DiffusionPlannerObservation(BaseObservation):
 
     def _get_lanes(self, vehicle: BaseVehicle) -> Tuple[np.ndarray, np.ndarray]:
         # 실제 함수 호출
-        lanes_array, nav_lanes_array = extract_local_lanes_in_square_bbox(
+        lanes, nav_lanes_array = extract_local_lanes_in_square_bbox(
             ego=vehicle,
             lane_roi_length=self.lane_roi_length,
             max_lane_num=self.max_lane_num,
             max_route_num=self.max_route_num,
             lane_len=self.lane_len)
-        return lanes_array, nav_lanes_array
+        return lanes, nav_lanes_array
 
     def _get_static_objects(self, vehicle: BaseVehicle) -> np.ndarray:
         object_manager = vehicle.engine.managers.get("object_manager")
         if object_manager is None:
-            return np.zeros((5, 10), dtype=np.float32)
-        return object_manager.get_static_object_array(vehicle) # (5, 10)
+            return np.zeros((self.max_obj, 10), dtype=np.float32)
+        return object_manager.get_static_object_array(vehicle, self.max_obj) # (5, 10)
 
     def _get_neighbors(self, vehicle: BaseVehicle) -> np.ndarray:
         traffic_manager = vehicle.engine.managers["traffic_manager"]
-        return traffic_manager.get_neighbors_history(vehicle) # (5, 10)
+        return traffic_manager.get_neighbors_history(vehicle) # (32, 21, 10)
 
 
     def observe(self,
@@ -334,15 +345,15 @@ class DiffusionPlannerObservation(BaseObservation):
         vehicle와 vehicle.engine.current_map.road_network(= NodeRoadNetwork)을 통해
         extract_local_lanes_in_square_bbox() 호출
         """
-        lanes_array, nav_lanes_array = self._get_lanes(vehicle)
+        lanes, nav_lanes_array = self._get_lanes(vehicle)
         static_objects = self._get_static_objects(vehicle)
-        neighbors_history = self._get_neighbors(vehicle)
+        neighbor_agents_past = self._get_neighbors(vehicle)
         # 결과 Dict으로 포장
         observation_dict = {
-            "lanes_array": lanes_array.astype(np.float32),
+            "lanes": lanes.astype(np.float32), # lanes_speed_limit, lanes_has_speed_limit
             "nav_lanes_array": nav_lanes_array.astype(np.float32),
             "static_objects": static_objects.astype(np.float32),
-            "neighbors_history": neighbors_history.astype(np.float32),
+            "neighbor_agents_past": neighbor_agents_past.astype(np.float32),
         }
         # observation_dict = self.observation_normalizer(observation_dict)
         self.current_observation = observation_dict

@@ -139,7 +139,7 @@ def visualize_entire_road_network(road_network: NodeRoadNetwork,
              color="white", length_includes_head=True, zorder=6)
 
 
-def visualize_lanes_array(lanes_array: np.ndarray,
+def visualize_lanes_array(lanes: np.ndarray,
                           length: float,
                           color="orange",
                           ax=None):
@@ -147,9 +147,9 @@ def visualize_lanes_array(lanes_array: np.ndarray,
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.set_aspect("equal")
 
-    max_lane_num = lanes_array.shape[0]
+    max_lane_num = lanes.shape[0]
     for lane_idx in range(max_lane_num):
-        lane_data = lanes_array[lane_idx]
+        lane_data = lanes[lane_idx]
         center_xy = lane_data[:, 0:2]
         left_off = lane_data[:, 4:6]
         right_off = lane_data[:, 6:8]
@@ -200,13 +200,13 @@ def visualize_static_objects(ax,
                          alpha=1.0)
         ax.add_patch(rect)
 
-def visualize_neighbors_history(ax, neighbors_history: np.ndarray):
+def visualize_neighbors_history(ax, neighbor_agents_past: np.ndarray):
     """
-    neighbors_history: (max_num, max_time_steps, 11)
+    neighbor_agents_past: (max_num, max_time_steps, 11)
     [x, y, cos(yaw), sin(yaw), v_x, v_y, width, length, 1, 0, 0]
     """
-    max_num = neighbors_history.shape[0]
-    max_time_steps = neighbors_history.shape[1]
+    max_num = neighbor_agents_past.shape[0]
+    max_time_steps = neighbor_agents_past.shape[1]
 
     # 색상 할당 (단순 HSV 변환)
     import colorsys
@@ -219,7 +219,7 @@ def visualize_neighbors_history(ax, neighbors_history: np.ndarray):
     for i in range(max_num):
         color = colors[i]
         for t in range(max_time_steps):
-            row = neighbors_history[i, t]
+            row = neighbor_agents_past[i, t]
             x = row[0]
             y = row[1]
             cos_h = row[2]
@@ -318,10 +318,10 @@ def main():
     roadnet = env.current_map.road_network
 
     obs_dict = observation.observe(ego)
-    lanes_array = obs_dict["lanes_array"]           # (70, 20, 12)
+    lanes = obs_dict["lanes"]           # (70, 20, 12)
     nav_lanes_array = obs_dict["nav_lanes_array"]   # (25, 20, 12)
     static_objects = obs_dict["static_objects"]      # (N, 10)
-    neighbors_history = obs_dict["neighbors_history"]# (32, 21, 11)
+    neighbor_agents_past = obs_dict["neighbor_agents_past"]# (32, 21, 11)
     roi_len = observation.lane_roi_length
 
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -335,14 +335,14 @@ def main():
                                   ax=ax)
 
     # (b) lane_array
-    visualize_lanes_array(lanes_array, length=roi_len, color="orange", ax=ax)
+    visualize_lanes_array(lanes, length=roi_len, color="orange", ax=ax)
     visualize_lanes_array(nav_lanes_array, length=roi_len, color="red", ax=ax)
 
     # (c) static
     visualize_static_objects(ax, static_objects, edgecolor="purple", fill=False)
 
     # (d) neighbor history
-    visualize_neighbors_history(ax, neighbors_history)
+    visualize_neighbors_history(ax, neighbor_agents_past)
 
     # (e) ref_path 시각화 (초록선 + 방향 화살표)
     if ref_path.shape[0]>0:

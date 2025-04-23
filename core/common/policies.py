@@ -223,26 +223,6 @@ class DiffusionActorCriticPolicy(BasePolicy):
         self.use_sde = use_sde
         self._build(lr_schedule)
 
-    def _predict(self,
-                 observation: PyTorchObs,
-                 deterministic: bool = False) -> torch.Tensor:
-        """
-        Get the action according to the policy for a given observation.
-
-        :param observation:
-        :param deterministic: Whether to use stochastic or deterministic actions
-        :return: Taken action according to the policy
-        """
-        pass
-
-    def get_distribution(self, obs: PyTorchObs) -> Distribution:
-        """
-        Get the current policy distribution given the observations.
-
-        :param obs:
-        :return: the action distribution.
-        """
-        pass
 
     def _build(self, lr_schedule: Schedule) -> None:
         """
@@ -263,6 +243,26 @@ class DiffusionActorCriticPolicy(BasePolicy):
             self.parameters(),
             lr=lr_schedule(1),  # type: ignore[call-arg]
             **self.optimizer_kwargs)
+
+    def _predict(self,
+                 observation: PyTorchObs,
+                 deterministic: bool = False) -> torch.Tensor:
+        """
+        Get the action according to the policy for a given observation.
+
+        :param observation:
+        :param deterministic: Whether to use stochastic or deterministic actions
+        :return: Taken action according to the policy
+        """
+        features = self.extract_features(observation, self.pi_features_extractor)
+        decoder_outputs: Dict[str,
+        torch.Tensor] = self.diffusion_transformer(
+            features, observation)
+
+        predictions = decoder_outputs['prediction']  # (B, P, V_future, 4)
+        ego_predictions = predictions[0].detach().cpu().numpy().astype(
+            np.float64)  # (B, 80, 4)
+        return ego_predictions
 
     def forward(
         self,
@@ -303,8 +303,21 @@ class DiffusionActorCriticPolicy(BasePolicy):
                 np.float64)
             values = self.critic_net(vf_features['encoding'],
                                         vf_features['route_encoding'])
-
+        # TODO: ego_predictions, values, log_likelihood의 shape 확인하기
+        # 특히 log_likelihood 의 shape 확인하기
         return ego_predictions, values, log_likelihood
+
+    def predict_values(self, obs: PyTorchObs) -> torch.Tensor:
+        """
+        Get the estimated values according to the current policy given the observations.
+
+        :param obs: Observation
+        :return: the estimated values.
+        """
+        features = self.extract_features(obs, self.vf_features_extractor)
+        values = self.critic_net(features['encoding'],
+                                 features['route_encoding'])  # shape (B)
+        return values
 
     def _extract_features(
             self, obs: PyTorchObs, features_extractor: BaseFeaturesExtractor

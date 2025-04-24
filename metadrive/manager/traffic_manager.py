@@ -17,6 +17,7 @@ from diffusion_planner.data_process.utils import convert_absolute_quantities_to_
 
 BlockVehicles = namedtuple("block_vehicles", "trigger_road vehicles")
 
+
 def _filter_agents_array(agents, reverse: bool = False):
     """
     Filter detections to keep only agents which appear in the first frame (or last frame if reverse=True)
@@ -137,7 +138,8 @@ class HistoryBuffer:
         self.time_duration = time_duration
         self.time_gap_per_step = time_gap_per_step
         self.output_time_gap = output_time_gap
-        self.max_slot = int(round(self.time_duration / self.time_gap_per_step)) + 1
+        self.max_slot = int(round(
+            self.time_duration / self.time_gap_per_step)) + 1
 
         self.neighbor_agents_past_all: List[np.ndarray] = []
         self.neighbor_agents_types_all: List[List[str]] = []
@@ -150,13 +152,16 @@ class HistoryBuffer:
         버퍼를 초기화하고 길이를 self.max_slot으로 맞춘다.
         아직 채워지지 않은 슬롯은 np.zeros((0,8)) / [] 로 채움.
         """
-        self.neighbor_agents_past_all = [np.zeros((0, 8), dtype=np.float32) for _ in range(self.max_slot)]
+        self.neighbor_agents_past_all = [
+            np.zeros((0, 8), dtype=np.float32) for _ in range(self.max_slot)
+        ]
         self.neighbor_agents_types_all = [[] for _ in range(self.max_slot)]
         # time_elapsed도 동일하게 self.max_slot 크기로 초기화
         # (아직 의미 있는 시간이 아니므로 0.0으로 채우거나 None 등으로 채워도 됨)
         self._time_elapsed_list = [0.0] * self.max_slot
 
-    def update(self, neighbor_agents: np.ndarray, neighbor_types: List[str]) -> None:
+    def update(self, neighbor_agents: np.ndarray,
+               neighbor_types: List[str]) -> None:
         """
         버퍼에 새로운 이웃 차량 정보를 추가하고, 가장 오래된 슬롯을 제거하여 길이를 유지한다.
 
@@ -190,13 +195,16 @@ class HistoryBuffer:
         if len(self.neighbor_agents_past_all) == 0:
             return []
 
-        sampling_interval_steps = int(round(self.output_time_gap / self.time_gap_per_step))
+        sampling_interval_steps = int(
+            round(self.output_time_gap / self.time_gap_per_step))
         # leftover 계산으로 인덱스를 맞춤
         # 마지막 프레임(가장 최근)을 반드시 포함하기 위해 leftover를 사용
-        leftover_ = (len(self.neighbor_agents_past_all) - 1) % sampling_interval_steps
+        leftover_ = (len(self.neighbor_agents_past_all) -
+                     1) % sampling_interval_steps
 
         result = []
-        for i in range(leftover_, len(self.neighbor_agents_past_all), sampling_interval_steps):
+        for i in range(leftover_, len(self.neighbor_agents_past_all),
+                       sampling_interval_steps):
             result.append(self.neighbor_agents_past_all[i])
         return result
 
@@ -210,13 +218,17 @@ class HistoryBuffer:
         if len(self.neighbor_agents_types_all) == 0:
             return []
 
-        sampling_interval_steps = int(round(self.output_time_gap / self.time_gap_per_step))
-        leftover_ = (len(self.neighbor_agents_types_all) - 1) % sampling_interval_steps
+        sampling_interval_steps = int(
+            round(self.output_time_gap / self.time_gap_per_step))
+        leftover_ = (len(self.neighbor_agents_types_all) -
+                     1) % sampling_interval_steps
 
         result = []
-        for i in range(leftover_, len(self.neighbor_agents_types_all), sampling_interval_steps):
+        for i in range(leftover_, len(self.neighbor_agents_types_all),
+                       sampling_interval_steps):
             result.append(self.neighbor_agents_types_all[i])
         return result
+
 
 class TrafficMode:
     # Traffic vehicles will be spawned once
@@ -230,8 +242,6 @@ class TrafficMode:
 
     # Hybrid, some vehicles are triggered once on map and disappear when arriving at destination, others exist all time
     Hybrid = "hybrid"
-
-
 
 
 class PGTrafficManager(BaseManager):
@@ -260,7 +270,8 @@ class PGTrafficManager(BaseManager):
         :return: List of Traffic vehicles
         """
         map = self.current_map
-        logging.debug("load scene {}".format("Use random traffic" if self.random_traffic else ""))
+        logging.debug("load scene {}".format(
+            "Use random traffic" if self.random_traffic else ""))
 
         # update vehicle list
         self.block_triggered_vehicles = []
@@ -289,9 +300,11 @@ class PGTrafficManager(BaseManager):
                 if len(self.block_triggered_vehicles) > 0:
                     ego_lane_idx = v.lane_index[:-1]
                     ego_road = Road(ego_lane_idx[0], ego_lane_idx[1])
-                    if ego_road == self.block_triggered_vehicles[-1].trigger_road:
+                    if ego_road == self.block_triggered_vehicles[
+                            -1].trigger_road:
                         block_vehicles = self.block_triggered_vehicles.pop()
-                        self._traffic_vehicles += list(self.get_objects(block_vehicles.vehicles).values())
+                        self._traffic_vehicles += list(
+                            self.get_objects(block_vehicles.vehicles).values())
         for v in self._traffic_vehicles:
             p = self.engine.get_policy(v.name)
             v.before_step(p.act())
@@ -316,13 +329,19 @@ class PGTrafficManager(BaseManager):
             self.clear_objects([v.id])
             self._traffic_vehicles.remove(v)
             if self.mode == TrafficMode.Respawn or self.mode == TrafficMode.Hybrid:
-                lane = self.respawn_lanes[self.np_random.randint(0, len(self.respawn_lanes))]
+                lane = self.respawn_lanes[self.np_random.randint(
+                    0, len(self.respawn_lanes))]
                 lane_idx = lane.index
                 long = self.np_random.rand() * lane.length / 2
-                traffic_v_config = {"spawn_lane_index": lane_idx, "spawn_longitude": long}
-                new_v = self.spawn_object(vehicle_type, vehicle_config=traffic_v_config)
+                traffic_v_config = {
+                    "spawn_lane_index": lane_idx,
+                    "spawn_longitude": long
+                }
+                new_v = self.spawn_object(vehicle_type,
+                                          vehicle_config=traffic_v_config)
                 from metadrive.policy.idm_policy import IDMPolicy
-                self.add_policy(new_v.id, IDMPolicy, new_v, self.generate_seed())
+                self.add_policy(new_v.id, IDMPolicy, new_v,
+                                self.generate_seed())
                 self._traffic_vehicles.append(new_v)
 
         return dict()
@@ -344,7 +363,9 @@ class PGTrafficManager(BaseManager):
         """
         if self.mode == TrafficMode.Respawn:
             return len(self._traffic_vehicles)
-        return sum(len(block_vehicle_set.vehicles) for block_vehicle_set in self.block_triggered_vehicles)
+        return sum(
+            len(block_vehicle_set.vehicles)
+            for block_vehicle_set in self.block_triggered_vehicles)
 
     def get_global_states(self) -> Dict:
         """
@@ -365,19 +386,22 @@ class PGTrafficManager(BaseManager):
         active_obj = copy.copy(self.engine.agent_manager._active_objects)
         pending_obj = copy.copy(self.engine.agent_manager._pending_objects)
         dying_obj = copy.copy(self.engine.agent_manager._dying_objects)
-        states[TARGET_VEHICLES] = {k: v.get_state() for k, v in active_obj.items()}
-        states[TARGET_VEHICLES] = merge_dicts(
-            states[TARGET_VEHICLES], {k: v.get_state()
-                                      for k, v in pending_obj.items()}, allow_new_keys=True
-        )
-        states[TARGET_VEHICLES] = merge_dicts(
-            states[TARGET_VEHICLES], {k: v_count[0].get_state()
-                                      for k, v_count in dying_obj.items()},
-            allow_new_keys=True
-        )
+        states[TARGET_VEHICLES] = {
+            k: v.get_state() for k, v in active_obj.items()
+        }
+        states[TARGET_VEHICLES] = merge_dicts(states[TARGET_VEHICLES], {
+            k: v.get_state() for k, v in pending_obj.items()
+        },
+                                              allow_new_keys=True)
+        states[TARGET_VEHICLES] = merge_dicts(states[TARGET_VEHICLES], {
+            k: v_count[0].get_state() for k, v_count in dying_obj.items()
+        },
+                                              allow_new_keys=True)
 
-        states[OBJECT_TO_AGENT] = copy.deepcopy(self.engine.agent_manager._object_to_agent)
-        states[AGENT_TO_OBJECT] = copy.deepcopy(self.engine.agent_manager._agent_to_object)
+        states[OBJECT_TO_AGENT] = copy.deepcopy(
+            self.engine.agent_manager._object_to_agent)
+        states[AGENT_TO_OBJECT] = copy.deepcopy(
+            self.engine.agent_manager._agent_to_object)
         return states
 
     def get_global_init_states(self) -> Dict:
@@ -410,7 +434,11 @@ class PGTrafficManager(BaseManager):
         vehicle_longs = [i * self.VEHICLE_GAP for i in range(total_num)]
         # Only choose given number of vehicles
         for long in vehicle_longs:
-            random_vehicle_config = {"spawn_lane_index": lane.index, "spawn_longitude": long, "enable_reverse": False}
+            random_vehicle_config = {
+                "spawn_lane_index": lane.index,
+                "spawn_longitude": long,
+                "enable_reverse": False
+            }
             potential_vehicle_configs.append(random_vehicle_config)
         return potential_vehicle_configs
 
@@ -421,19 +449,27 @@ class PGTrafficManager(BaseManager):
             total_num = int(lane.length / self.VEHICLE_GAP)
             vehicle_longs = [i * self.VEHICLE_GAP for i in range(total_num)]
             self.np_random.shuffle(vehicle_longs)
-            for long in vehicle_longs[:int(np.ceil(traffic_density * len(vehicle_longs)))]:
+            for long in vehicle_longs[:int(
+                    np.ceil(traffic_density * len(vehicle_longs)))]:
                 # if self.np_random.rand() > traffic_density and abs(lane.length - InRampOnStraight.RAMP_LEN) > 0.1:
                 #     # Do special handling for ramp, and there must be vehicles created there
                 #     continue
                 vehicle_type = self.random_vehicle_type()
-                traffic_v_config = {"spawn_lane_index": lane.index, "spawn_longitude": long}
-                traffic_v_config.update(self.engine.global_config["traffic_vehicle_config"])
-                random_v = self.spawn_object(vehicle_type, vehicle_config=traffic_v_config)
+                traffic_v_config = {
+                    "spawn_lane_index": lane.index,
+                    "spawn_longitude": long
+                }
+                traffic_v_config.update(
+                    self.engine.global_config["traffic_vehicle_config"])
+                random_v = self.spawn_object(vehicle_type,
+                                             vehicle_config=traffic_v_config)
                 from metadrive.policy.idm_policy import IDMPolicy
-                self.add_policy(random_v.id, IDMPolicy, random_v, self.generate_seed())
+                self.add_policy(random_v.id, IDMPolicy, random_v,
+                                self.generate_seed())
                 self._traffic_vehicles.append(random_v)
 
-    def _create_vehicles_once(self, map: BaseMap, traffic_density: float) -> None:
+    def _create_vehicles_once(self, map: BaseMap,
+                              traffic_density: float) -> None:
         """
         Trigger mode, vehicles will be triggered only once, and disappear when arriving destination
         :param map: Map
@@ -445,39 +481,52 @@ class PGTrafficManager(BaseManager):
 
             # Propose candidate locations for spawning new vehicles
             trigger_lanes = block.get_intermediate_spawn_lanes()
-            if self.engine.global_config["need_inverse_traffic"] and block.ID in ["S", "C", "r", "R"]:
+            if self.engine.global_config[
+                    "need_inverse_traffic"] and block.ID in [
+                        "S", "C", "r", "R"
+                    ]:
                 neg_lanes = block.block_network.get_negative_lanes()
                 self.np_random.shuffle(neg_lanes)
                 trigger_lanes += neg_lanes
             potential_vehicle_configs = []
             for lanes in trigger_lanes:
                 for l in lanes:
-                    if hasattr(self.engine, "object_manager") and l in self.engine.object_manager.accident_lanes:
+                    if hasattr(
+                            self.engine, "object_manager"
+                    ) and l in self.engine.object_manager.accident_lanes:
                         continue
-                    potential_vehicle_configs += self._propose_vehicle_configs(l)
+                    potential_vehicle_configs += self._propose_vehicle_configs(
+                        l)
 
             # How many vehicles should we spawn in this block?
-            total_length = sum([lane.length for lanes in trigger_lanes for lane in lanes])
-            total_spawn_points = int(math.floor(total_length / self.VEHICLE_GAP))
-            total_vehicles = int(math.floor(total_spawn_points * traffic_density))
+            total_length = sum(
+                [lane.length for lanes in trigger_lanes for lane in lanes])
+            total_spawn_points = int(math.floor(total_length /
+                                                self.VEHICLE_GAP))
+            total_vehicles = int(
+                math.floor(total_spawn_points * traffic_density))
 
             # Generate vehicles!
             vehicles_on_block = []
             self.np_random.shuffle(potential_vehicle_configs)
-            selected = potential_vehicle_configs[:min(total_vehicles, len(potential_vehicle_configs))]
+            selected = potential_vehicle_configs[:min(
+                total_vehicles, len(potential_vehicle_configs))]
             # print("We have {} candidates! We are spawning {} vehicles!".format(total_vehicles, len(selected)))
 
             from metadrive.policy.idm_policy import IDMPolicy
             for v_config in selected:
                 vehicle_type = self.random_vehicle_type()
-                v_config.update(self.engine.global_config["traffic_vehicle_config"])
-                random_v = self.spawn_object(vehicle_type, vehicle_config=v_config)
+                v_config.update(
+                    self.engine.global_config["traffic_vehicle_config"])
+                random_v = self.spawn_object(vehicle_type,
+                                             vehicle_config=v_config)
                 seed = self.generate_seed()
                 self.add_policy(random_v.id, IDMPolicy, random_v, seed)
                 vehicles_on_block.append(random_v.name)
 
             trigger_road = block.pre_block_socket.positive_road
-            block_vehicles = BlockVehicles(trigger_road=trigger_road, vehicles=vehicles_on_block)
+            block_vehicles = BlockVehicles(trigger_road=trigger_road,
+                                           vehicles=vehicles_on_block)
 
             self.block_triggered_vehicles.append(block_vehicles)
             vehicle_num += len(vehicles_on_block)
@@ -504,7 +553,8 @@ class PGTrafficManager(BaseManager):
 
     def random_vehicle_type(self):
         from metadrive.component.vehicle.vehicle_type import random_vehicle_type
-        vehicle_type = random_vehicle_type(self.np_random, [0.2, 0.3, 0.3, 0.2, 0.0])
+        vehicle_type = random_vehicle_type(self.np_random,
+                                           [0.2, 0.3, 0.3, 0.2, 0.0])
         return vehicle_type
 
     def destroy(self) -> None:
@@ -532,7 +582,9 @@ class PGTrafficManager(BaseManager):
 
     @property
     def vehicles(self):
-        return list(self.engine.get_objects(filter=lambda o: isinstance(o, BaseVehicle)).values())
+        return list(
+            self.engine.get_objects(
+                filter=lambda o: isinstance(o, BaseVehicle)).values())
 
     @property
     def traffic_vehicles(self):
@@ -551,17 +603,21 @@ class PGTrafficManager(BaseManager):
         ret["_traffic_vehicles"] = [v.name for v in self._traffic_vehicles]
         flat = []
         for b_v in self.block_triggered_vehicles:
-            flat.append((b_v.trigger_road.start_node, b_v.trigger_road.end_node, b_v.vehicles))
+            flat.append((b_v.trigger_road.start_node, b_v.trigger_road.end_node,
+                         b_v.vehicles))
         ret["block_triggered_vehicles"] = flat
         return ret
 
     def set_state(self, state: dict, old_name_to_current=None):
         super(PGTrafficManager, self).set_state(state, old_name_to_current)
         self._traffic_vehicles = list(
-            self.get_objects([old_name_to_current[name] for name in state["_traffic_vehicles"]]).values()
-        )
+            self.get_objects([
+                old_name_to_current[name] for name in state["_traffic_vehicles"]
+            ]).values())
         self.block_triggered_vehicles = [
-            BlockVehicles(trigger_road=Road(s, e), vehicles=[old_name_to_current[name] for name in v])
+            BlockVehicles(trigger_road=Road(s, e),
+                          vehicles=[old_name_to_current[name]
+                                    for name in v])
             for s, e, v in state["block_triggered_vehicles"]
         ]
 
@@ -587,16 +643,21 @@ class DiffusionTrafficManager(PGTrafficManager):
         self.time_duration = 2.0
         self.time_gap_per_step = 0.1
         self.output_time_gap = 0.1
-        self.max_slot = int(round(self.time_duration / self.output_time_gap)) + 1
+        self.max_slot = int(round(
+            self.time_duration / self.output_time_gap)) + 1
         # 예시: time_duration=2., time_gap_per_step=0.1, output_time_gap=0.1
-        self.history_buffer = HistoryBuffer(time_duration=self.time_duration,
-                                            time_gap_per_step=self.time_gap_per_step,
-                                            output_time_gap=self.output_time_gap)
+        self.history_buffer = HistoryBuffer(
+            time_duration=self.time_duration,
+            time_gap_per_step=self.time_gap_per_step,
+            output_time_gap=self.output_time_gap)
 
-
-    def get_neighbors_history(self, ego_vehicle: BaseVehicle) -> np.ndarray: # shape (num_agents, num_frames, 11)
-        ego_pose = np.array([ego_vehicle.rear_axle_xy[0], ego_vehicle.rear_axle_xy[1],
-                             ego_vehicle.heading_theta])
+    def get_neighbors_history(
+        self, ego_vehicle: BaseVehicle
+    ) -> np.ndarray:  # shape (num_agents, num_frames, 11)
+        ego_pose = np.array([
+            ego_vehicle.rear_axle_xy[0], ego_vehicle.rear_axle_xy[1],
+            ego_vehicle.heading_theta
+        ])
         agents_states_dim = 8
         neighbor_agents_past = self.history_buffer.get_neighbor_agents_past()
         neighbor_agents_types = self.history_buffer.get_neighbor_agents_types()
@@ -613,9 +674,8 @@ class DiffusionTrafficManager(PGTrafficManager):
             for agent_state in padded_agent_states:
                 # agent_state: np (last_frame_num_agents, 8)
                 local_coords_agent_states.append(
-                    convert_absolute_quantities_to_relative(agent_state,
-                                                            ego_pose,
-                                                            'agent'))
+                    convert_absolute_quantities_to_relative(
+                        agent_state, ego_pose, 'agent'))
             # Calculate yaw rate
             # agents_array = (num_frames, last_Frame_num_agents, 8)
             agents_array = np.zeros(
@@ -624,36 +684,28 @@ class DiffusionTrafficManager(PGTrafficManager):
 
             for frame_idx in range(len(local_coords_agent_states)):
                 agents_array[frame_idx, :, 0] = local_coords_agent_states[
-                                                    frame_idx][:,
-                                                AgentInternalIndex.x()].squeeze()
+                    frame_idx][:, AgentInternalIndex.x()].squeeze()
                 agents_array[frame_idx, :, 1] = local_coords_agent_states[
-                                                    frame_idx][:,
-                                                AgentInternalIndex.y()].squeeze()
-                agents_array[frame_idx, :,
-                2] = np.cos(local_coords_agent_states[frame_idx]
-                            [:,
-                            AgentInternalIndex.heading()].squeeze())
-                agents_array[frame_idx, :,
-                3] = np.sin(local_coords_agent_states[frame_idx]
-                            [:,
-                            AgentInternalIndex.heading()].squeeze())
+                    frame_idx][:, AgentInternalIndex.y()].squeeze()
+                agents_array[frame_idx, :, 2] = np.cos(
+                    local_coords_agent_states[frame_idx]
+                    [:, AgentInternalIndex.heading()].squeeze())
+                agents_array[frame_idx, :, 3] = np.sin(
+                    local_coords_agent_states[frame_idx]
+                    [:, AgentInternalIndex.heading()].squeeze())
                 agents_array[frame_idx, :, 4] = local_coords_agent_states[
-                                                    frame_idx][:,
-                                                AgentInternalIndex.vx()].squeeze()
+                    frame_idx][:, AgentInternalIndex.vx()].squeeze()
                 agents_array[frame_idx, :, 5] = local_coords_agent_states[
-                                                    frame_idx][:,
-                                                AgentInternalIndex.vy()].squeeze()
+                    frame_idx][:, AgentInternalIndex.vy()].squeeze()
                 agents_array[frame_idx, :, 6] = local_coords_agent_states[
-                                                    frame_idx][:,
-                                                AgentInternalIndex.width()].squeeze()
+                    frame_idx][:, AgentInternalIndex.width()].squeeze()
                 agents_array[frame_idx, :, 7] = local_coords_agent_states[
-                                                    frame_idx][:,
-                                                AgentInternalIndex.length()].squeeze()
+                    frame_idx][:, AgentInternalIndex.length()].squeeze()
         # Initialize the result array
         # agents_array: (num_frames, last_Frame_num_agents, 8)
-        agents = np.zeros(
-            (self.num_agents, agents_array.shape[0], agents_array.shape[-1] + 3),
-            dtype=np.float32)  # (num_agents=32, num_frames, 11)
+        agents = np.zeros((self.num_agents, agents_array.shape[0],
+                           agents_array.shape[-1] + 3),
+                          dtype=np.float32)  # (num_agents=32, num_frames, 11)
         # agents_array: (num_frames, last_Frame_num_agents, 8)
         # distance_to_ego: (last_Frame_num_agents,)
         distance_to_ego = np.linalg.norm(agents_array[-1, :, :2],
@@ -669,7 +721,8 @@ class DiffusionTrafficManager(PGTrafficManager):
                                   TrackedObjectType.BICYCLE)
         ]  # len(ped_bike_indices) = num_pedestrian + num_bicycle
         vehicle_indices = [
-            i for i in sorted_indices if agent_types[i] == TrackedObjectType.VEHICLE
+            i for i in sorted_indices
+            if agent_types[i] == TrackedObjectType.VEHICLE
         ]  # len(vehicle_indices) = num_vehicle
         # If the total number of available agents is less than or equal to num_agents, no need to filter further
         if len(ped_bike_indices) + len(vehicle_indices) <= self.num_agents:
@@ -689,22 +742,29 @@ class DiffusionTrafficManager(PGTrafficManager):
 
             # Sort and limit the selected indices to num_agents
             selected_indices = sorted(
-                selected_indices, key=lambda idx: distance_to_ego[idx])[:self.num_agents]
+                selected_indices,
+                key=lambda idx: distance_to_ego[idx])[:self.num_agents]
 
         # Populate the final agents array with the selected agents' features
         for i, sorted_idx in enumerate(
-                selected_indices):  # selected_indices:  (shrinked_num_agents = 10)
+                selected_indices
+        ):  # selected_indices:  (shrinked_num_agents = 10)
             # agents # (num_agents=32, num_frames, 11)
             # agents_array # (num_frames, last_Frame_num_agents, 8)
-            agents[i, :, :agents_array.
-                   shape[-1]] = agents_array[:, sorted_idx, :agents_array.shape[-1]]
+            agents[
+                i, :, :agents_array.
+                shape[-1]] = agents_array[:,
+                                          sorted_idx, :agents_array.shape[-1]]
             if agent_types[sorted_idx] == TrackedObjectType.VEHICLE:
-                agents[i, :, agents_array.shape[-1]:] = [1, 0, 0]  # Mark as VEHICLE
+                agents[i, :, agents_array.shape[-1]:] = [1, 0,
+                                                         0]  # Mark as VEHICLE
             elif agent_types[sorted_idx] == TrackedObjectType.PEDESTRIAN:
-                agents[i, :, agents_array.shape[-1]:] = [0, 1,
-                                                         0]  # Mark as PEDESTRIAN
+                agents[i, :,
+                       agents_array.shape[-1]:] = [0, 1,
+                                                   0]  # Mark as PEDESTRIAN
             else:  # TrackedObjectType.BICYCLE
-                agents[i, :, agents_array.shape[-1]:] = [0, 0, 1]  # Mark as BICYCLE
+                agents[i, :, agents_array.shape[-1]:] = [0, 0,
+                                                         1]  # Mark as BICYCLE
         return agents
 
     def _get_float_id_for_vehicle(self, v_id_str: str) -> float:
@@ -751,7 +811,6 @@ class DiffusionTrafficManager(PGTrafficManager):
             # toy example
             vehicle_id = self._get_float_id_for_vehicle(v.id)
 
-
             vx = v.velocity[0]  # m/s
             vy = v.velocity[1]  # m/s
             heading = v.heading_theta  # rad
@@ -762,7 +821,6 @@ class DiffusionTrafficManager(PGTrafficManager):
             row = [vehicle_id, vx, vy, heading, w, l, x_, y_]
             data_list.append(row)
             type_list.append(TrackedObjectType.VEHICLE)
-
 
         arr = np.array(data_list, dtype=np.float32)
         return arr, type_list

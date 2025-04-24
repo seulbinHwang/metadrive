@@ -496,7 +496,9 @@ class BaseEnv(gym.Env):
 
     def _step_simulator(self, actions):
         if TRIGGER:
-            print("[BaseEnv](_step_simulator) start =============================")
+            print(
+                "[BaseEnv](_step_simulator) start ============================="
+            )
         # prepare for stepping the simulation
         scene_manager_before_step_infos = self.engine.before_step(actions)
         # step all entities and the simulator
@@ -506,11 +508,12 @@ class BaseEnv(gym.Env):
 
         # Note that we use shallow update for info dict in this function! This will accelerate system.
         return_ = merge_dicts(scene_manager_after_step_infos,
-                           scene_manager_before_step_infos,
-                           allow_new_keys=True,
-                           without_copy=True)
+                              scene_manager_before_step_infos,
+                              allow_new_keys=True,
+                              without_copy=True)
         if TRIGGER:
-            print("[BaseEnv](_step_simulator) end =============================")
+            print(
+                "[BaseEnv](_step_simulator) end =============================")
         return return_
 
     def reward_function(self, object_id: str) -> Tuple[float, Dict]:

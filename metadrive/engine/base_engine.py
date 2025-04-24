@@ -445,14 +445,15 @@ class BaseEngine(EngineCore, Randomizable):
         :return:
         """
         if TRIGGER:
-            print("[BaseEngine](before_step) start ============================")
+            print(
+                "[BaseEngine](before_step) start ============================")
 
         self.episode_step += 1
         step_infos = {}
         self.external_actions = external_actions
         for manager in self.managers.values():
             if TRIGGER:
-                print( "manager", manager.class_name)
+                print("manager", manager.class_name)
             new_step_infos = manager.before_step()
             step_infos = concat_step_infos([step_infos, new_step_infos])
         if TRIGGER:
@@ -472,7 +473,8 @@ class BaseEngine(EngineCore, Randomizable):
             # simulate or replay
             for name, manager in self.managers.items():
                 if TRIGGER:
-                    print("[BaseEngine][step] manager_name", name, "manager", manager)
+                    print("[BaseEngine][step] manager_name", name, "manager",
+                          manager)
                 if name != "record_manager":
                     manager.step()
             self.step_physics_world()
@@ -515,7 +517,8 @@ class BaseEngine(EngineCore, Randomizable):
             )[-1] == "record_manager", "Record Manager should have lowest priority"
         for manager in self.managers.values():
             if TRIGGER:
-                print("[BaseEngine][after_step] manager_name", manager.class_name)
+                print("[BaseEngine][after_step] manager_name",
+                      manager.class_name)
             new_step_info = manager.after_step(*args, **kwargs)
             step_infos = concat_step_infos([step_infos, new_step_info])
         self.interface.after_step()

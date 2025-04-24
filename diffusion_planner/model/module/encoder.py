@@ -291,10 +291,13 @@ class LaneFusionEncoder(nn.Module):
         pos[..., -1] = 1.0
 
         B, P, V, _ = x.shape
+        # mask_v: (B, P, V) -> 차선의 점들 일부가 의미 없는 경우
         mask_v = torch.sum(torch.ne(x[..., :8], 0), dim=-1).to(x.device) == 0
+        # mask_p: (B, P) -> 차선 전체가 의미 없는 경우
         mask_p = torch.sum(~mask_v, dim=-1) == 0
         x = x.view(B * P, V, -1)
 
+        # valid_indices: (B * P) -> 유효한 차선의 점들
         valid_indices = ~mask_p.view(-1)
         x = x[valid_indices]
 
@@ -313,8 +316,8 @@ class LaneFusionEncoder(nn.Module):
         traffic = traffic.view(B * P, -1)
 
         # Apply embedding directly to valid speed limit data
-        has_speed_limit = has_speed_limit[valid_indices].squeeze(-1)
-        speed_limit = speed_limit[valid_indices].squeeze(-1)
+        has_speed_limit = has_speed_limit[valid_indices].squeeze(-1) # (B * P)
+        speed_limit = speed_limit[valid_indices].squeeze(-1) # (B * P)
         speed_limit_embedding = torch.zeros(
             (speed_limit.shape[0], self._channel), device=x.device)
 

@@ -148,7 +148,7 @@ class Dict(Space):
 
     def to_jsonable(self, sample_n):
         # serialize as dict-repr of vectors
-        return {key: space.to_jsonable([sample[key] for sample in sample_n])       \
+        return {key: space.to_jsonable([sample[key] for sample in sample_n])        \
                 for key, space in self.spaces.items()}
 
     def from_jsonable(self, sample_n):

@@ -200,7 +200,7 @@ class TrafficObjectManager(BaseManager):
             ret[current_name] = name_obj[current_name]
         self.spawned_objects = ret
 
-    def get_static_object_array(self, ego_vehicle, max_obj = 5) -> np.ndarray:
+    def get_static_object_array(self, ego_vehicle, max_obj=5) -> np.ndarray:
         """
         최대 5개의 정적오브젝트를, 에고 로컬좌표계로 변환한 뒤 반환.
         반환 shape=(5,10). 각 행은 [ x_local, y_local, cos(Δheading), sin(Δheading),
@@ -245,7 +245,6 @@ class TrafficObjectManager(BaseManager):
         dy = static_arr[:, 1] - ego_y  # (N,)
         dist_arr = np.hypot(dx, dy)  # (N,)
         idx_sorted = np.argsort(dist_arr)  # 거리 오름차순 정렬 idx
-
 
         sel_len = min(max_obj, len(idx_sorted))
         selected_idx = idx_sorted[:sel_len]

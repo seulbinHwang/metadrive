@@ -93,6 +93,7 @@ class Decoder(nn.Module):
         route_encoding = encoder_outputs['route_encoding'] # [B, D]
 
         if self.training:
+            raise NotImplementedError("Training mode is not implemented yet.")
             sampled_trajectories = inputs['sampled_trajectories'].reshape(
                 B, P, -1)  # [B, 1 + predicted_neighbor_num, (1 + V_future) * 4]
             diffusion_time = inputs['diffusion_time']

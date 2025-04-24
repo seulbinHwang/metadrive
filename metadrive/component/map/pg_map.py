@@ -72,7 +72,7 @@ class PGMap(BaseMap):
         big_map = BIG(
             self._config.get(self.LANE_NUM, 2),
             self._config.get(self.LANE_WIDTH, 3.5),
-            self.road_network,
+            self.road_network,  # NodeRoadNetwork
             parent_node_path,
             physics_world,
             # self._config["block_type_version"],

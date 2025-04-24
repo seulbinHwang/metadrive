@@ -9,6 +9,7 @@ import numpy as np
 from panda3d.core import LVector3
 from metadrive.constants import RENDER_MODE_NONE
 
+
 class LQRPolicy(BasePolicy):
     """
     LQR policy for controlling the vehicle in the simulation environment.
@@ -25,8 +26,8 @@ class LQRPolicy(BasePolicy):
             discretization_time=self.dt,
             vehicle=control_object._nuplan_vehicle_params)
         # ───────── 시각화용 캐시 ─────────
-        self._hist_np_list: list = []     # ← 새로 추가
-        self._traj_np_list: list = []        # 직전 프레임에 그려 둔 NodePath들
+        self._hist_np_list: list = []  # ← 새로 추가
+        self._traj_np_list: list = []  # 직전 프레임에 그려 둔 NodePath들
 
     def act(self, agent_id):
         future_trajectory = self.engine.external_actions[agent_id]
@@ -57,6 +58,7 @@ class LQRPolicy(BasePolicy):
         # print("action", np.round(action, 2))
         self.action_info["action"] = action
         return action
+
     # ---------  여기가 ‘점 궤적 시각화’ 핵심 함수 ----------------------------
     def _draw_history(self) -> None:
         engine = self.control_object.engine
@@ -71,12 +73,12 @@ class LQRPolicy(BasePolicy):
         for ego_state in self.control_object.ego_history:
             # rear‑axle 기준 좌표를 사용
             x, y = ego_state.rear_axle.x, ego_state.rear_axle.y
-            z = 1.4                              # 살짝 위로 띄워서 노면과 구분
+            z = 1.4  # 살짝 위로 띄워서 노면과 구분
             np_dot = engine._draw_line_3d(
                 LVector3(x, y, z),
                 LVector3(x, y, z + 10.4),
-                color=(1, 0, 0, 1),              # RED (원하는 색으로)
-                thickness=140,                   # 점/선 굵기
+                color=(1, 0, 0, 1),  # RED (원하는 색으로)
+                thickness=140,  # 점/선 굵기
             )
             # ***월드에 부착***
             np_dot.reparentTo(engine.render)
@@ -86,7 +88,7 @@ class LQRPolicy(BasePolicy):
         """렌더링 창에 빨간 점(짧은 세로선)으로 궤적을 표시한다."""
 
         engine = self.control_object.engine
-        if engine.mode == RENDER_MODE_NONE:        # 오프스크린/헤드리스일 때 무시
+        if engine.mode == RENDER_MODE_NONE:  # 오프스크린/헤드리스일 때 무시
             return
 
         # 1) 지난 프레임 点 NodePath 정리
@@ -95,15 +97,15 @@ class LQRPolicy(BasePolicy):
         self._traj_np_list.clear()
 
         # 2) Trajectory 샘플 추출  (원하는 해상도로 Downsample 가능)
-        sampled_states = traj.get_sampled_trajectory()   # List[EgoState]
+        sampled_states = traj.get_sampled_trajectory()  # List[EgoState]
         # 3) 각 점을 월드 좌표로 변환해 그린다
         for state in sampled_states:
             x, y, z = state.rear_axle.x, state.rear_axle.y, 1.5
             np_dot = engine._draw_line_3d(
                 LVector3(x, y, z),
-                LVector3(x, y, z + 12.52),      # 매우 짧은 선 = 점처럼 보임
-                color=(0, 0, 1, 1),            # 빨간색
-                thickness=160                  # 점 크기 조절
+                LVector3(x, y, z + 12.52),  # 매우 짧은 선 = 점처럼 보임
+                color=(0, 0, 1, 1),  # 빨간색
+                thickness=160  # 점 크기 조절
             )
             # **중요!** 월드에 부착해야 보인다
             np_dot.reparentTo(engine.render)

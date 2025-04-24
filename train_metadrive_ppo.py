@@ -116,7 +116,7 @@ value: 0
     """ total_timesteps
     학습할 총 타임스텝 수
     """
-    total_timesteps = 500_000
+    total_timesteps = 1
 
     # PPO 알고리즘 학습 실행
     """ log_interval

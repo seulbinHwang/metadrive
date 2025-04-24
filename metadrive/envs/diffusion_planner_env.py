@@ -17,16 +17,19 @@ from metadrive.manager.record_manager import RecordManager
 from metadrive.manager.replay_manager import ReplayManager
 from metadrive.envs.metadrive_env import MetaDriveEnv, METADRIVE_DEFAULT_CONFIG
 from metadrive.manager.traffic_manager import DiffusionTrafficManager
-from metadrive.manager.pg_map_manager import PGMapManager
+from metadrive.manager.speed_limit_pg_map_manager import SpeedLimitPGMapManager
 from metadrive.manager.object_manager import TrafficObjectManager
 from metadrive.obs.diffusion_planner_obs import DiffusionPlannerObservation
 from pathlib import Path
-args_path = Path('~/PycharmProjects/metadrive/checkpoints/args.json').expanduser()
+
+args_path = Path(
+    '~/PycharmProjects/metadrive/checkpoints/args.json').expanduser()
 
 from typing import Dict, TypeVar
 
 K = TypeVar("K")  # 키 타입 (hashable)
 V = TypeVar("V")  # 값 타입 (Any)
+
 
 def merge_dicts(first: Dict[K, V], second: Dict[K, V]) -> Dict[K, V]:
     """
@@ -48,12 +51,18 @@ def merge_dicts(first: Dict[K, V], second: Dict[K, V]) -> Dict[K, V]:
     """
     return {**first, **second}
 
+
 DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
-    agent_observation=DiffusionPlannerObservation, accident_prob=0.,
+    max_speed_kph_limit=120,
+    min_speed_kph_limit=30,
+    random_lane_width=True,
+    random_lane_num=True,
+    agent_observation=DiffusionPlannerObservation,
+    accident_prob=0.,
     traffic_mode=TrafficMode.Respawn,
     traffic_density=0.,
-random_spawn_lane_index = False,
-agent_policy=LQRPolicy,
+    random_spawn_lane_index=False,
+    agent_policy=LQRPolicy,
     agent_configs={
         DEFAULT_AGENT:
             dict(
@@ -61,11 +70,11 @@ agent_policy=LQRPolicy,
                 spawn_lane_index=(FirstPGBlock.NODE_1, FirstPGBlock.NODE_2, 1),
             )
     },
-vehicle_config=dict(vehicle_model="bicycle_default",)
-)
-diffusion_planner_config = DiffusionPlannerConfig(args_file=str(args_path)).to_dict()
-DIFFUSION_PLANNER_DEFAULT_CONFIG = merge_dicts(
-    DIFFUSION_PLANNER_DEFAULT_CONFIG, diffusion_planner_config)
+    vehicle_config=dict(vehicle_model="bicycle_default",))
+diffusion_planner_config = DiffusionPlannerConfig(
+    args_file=str(args_path)).to_dict()
+DIFFUSION_PLANNER_DEFAULT_CONFIG = merge_dicts(DIFFUSION_PLANNER_DEFAULT_CONFIG,
+                                               diffusion_planner_config)
 # TODO: 위 코드 안먹음. 수정해야함
 
 
@@ -76,7 +85,6 @@ class DiffusionPlannerEnv(MetaDriveEnv):
         config = super().default_config()
         config.update(DIFFUSION_PLANNER_DEFAULT_CONFIG)
         return config
-
 
     def setup_engine(self):
         """
@@ -92,8 +100,9 @@ class DiffusionPlannerEnv(MetaDriveEnv):
         self.engine.register_manager("agent_manager", self.agent_manager)
         self.engine.register_manager("record_manager", RecordManager())
         self.engine.register_manager("replay_manager", ReplayManager())
-        self.engine.register_manager("map_manager", PGMapManager())
-        self.engine.register_manager("traffic_manager", DiffusionTrafficManager())
+        self.engine.register_manager("map_manager", SpeedLimitPGMapManager())
+        self.engine.register_manager("traffic_manager",
+                                     DiffusionTrafficManager())
         if abs(self.config["accident_prob"] - 0) > 1e-2:
             self.engine.register_manager("object_manager",
                                          TrafficObjectManager())

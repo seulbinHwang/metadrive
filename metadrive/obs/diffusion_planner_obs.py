@@ -47,14 +47,11 @@ def _rotate_vectors_batch(vx: np.ndarray, vy: np.ndarray,
     return x2, y2
 
 
-
-def extract_centerline_in_ego_frame(
-        lane,
-        ego_position_world: np.ndarray,
-        ego_heading_world: float,
-        step: float = 0.5,
-        M_max: int = 200
-) -> np.ndarray:
+def extract_centerline_in_ego_frame(lane,
+                                    ego_position_world: np.ndarray,
+                                    ego_heading_world: float,
+                                    step: float = 0.5,
+                                    M_max: int = 200) -> np.ndarray:
     """
     lane: StraightLane 혹은 CircularLane 객체 (AbstractLane 상속)
     ego_position_world: shape=(2,)  - (전역 좌표계에서) ego 차량의 (x, y) 위치
@@ -130,10 +127,19 @@ def extract_centerline_in_ego_frame(
 
     return np.array(out_list, dtype=np.float32)
 
+
 def extract_local_lanes_in_square_bbox(
-        ego: BaseVehicle, lane_roi_length: float,
-        max_lane_num: int, max_route_num: int,
-        lane_len: int) -> Tuple[np.ndarray, np.ndarray]:
+        ego: BaseVehicle, lane_roi_length: float, max_lane_num: int,
+        max_route_num: int,
+        lane_len: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    반환값을
+        ▸ lanes                : (max_lane_num, lane_len, 12)
+        ▸ lanes_speed_limit    : (max_lane_num, 1)   [float32, m/s]
+        ▸ lanes_has_speed_limit: (max_lane_num, 1)   [bool]
+        ▸ nav_lanes_array      : (max_route_num, lane_len, 12)
+    로 확장합니다.
+    """
     road_network = ego.engine.current_map.road_network
     checkpoint_node_ids = ego.navigation.checkpoints
     ego_x, ego_y = ego.rear_axle_xy
@@ -184,14 +190,21 @@ def extract_local_lanes_in_square_bbox(
     selected_indices = [p[1] for p in selected_pairs]
 
     # --- 결과 ---
-    lanes = np.zeros((max_lane_num, lane_len, 12),
-                           dtype=np.float32)
-    nav_lanes_array = np.zeros((max_route_num, lane_len, 12),
-                               dtype=np.float32)
+    lanes = np.zeros((max_lane_num, lane_len, 12), dtype=np.float32)
+    lanes_speed_limit = np.zeros((max_lane_num, 1), dtype=np.float32)
+    lanes_has_speed_limit = np.zeros((max_lane_num, 1), dtype=np.bool_)
+
+    nav_lanes_array = np.zeros((max_route_num, lane_len, 12), dtype=np.float32)
     nav_idx = 0
     for idx, (ln,
               ln_idx_tuple) in enumerate(zip(selected_lanes, selected_indices)):
         ln_len = ln.length
+        sl = getattr(ln, "speed_limit", None)  # 존재하지 않으면 None
+        if sl is not None and sl > 0:
+            lanes_speed_limit[idx, 0] = sl * (1000 / 3600
+                                             )  # sl * (1000/3600) 로 m/s 변환
+            lanes_has_speed_limit[idx, 0] = True
+
         s_vals = np.linspace(0.0, ln_len, lane_len,
                              endpoint=True)  # shape=(lane_len,)
         w = getattr(ln, "width", 3.5)
@@ -253,7 +266,7 @@ def extract_local_lanes_in_square_bbox(
         lanes[idx, :, 5] = left_off[:, 1]
         lanes[idx, :, 6] = right_off[:, 0]
         lanes[idx, :, 7] = right_off[:, 1]
-        # 신호원핫
+        # TODO: 신호등 환경에 만들고 수정 필요
         lanes[idx, :, 8] = 1.0  # [1,0,0,0]
         start_node_str = ln_idx_tuple[0]
         end_node_str = ln_idx_tuple[1]
@@ -263,7 +276,7 @@ def extract_local_lanes_in_square_bbox(
                                                  in checkpoint_node_ids):
                 nav_lanes_array[nav_idx] = lanes[idx]
                 nav_idx += 1
-    return lanes, nav_lanes_array
+    return lanes, lanes_speed_limit, lanes_has_speed_limit, nav_lanes_array
 
 
 class DiffusionPlannerObservation(BaseObservation):
@@ -291,14 +304,12 @@ class DiffusionPlannerObservation(BaseObservation):
             "lanes":
                 gym.spaces.Box(low=-1e10,
                                high=1e10,
-                               shape=(self.max_lane_num,
-                                      self.lane_len, 12),
+                               shape=(self.max_lane_num, self.lane_len, 12),
                                dtype=np.float32),
             "nav_lanes_array":
                 gym.spaces.Box(low=-1e10,
                                high=1e10,
-                               shape=(self.max_route_num,
-                                      self.lane_len, 12),
+                               shape=(self.max_route_num, self.lane_len, 12),
                                dtype=np.float32),
             "static_objects":
                 gym.spaces.Box(low=-1e10,
@@ -306,36 +317,40 @@ class DiffusionPlannerObservation(BaseObservation):
                                shape=(self.max_obj, 10),
                                dtype=np.float32),
             "neighbor_agents_past":
-                gym.spaces.Box(low=-1e10,
-                               high=1e10,
-                               shape=(32, 21, 11), # TODO: hard coding 제거
-                               dtype=np.float32),
+                gym.spaces.Box(
+                    low=-1e10,
+                    high=1e10,
+                    shape=(32, 21, 11),  # TODO: hard coding 제거
+                    dtype=np.float32),
         })
 
     @property
     def observation_space(self) -> gym.spaces.Dict:
         return self._observation_space
 
-    def _get_lanes(self, vehicle: BaseVehicle) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_lanes(
+        self, vehicle: BaseVehicle
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         # 실제 함수 호출
-        lanes, nav_lanes_array = extract_local_lanes_in_square_bbox(
-            ego=vehicle,
-            lane_roi_length=self.lane_roi_length,
-            max_lane_num=self.max_lane_num,
-            max_route_num=self.max_route_num,
-            lane_len=self.lane_len)
-        return lanes, nav_lanes_array
+        (lanes, lanes_speed_limit, lanes_has_speed_limit,
+         nav_lanes_array) = extract_local_lanes_in_square_bbox(
+             ego=vehicle,
+             lane_roi_length=self.lane_roi_length,
+             max_lane_num=self.max_lane_num,
+             max_route_num=self.max_route_num,
+             lane_len=self.lane_len)
+        return lanes, lanes_speed_limit, lanes_has_speed_limit, nav_lanes_array
 
     def _get_static_objects(self, vehicle: BaseVehicle) -> np.ndarray:
         object_manager = vehicle.engine.managers.get("object_manager")
         if object_manager is None:
             return np.zeros((self.max_obj, 10), dtype=np.float32)
-        return object_manager.get_static_object_array(vehicle, self.max_obj) # (5, 10)
+        return object_manager.get_static_object_array(vehicle,
+                                                      self.max_obj)  # (5, 10)
 
     def _get_neighbors(self, vehicle: BaseVehicle) -> np.ndarray:
         traffic_manager = vehicle.engine.managers["traffic_manager"]
-        return traffic_manager.get_neighbors_history(vehicle) # (32, 21, 10)
-
+        return traffic_manager.get_neighbors_history(vehicle)  # (32, 21, 10)
 
     def observe(self,
                 vehicle: BaseVehicle = None,
@@ -345,12 +360,19 @@ class DiffusionPlannerObservation(BaseObservation):
         vehicle와 vehicle.engine.current_map.road_network(= NodeRoadNetwork)을 통해
         extract_local_lanes_in_square_bbox() 호출
         """
-        lanes, nav_lanes_array = self._get_lanes(vehicle)
+        (lanes, lanes_speed_limit, lanes_has_speed_limit,
+         nav_lanes_array) = self._get_lanes(vehicle)
         static_objects = self._get_static_objects(vehicle)
         neighbor_agents_past = self._get_neighbors(vehicle)
         # 결과 Dict으로 포장
         observation_dict = {
-            "lanes": lanes.astype(np.float32), # lanes_speed_limit, lanes_has_speed_limit
+            "ego_current_state": np.array(
+                [0., 0., 1., 0.],
+                dtype=np.float32),  # ego centric x, y, cos, sin
+            "lanes": lanes.astype(np.float32
+                                 ),
+            "lanes_speed_limit": lanes_speed_limit.astype(np.float32),
+            "lanes_has_speed_limit": lanes_has_speed_limit.astype(np.float32),
             "nav_lanes_array": nav_lanes_array.astype(np.float32),
             "static_objects": static_objects.astype(np.float32),
             "neighbor_agents_past": neighbor_agents_past.astype(np.float32),
@@ -358,7 +380,6 @@ class DiffusionPlannerObservation(BaseObservation):
         # observation_dict = self.observation_normalizer(observation_dict)
         self.current_observation = observation_dict
         return observation_dict
-
 
     def destroy(self):
         # 메모리 정리 등

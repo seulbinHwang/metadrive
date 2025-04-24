@@ -46,15 +46,6 @@ class DiffusionExtractor(BaseFeaturesExtractor):
             hidden_dim=config.hidden_dim)
 
     def forward(self, observations: TensorDict) -> Dict[str, torch.Tensor]:
-        # TODO
-        # add "lanes_speed_limit" (B, P, 1)
-        # add "lanes_has_speed_limit" (B, P, 1)
-        B, P, _, _ = observations['lanes'].shape
-        observations['lanes_speed_limit'] = torch.ones(
-            (B, P, 1), device=observations['lanes'].device)
-        observations['lanes_speed_limit'] *= 100 / 3.6
-        observations['lanes_has_speed_limit'] = torch.zeros(
-            (B, P, 1), device=observations['lanes'].device)
         # encoder_outputs:
         # (B, self.token_dim(=agent_num + static_num + lane_num), self.hidden_dim)
         encoder_outputs = self.encoder(observations)

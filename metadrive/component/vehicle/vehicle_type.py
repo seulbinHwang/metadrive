@@ -15,6 +15,7 @@ logger = get_logger()
 from collections import deque
 import math
 import numpy as np
+
 np.set_printoptions(suppress=True)  # 과학적 표기 억제
 
 from panda3d.core import LVector3
@@ -82,10 +83,6 @@ class HistoryDefaultVehicle(DefaultVehicle):
         """
         # EgoState 기록용 덱
         self.ego_history = deque(maxlen=ego_history_maxlen)
-
-
-
-
 
         # -------------------------------
         #  (1) NuPlan VehicleParameters 생성
@@ -171,6 +168,7 @@ class HistoryDefaultVehicle(DefaultVehicle):
         :return: np.array([x, y])  # 월드 좌표계
         """
         return self.position - self.heading * self.REAR_WHEELBASE
+
     @property
     def ego_state(self):
         """
@@ -256,7 +254,7 @@ reset 되면 time_us가 0으로 초기화 되는지 확인
 
         # 4) 타이어 조향각 (radians)
         max_steering_rad = self.max_steering * np.pi / 180.0
-        tire_angle = float(self.steering * max_steering_rad) # rad
+        tire_angle = float(self.steering * max_steering_rad)  # rad
 
         # 5) BulletVehicle의 각속도(회전)는 rad/s, Z축에 해당
         #    -> (ang_vel_z = self.body.getAngularVelocity()[2])  # (ZUp)
@@ -320,7 +318,7 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
         DefaultVehicle 의 GLTF(ferra/vehicle.gltf)가 실제로 가진
         원본 길이·폭·높이를 계산해서 반환.
         """
-        base_path, base_scale, _, _ = DefaultVehicle.path     # ('ferra/vehicle.gltf', (sx, sy, sz), …)
+        base_path, base_scale, _, _ = DefaultVehicle.path  # ('ferra/vehicle.gltf', (sx, sy, sz), …)
 
         # DefaultVehicle 의 ‘물리적’ 치수 (scale 이 적용된 최종 길이/폭/높이)
         phys_len = DefaultVehicle.DEFAULT_LENGTH
@@ -328,20 +326,22 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
         phys_hei = DefaultVehicle.DEFAULT_HEIGHT
 
         # 원본(GLTF) 치수 =  (물리 치수) / (DefaultVehicle 에서 주었던 scale 값)
-        model_len = phys_len / base_scale[1]   # Y축(scale_y)
-        model_wid = phys_wid / base_scale[0]   # X축(scale_x)
-        model_hei = phys_hei / base_scale[2]   # Z축(scale_z)
+        model_len = phys_len / base_scale[1]  # Y축(scale_y)
+        model_wid = phys_wid / base_scale[0]  # X축(scale_x)
+        model_hei = phys_hei / base_scale[2]  # Z축(scale_z)
 
         return base_path, (model_wid, model_len, model_hei), base_scale
+
     @property
     def path(self):
-        base_path, model_size, default_scale = self._get_model_size_from_default()
+        base_path, model_size, default_scale = self._get_model_size_from_default(
+        )
         model_wid, model_len, model_hei = model_size  # 원본 GLTF 실제 크기
 
         # 지금 Vehicle 인스턴스의 목표 물리 크기(폭‧길이‧높이)에 맞춰 배율을 산출
-        scale_x = self.WIDTH  / model_wid    # 폭 (X축)
-        scale_y = self.LENGTH / model_len    # 길이(Y축)
-        scale_z = self.HEIGHT / model_hei    # 높이(Z축)
+        scale_x = self.WIDTH / model_wid  # 폭 (X축)
+        scale_y = self.LENGTH / model_len  # 길이(Y축)
+        scale_z = self.HEIGHT / model_hei  # 높이(Z축)
 
         # offset / HPR 은 DefaultVehicle 값 그대로 재사용
         _, _, base_offset, base_hpr = DefaultVehicle.path
@@ -352,11 +352,12 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
         offset = (base_offset[0], offset_y_new, base_offset[2])
 
         return (
-            base_path,                      # asset 경로: 그대로 'ferra/vehicle.gltf'
-            (scale_x, scale_y, scale_z),    # **계산된 배율**
-            offset,                    # 모델 오프셋은 그대로
-            base_hpr,                       # HPR 도 그대로
+            base_path,  # asset 경로: 그대로 'ferra/vehicle.gltf'
+            (scale_x, scale_y, scale_z),  # **계산된 배율**
+            offset,  # 모델 오프셋은 그대로
+            base_hpr,  # HPR 도 그대로
         )
+
     def __init__(self,
                  vehicle_config=None,
                  name=None,
@@ -365,14 +366,13 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
                  heading=None,
                  _calling_reset=True,
                  ego_history_maxlen=100):
-        super().__init__(
-            vehicle_config=vehicle_config,
-            name=name,
-            random_seed=random_seed,
-            position=position,
-            heading=heading,
-            _calling_reset=_calling_reset,
-            ego_history_maxlen=ego_history_maxlen)
+        super().__init__(vehicle_config=vehicle_config,
+                         name=name,
+                         random_seed=random_seed,
+                         position=position,
+                         heading=heading,
+                         _calling_reset=_calling_reset,
+                         ego_history_maxlen=ego_history_maxlen)
         self._motion_model = KinematicBicycleModel(
             self._nuplan_vehicle_params,
             max_steering_angle=self.max_steering * math.pi / 180.0)
@@ -445,11 +445,11 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
         self.ego_result_state = current_state
         ##############
         max_steering_rad = self.max_steering * np.pi / 180.0
-        steering_rad = current_state.tire_steering_angle # rad
+        steering_rad = current_state.tire_steering_angle  # rad
         # steering_rad = clip(current_state.tire_steering_angle,
         #                     -max_steering_rad,
         #                     max_steering_rad) # rad
-        normalized_steering = steering_rad * ( 1 / max_steering_rad)
+        normalized_steering = steering_rad * (1 / max_steering_rad)
         self._set_action([normalized_steering, 0.0])
         ##############
         self.set_position(current_state.center.point.array)
@@ -476,7 +476,6 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
             ego_state = super()._create_ego_state()
         else:
             ego_state = self.ego_result_state
-
 
         return ego_state
 

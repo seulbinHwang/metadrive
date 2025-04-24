@@ -48,7 +48,7 @@ class VehicleAgentManager(BaseAgentManager):
                                     vehicle_config=v_config,
                                     name=obj_name)
             ret[agent_id] = obj
-            policy_cls = self.agent_policy # EnvInputPolicy
+            policy_cls = self.agent_policy  # EnvInputPolicy
             args = [obj, self.generate_seed()]
             if policy_cls == TrajectoryIDMPolicy or issubclass(
                     policy_cls, TrajectoryIDMPolicy):
@@ -225,7 +225,8 @@ class VehicleAgentManager(BaseAgentManager):
 
     def before_step(self):
         # not in replay mode
-        step_infos = super(VehicleAgentManager, self).before_step() # try_actuate_agent
+        step_infos = super(VehicleAgentManager,
+                           self).before_step()  # try_actuate_agent
         self._agents_finished_this_frame = dict()
         finished = set()
         for v_name in self._dying_objects.keys():

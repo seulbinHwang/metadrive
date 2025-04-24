@@ -56,6 +56,9 @@ class PGMapManager(BaseManager):
             self.unload_map(map)
 
     def reset(self):
+        """
+
+        """
         config = self.engine.global_config.copy()
         current_seed = self.engine.global_seed
 

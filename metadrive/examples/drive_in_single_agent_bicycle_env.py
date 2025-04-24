@@ -35,8 +35,13 @@ class KinematicBicycleVehicle(BaseVehicle):
     - kinematic bicycle 식에 따라 (위치, 헤딩, 속도, 각속도) 갱신
     """
 
-    def __init__(self, vehicle_config=None, name=None, random_seed=None,
-                 position=None, heading=None, _calling_reset=True):
+    def __init__(self,
+                 vehicle_config=None,
+                 name=None,
+                 random_seed=None,
+                 position=None,
+                 heading=None,
+                 _calling_reset=True):
         super().__init__(vehicle_config=vehicle_config,
                          name=name,
                          random_seed=random_seed,
@@ -119,8 +124,14 @@ class KinematicBicycleVehicle(BaseVehicle):
             "heading_rate_rad_s": heading_rate,
         }
 
-    def reset(self, vehicle_config=None, name=None, random_seed=None,
-              position=None, heading=0.0, *args, **kwargs):
+    def reset(self,
+              vehicle_config=None,
+              name=None,
+              random_seed=None,
+              position=None,
+              heading=0.0,
+              *args,
+              **kwargs):
         # 상위 reset
         super().reset(vehicle_config=vehicle_config,
                       name=name,
@@ -143,6 +154,7 @@ class KinematicBicycleVehicle(BaseVehicle):
 vehicle_type["k_bicycle"] = KinematicBicycleVehicle
 # bicycle_default
 
+
 def main():
     """
     아래는 키보드 주행 스크립트.
@@ -159,11 +171,9 @@ def main():
         random_lane_width=True,
         random_lane_num=True,
         out_of_route_done=True,
-        vehicle_config=dict(
-            show_lidar=True,
-            show_navi_mark=False,
-            show_line_to_navi_mark=False
-        ),
+        vehicle_config=dict(show_lidar=True,
+                            show_navi_mark=False,
+                            show_line_to_navi_mark=False),
         map=4,
         start_seed=10,
     )
@@ -177,19 +187,17 @@ def main():
     if args.observation == "rgb_camera":
         from metadrive.component.sensors.rgb_camera import RGBCamera
         config.update(
-            dict(
-                image_observation=True,
-                sensors=dict(rgb_camera=(RGBCamera, 400, 300)),
-                interface_panel=["rgb_camera", "dashboard"]
-            )
-        )
+            dict(image_observation=True,
+                 sensors=dict(rgb_camera=(RGBCamera, 400, 300)),
+                 interface_panel=["rgb_camera", "dashboard"]))
 
     # 핵심: ego vehicle_model="k_bicycle" 지정
     # agent_configs = { "default_agent": {...} } 형태로
     config["agent_configs"] = {
-        "default_agent": dict(
-            vehicle_model="bicycle_default",  # 등록한 k_bicycle 키
-        )
+        "default_agent":
+            dict(
+                vehicle_model="bicycle_default",  # 등록한 k_bicycle 키
+            )
     }
 
     # env 생성
@@ -209,16 +217,18 @@ def main():
 
         for i in range(1, 1000000000):
             # 여기서는 키보드 입력이 manual_control=True 옵션에 의해 자동으로 반영됨
-            o, r, tm, tc, info = env.step(
-                [0, 0])  # action=[0,0]는 무의미. 키보드가 override
+            o, r, tm, tc, info = env.step([0, 0
+                                          ])  # action=[0,0]는 무의미. 키보드가 override
             env.render(
                 text={
                     "Auto-Drive (Switch mode: T)":
-                        "on" if env.current_track_agent.expert_takeover else "off",
-                    "Current Observation": args.observation,
-                    "Keyboard Control": "W,A,S,D",
-                }
-            )
+                        "on" if env.current_track_agent.
+                        expert_takeover else "off",
+                    "Current Observation":
+                        args.observation,
+                    "Keyboard Control":
+                        "W,A,S,D",
+                })
             if args.observation == "rgb_camera":
                 cv2.imshow('RGB Image in Observation', o["image"][..., -1])
                 cv2.waitKey(1)

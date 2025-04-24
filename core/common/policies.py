@@ -1,6 +1,6 @@
 from stable_baselines3.common.policies import BasePolicy
 ########
-
+import os
 import collections
 import copy
 import warnings
@@ -123,7 +123,7 @@ class TransformerCritic(nn.Module):
 
         # (4) 맨 앞 value_token 의 표현을 MLP로 -> 스칼라 V(s)
         value = self.head(x[:, 0])  # (B, 1)
-        return value.squeeze(-1)  # (B,) 로 쓸 수도 있어 편의상 squeeze
+        return value  # .squeeze(-1)  # (B,) 로 쓸 수도 있어 편의상 squeeze
 
 
 class DiffusionActorCriticPolicy(BasePolicy):
@@ -178,9 +178,10 @@ class DiffusionActorCriticPolicy(BasePolicy):
             BaseFeaturesExtractor] = DiffusionExtractor,
         features_extractor_kwargs: Optional[dict[str, Any]] = None,
         share_features_extractor: bool = True,
-        normalize_images: bool = True,
+        normalize_images: bool = False,
         optimizer_class: type[torch.optim.Optimizer] = torch.optim.Adam,
         optimizer_kwargs: Optional[dict[str, Any]] = None,
+        fine_tuning: bool = False,
     ):
         if optimizer_kwargs is None:
             optimizer_kwargs = {}
@@ -204,7 +205,8 @@ class DiffusionActorCriticPolicy(BasePolicy):
         # Default network architecture, from stable-baselines
         self.activation_fn = activation_fn
         self.ortho_init = ortho_init
-
+        (self.observation_normalizer
+        ) = self.diffusion_planner_config.observation_normalizer
         self.share_features_extractor = share_features_extractor
         self.features_extractor = self.make_features_extractor()
         self.features_dim = self.features_extractor.features_dim
@@ -222,7 +224,72 @@ class DiffusionActorCriticPolicy(BasePolicy):
         ), "squash_output=True is only available when using gSDE (use_sde=True)"
         self.use_sde = use_sde
         self._build(lr_schedule)
+        if not self.fine_tuning:
+            (self.enc_dict, self.dec_dict,
+             self.route_dict) = self._load_state_dict()
+            self._set_state_dict()
 
+    def _set_state_dict(self):
+        """
+        state_dict 를 encoder, decoder, route_encoder 로 나누어 저장합니다.
+        """
+        # encoder_state_dict
+        self.features_extractor.encoder.load_state_dict(self.enc_dict, strict=True)
+        # decoder_state_dict
+        self.diffusion_transformer.dit.load_state_dict(self.dec_dict, strict=True)
+        # route_encoder_state_dict
+        self.features_extractor.route_encoder.load_state_dict(
+            self.route_dict, strict=True)
+
+    def _load_state_dict(self) -> tuple[dict, dict, dict]:
+        pth_path = os.path.join("checkpoints", "model.pth")
+        raw = torch.load(pth_path, map_location="cpu")
+        state_dict = raw['ema_state_dict']
+        # DDP로 저장된 키 제거
+        model_state_dict = {
+            k[len("module."):]: v
+            for k, v in state_dict.items()
+            if k.startswith("module.")
+        }
+
+        # 분할 호출
+        (enc_dict, dec_dict,
+         route_dict) = self._extract_state_dicts(model_state_dict)
+        return enc_dict, dec_dict, route_dict
+
+    @staticmethod
+    def extract_state_dicts(state_dict: dict) -> tuple[dict, dict, dict]:
+        """
+        state_dict에서 세 부분을 추출하고, 각 키에서 prefix를 제거합니다.
+
+        Args:
+            state_dict (dict): 전체 model state_dict
+
+        Returns:
+            encoder_dict (dict): 'encoder.' prefix가 제거된 키로 구성된 사전
+            decoder_dict (dict): 'decoder.decoder.dit.' prefix가 제거된 키로 구성되며, 'route_encoder.'로 시작하는 항목은 제외
+            route_encoder_dict (dict): 'decoder.decoder.dit.route_encoder.' prefix가 제거된 키로 구성된 사전
+        """
+        enc_prefix = "encoder."
+        dec_prefix = "decoder.decoder.dit."
+        route_prefix = dec_prefix + "route_encoder."
+
+        encoder_dict = {
+            k[len(enc_prefix):]: v
+            for k, v in state_dict.items()
+            if k.startswith(enc_prefix)
+        }
+        decoder_dict = {
+            k[len(dec_prefix):]: v
+            for k, v in state_dict.items()
+            if k.startswith(dec_prefix) and not k.startswith(route_prefix)
+        }
+        route_encoder_dict = {
+            k[len(route_prefix):]: v
+            for k, v in state_dict.items()
+            if k.startswith(route_prefix)
+        }
+        return encoder_dict, decoder_dict, route_encoder_dict
 
     def _build(self, lr_schedule: Schedule) -> None:
         """
@@ -237,7 +304,8 @@ class DiffusionActorCriticPolicy(BasePolicy):
 
         """
         self.diffusion_transformer = Decoder(self.diffusion_planner_config)
-        self.critic_net = TransformerCritic(hidden_dim=self.diffusion_planner_config.hidden_dim)
+        self.critic_net = TransformerCritic(
+            hidden_dim=self.diffusion_planner_config.hidden_dim)
         # Setup optimizer with initial learning rate
         self.optimizer = self.optimizer_class(
             self.parameters(),
@@ -254,14 +322,20 @@ class DiffusionActorCriticPolicy(BasePolicy):
         :param deterministic: Whether to use stochastic or deterministic actions
         :return: Taken action according to the policy
         """
-        features = self.extract_features(observation, self.pi_features_extractor)
-        decoder_outputs: Dict[str,
-        torch.Tensor] = self.diffusion_transformer(
+        observation = self.observation_normalizer(observation)
+        """
+        features: Dict[str, torch.Tensor]
+            "encoding"
+            "route_encoding"
+        """
+        features = self.extract_features(observation,
+                                         self.pi_features_extractor)
+        decoder_outputs: Dict[str, torch.Tensor] = self.diffusion_transformer(
             features, observation)
 
         predictions = decoder_outputs['prediction']  # (B, P, V_future, 4)
-        ego_predictions = predictions[0].detach().cpu().numpy().astype(
-            np.float64)  # (B, 80, 4)
+        ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
+            np.float64)  # (B, V_future = 80, 4)
         return ego_predictions
 
     def forward(
@@ -276,34 +350,37 @@ class DiffusionActorCriticPolicy(BasePolicy):
         :param deterministic: Whether to sample or use deterministic actions
         :return: action, value and log probability of the action
         """
-        log_likelihood = None
-        # TODO: obs 가 normalized 되어서 오는건지 확인
+        # log_likelihood shape: (B)
+        # TODO: log_likelihood 구하기? ( https://velog.io/@ad_official/DPM-Solver-에서-log-likelihood-구하기 )
+        log_likelihood = torch.ones(obs.shape[0]).to(obs.device)
+        obs = self.observation_normalizer(obs)
         features = self.extract_features(obs)
         if self.share_features_extractor:
             features: Dict[str, torch.Tensor]
             # decoder_outputs: {"prediction": (B, P, V_future, 4)
-            # TODO: obs 에 "ego_current_state" 을 포함시켜야 함
             decoder_outputs: Dict[str,
                                   torch.Tensor] = self.diffusion_transformer(
                                       features, obs)
-            predictions = decoder_outputs['prediction'] # (B, P, V_future, 4)
-            ego_predictions = predictions[0].detach().cpu().numpy().astype(
-                np.float64) # (B, 80, 4)
-            # TODO: log_likelihood 구하기? ( https://velog.io/@ad_official/DPM-Solver-에서-log-likelihood-구하기 )
-            # TODO: train/eval 에 맞는 설정 어떻게 하는지 확인하기
-            # TODO: batch 로 출력되는게 맞는지 확인하기
-            values = self.critic_net(features['encoding'], features['route_encoding']) # shape (B)
+            predictions = decoder_outputs['prediction']  # (B, P, V_future, 4)
+            ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
+                np.float64)  # (B, 80, 4)
+            values = self.critic_net(features['encoding'],
+                                     features['route_encoding'])  # shape (B)
         else:
             pi_features, vf_features = features
             decoder_outputs: Dict[str,
                                   torch.Tensor] = self.diffusion_transformer(
                                       pi_features, obs)
             predictions = decoder_outputs['prediction']
-            ego_predictions = predictions[0].detach().cpu().numpy().astype(
+            ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
                 np.float64)
             values = self.critic_net(vf_features['encoding'],
-                                        vf_features['route_encoding'])
-        # TODO: ego_predictions, values, log_likelihood의 shape 확인하기
+                                     vf_features['route_encoding'])
+        """
+        ego_predictions: (B, 80, 4)
+        values: (B, 1)
+        log_likelihood: (B)
+        """
         # 특히 log_likelihood 의 shape 확인하기
         return ego_predictions, values, log_likelihood
 
@@ -314,6 +391,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
         :param obs: Observation
         :return: the estimated values.
         """
+        obs = self.observation_normalizer(obs)
         features = self.extract_features(obs, self.vf_features_extractor)
         values = self.critic_net(features['encoding'],
                                  features['route_encoding'])  # shape (B)

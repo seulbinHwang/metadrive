@@ -363,8 +363,7 @@ class BaseEngine(EngineCore, Randomizable):
             cm = process_memory()
 
         # reset manager
-        for manager_name, manager in self._managers.items():
-            # clean all manager
+        for manager_name, manager in self._managers.items():            # clean all manager
             new_step_infos = manager.before_reset()
             step_infos = concat_step_infos([step_infos, new_step_infos])
             if _debug_memory_usage:
@@ -392,7 +391,6 @@ class BaseEngine(EngineCore, Randomizable):
                     print("{}: Reset! Mem Change {:.3f}MB".format(
                         manager_name, (lm - cm) / 1e6))
                 cm = lm
-
         for manager_name, manager in self.managers.items():
             new_step_infos = manager.after_reset()
             step_infos = concat_step_infos([step_infos, new_step_infos])

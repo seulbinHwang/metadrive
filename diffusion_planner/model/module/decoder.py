@@ -118,7 +118,6 @@ class Decoder(nn.Module):
                 xt = xt.reshape(B, P, -1, 4)
                 xt[:, :, 0, :] = current_states
                 return xt.reshape(B, P, -1)
-
             x0 = dpm_sampler(self.dit,
                              xT, # [B, P, (1 + V_future) * 4]
                              other_model_params={

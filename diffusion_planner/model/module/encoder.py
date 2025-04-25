@@ -279,6 +279,8 @@ class LaneFusionEncoder(nn.Module):
         speed_limit: B, P, 1
         has_speed_limit: B, P, 1
         '''
+        # has_speed_limit type as bool
+        has_speed_limit = has_speed_limit.bool()
         traffic = x[:, :, 0, 8:]
         x = x[..., :8]
 

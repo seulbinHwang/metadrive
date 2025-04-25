@@ -319,7 +319,7 @@ def main():
 
     obs_dict = observation.observe(ego)
     lanes = obs_dict["lanes"]           # (70, 20, 12)
-    nav_lanes_array = obs_dict["nav_lanes_array"]   # (25, 20, 12)
+    route_lanes = obs_dict["route_lanes"]   # (25, 20, 12)
     static_objects = obs_dict["static_objects"]      # (N, 10)
     neighbor_agents_past = obs_dict["neighbor_agents_past"]# (32, 21, 11)
     roi_len = observation.lane_roi_length
@@ -336,7 +336,7 @@ def main():
 
     # (b) lane_array
     visualize_lanes_array(lanes, length=roi_len, color="orange", ax=ax)
-    visualize_lanes_array(nav_lanes_array, length=roi_len, color="red", ax=ax)
+    visualize_lanes_array(route_lanes, length=roi_len, color="red", ax=ax)
 
     # (c) static
     visualize_static_objects(ax, static_objects, edgecolor="purple", fill=False)

@@ -622,7 +622,7 @@ class PGTrafficManager(BaseManager):
         ]
 
 
-class DiffusionTrafficManager(PGTrafficManager):
+class HistoricalBufferTrafficManager(PGTrafficManager):
     VEHICLE_GAP = 10  # m
     PRIORITY = 9
 
@@ -630,9 +630,9 @@ class DiffusionTrafficManager(PGTrafficManager):
         """
         Control the whole traffic flow
         """
-        super(DiffusionTrafficManager, self).__init__()
-        self._id_map = {}
-        self._next_id = 1
+        super(HistoricalBufferTrafficManager, self).__init__()
+        self.str_id_to_int_id = {}
+        self._next_int_id = 1
 
         # triggered by the event. TODO(lqy) In the future, event trigger can be introduced
         self.block_triggered_vehicles = []
@@ -661,7 +661,7 @@ class DiffusionTrafficManager(PGTrafficManager):
         agents_states_dim = 8
         neighbor_agents_past = self.history_buffer.get_neighbor_agents_past()
         neighbor_agents_types = self.history_buffer.get_neighbor_agents_types()
-        track_token_ids = self._id_map
+        track_token_ids = self.str_id_to_int_id
         agent_history = _filter_agents_array(neighbor_agents_past, reverse=True)
         agent_types: List[TrackedObjectType] = neighbor_agents_types[-1]
 
@@ -768,10 +768,10 @@ class DiffusionTrafficManager(PGTrafficManager):
         return agents
 
     def _get_float_id_for_vehicle(self, v_id_str: str) -> float:
-        if v_id_str not in self._id_map:
-            self._id_map[v_id_str] = self._next_id
-            self._next_id += 1
-        return float(self._id_map[v_id_str])
+        if v_id_str not in self.str_id_to_int_id:
+            self.str_id_to_int_id[v_id_str] = self._next_int_id
+            self._next_int_id += 1
+        return float(self.str_id_to_int_id[v_id_str])
 
     def reset(self):
         """
@@ -779,15 +779,15 @@ class DiffusionTrafficManager(PGTrafficManager):
         :return: List of Traffic vehicles
         """
         # TODO: reset 해도 id를 유지해야 하는 부분이 있는지 궁금
-        self._id_map.clear()
-        self._next_id = 1
+        self.str_id_to_int_id.clear()
+        self._next_int_id = 1
         self.history_buffer.reset()
-        super(DiffusionTrafficManager, self).reset()
+        super(HistoricalBufferTrafficManager, self).reset()
         neighbor_agents, neighbor_types = self._collect_neighbor_data()
         self.history_buffer.update(neighbor_agents, neighbor_types)
 
     def after_step(self, *args, **kwargs):
-        super(DiffusionTrafficManager, self).after_step(*args, **kwargs)
+        super(HistoricalBufferTrafficManager, self).after_step(*args, **kwargs)
         neighbor_agents, neighbor_types = self._collect_neighbor_data()
         self.history_buffer.update(neighbor_agents, neighbor_types)
 

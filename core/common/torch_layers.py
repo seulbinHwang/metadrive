@@ -54,7 +54,7 @@ class DiffusionExtractor(BaseFeaturesExtractor):
         route_encoding = self.route_encoder(route_lanes)
         # TODO: dict 말고 torch.Tensor 로 출력해서, features_dim 을 의미있게 만들지 고민해보기
         outputs = {
-            "encoding": encoder_outputs,
+            "encoding": encoder_outputs["encoding"],
             "route_encoding": route_encoding
         }
         return outputs

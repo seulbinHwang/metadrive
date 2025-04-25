@@ -57,9 +57,10 @@ class ObservationNormalizer:
         for k, v in self._normalization_dict.items():
             if k not in data:  # Check if key `k` exists in `data`
                 continue
+            mean = v["mean"].to(data[k].device)
+            std = v["std"].to(data[k].device)
             mask = torch.sum(torch.ne(data[k], 0), dim=-1) == 0
-            data[k] = (data[k] - v["mean"].to(data[k].device)) / v["std"].to(
-                data[k].device)
+            data[k] = (data[k] - mean) / std
             data[k][mask] = 0
         return data
 

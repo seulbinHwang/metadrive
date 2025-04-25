@@ -12,7 +12,14 @@ from metadrive.component.lane.abs_lane import AbstractLane
 # 이미 제공된 extract_local_lanes_in_square_bbox 함수
 # (여기서는 코드를 그대로 붙여넣었다고 가정)
 # from .somewhere import extract_local_lanes_in_square_bbox
+from metadrive.constants import RENDER_MODE_ONSCREEN, BKG_COLOR, RENDER_MODE_NONE
+from panda3d.core import LVector3, Vec4
+from typing import Any, List, Tuple   # ← 맨 위 import 확인
 
+def _to_vec4(color_tuple):
+    """(r,g,b,a) -> Vec4; 값 범위 0~1 로 보정"""
+    r, g, b, a = color_tuple
+    return Vec4(float(r), float(g), float(b), float(a))
 
 def _to_local_coords_batch(px: np.ndarray, py: np.ndarray, ego_x: float,
                            ego_y: float,
@@ -137,7 +144,7 @@ def extract_local_lanes_in_square_bbox(
         ▸ lanes                : (max_lane_num, lane_len, 12)
         ▸ lanes_speed_limit    : (max_lane_num, 1)   [float32, m/s]
         ▸ lanes_has_speed_limit: (max_lane_num, 1)   [bool]
-        ▸ nav_lanes_array      : (max_route_num, lane_len, 12)
+        ▸ route_lanes      : (max_route_num, lane_len, 12)
     로 확장합니다.
     """
     road_network = ego.engine.current_map.road_network
@@ -194,7 +201,7 @@ def extract_local_lanes_in_square_bbox(
     lanes_speed_limit = np.zeros((max_lane_num, 1), dtype=np.float32)
     lanes_has_speed_limit = np.zeros((max_lane_num, 1), dtype=np.bool_)
 
-    nav_lanes_array = np.zeros((max_route_num, lane_len, 12), dtype=np.float32)
+    route_lanes = np.zeros((max_route_num, lane_len, 12), dtype=np.float32)
     nav_idx = 0
     for idx, (ln,
               ln_idx_tuple) in enumerate(zip(selected_lanes, selected_indices)):
@@ -274,22 +281,21 @@ def extract_local_lanes_in_square_bbox(
             if (start_node_str
                     in checkpoint_node_ids) and (end_node_str
                                                  in checkpoint_node_ids):
-                nav_lanes_array[nav_idx] = lanes[idx]
+                route_lanes[nav_idx] = lanes[idx]
                 nav_idx += 1
-    return lanes, lanes_speed_limit, lanes_has_speed_limit, nav_lanes_array
+    return lanes, lanes_speed_limit, lanes_has_speed_limit, route_lanes
 
 
 class DiffusionPlannerObservation(BaseObservation):
     """
     이 클래스는 extract_local_lanes_in_square_bbox()를 호출해,
-    lanes_array와 nav_lanes_array 두 가지 np.ndarray 정보를 Dict로 묶어 반환한다.
+    lanes_array와 route_lanes 두 가지 np.ndarray 정보를 Dict로 묶어 반환한다.
     """
 
     def __init__(self, config):
         super().__init__(config)
         self.observation_normalizer = config.observation_normalizer
         # 예: config 내부에 아래 key들이 있다고 가정
-        # "lane_roi_length", "max_lane_num", "max_route_num", "lane_len"
         self.lane_roi_length = self.config.get("lane_roi_length", 200.0)
         self.max_lane_num = self.config.get("max_lane_num", 70)
         self.max_route_num = self.config.get("max_route_num", 25)
@@ -297,16 +303,31 @@ class DiffusionPlannerObservation(BaseObservation):
         self.max_obj = self.config.get("max_obj", 5)
 
         # lanes shape: (max_lane_num, lane_len, 12)
-        # nav_lanes_array shape: (max_route_num, lane_len, 12)
+        # route_lanes shape: (max_route_num, lane_len, 12)
         # dtype=float32, 값 범위는 특정 제한 없으므로 Box(-inf, inf, ... ) etc.
         # 필요 시에는 관습적으로 아주 넓은 범위를 clip해도 됨
         self._observation_space = gym.spaces.Dict({
+            "ego_current_state":
+                gym.spaces.Box(low=-1e10,
+                               high=1e10,
+                               shape=(10,),
+                               dtype=np.float32),
             "lanes":
                 gym.spaces.Box(low=-1e10,
                                high=1e10,
                                shape=(self.max_lane_num, self.lane_len, 12),
                                dtype=np.float32),
-            "nav_lanes_array":
+            "lanes_speed_limit":
+                gym.spaces.Box(low=-1e10,
+                               high=1e10,
+                               shape=(self.max_lane_num, 1),
+                               dtype=np.float32),
+            "lanes_has_speed_limit":
+                gym.spaces.Box(low=-1e10,
+                               high=1e10,
+                               shape=(self.max_lane_num, 1),
+                               dtype=np.float32),
+            "route_lanes":
                 gym.spaces.Box(low=-1e10,
                                high=1e10,
                                shape=(self.max_route_num, self.lane_len, 12),
@@ -323,7 +344,333 @@ class DiffusionPlannerObservation(BaseObservation):
                     shape=(32, 21, 11),  # TODO: hard coding 제거
                     dtype=np.float32),
         })
+        # vis_mode = config.get("vis_mode", "all").lower()
+        vis_mode = "route"
+        assert vis_mode in {"none", "lanes", "route", "all", "neighbors", "static"}
+        self._vis_lanes  = vis_mode in {"lanes", "all"}
+        self._vis_route  = vis_mode in {"route", "all"}
+        self._vis_neighbors = vis_mode in {"neighbors", "all"}  # ← 추가
+        self._vis_static = vis_mode in {"static", "all"}  # ← NEW
 
+        self._lane_np_list: list = []          # ← 여기에 그려둔 선 NodePath 보관
+        self._route_np_list: list = []   # 경로 차선 선(NodePath) 캐시  ← NEW
+        self._neighbor_np_list: List[Any] = []  # 주변 Agent NodePath
+        self._static_np_list: List[Any] = []  # 정적 오브젝트 NodePath 캐시  ← NEW
+
+    # ──────────────────────────────────────────────────────────
+    #   정적 오브젝트(콘, 배리어, 워닝 트라이포드 …) 시각화
+    #   static_array : (max_obj, 10)
+    # ──────────────────────────────────────────────────────────
+    def _visualize_static_objects(
+            self,
+            vehicle: "BaseVehicle",
+            static_array: np.ndarray,
+    ) -> None:
+        engine: Any = vehicle.engine
+        if engine.mode == RENDER_MODE_NONE or not self._vis_static:
+            return
+
+        # ── 지난 프레임 정리 ───────────────────────────────
+        for np_node in self._static_np_list:
+            np_node.removeNode()
+        self._static_np_list.clear()
+
+        ego_x, ego_y = vehicle.rear_axle_xy
+        ego_yaw: float = float(vehicle.heading_theta)
+
+        # 색상 팔레트: 0 Warning / 1 Barrier / 2 Cone / 3 기타
+        palette: List[Tuple[float, float, float, float]] = [
+            (1.0, 0.5, 0.0, 1.0),  # 주황 (Warning)
+            (1.0, 0.0, 0.0, 1.0),  # 빨강  (Barrier)
+            (1.0, 1.0, 0.0, 1.0),  # 노랑  (Cone)
+            (0.6, 0.6, 0.6, 1.0),  # 회색  (기타)
+        ]
+
+        for obj in static_array:  # (10,)
+            if np.allclose(obj, 0.0, atol=1e-6):
+                continue
+
+            lx, ly, c_h, s_h, width, length = obj[:6]
+            one_hot = obj[6:10]
+            type_idx: int = int(np.argmax(one_hot))
+            col: Tuple[float, float, float, float] = palette[type_idx]
+
+            # 로컬 → 월드 변환
+            cx_w_arr, cy_w_arr = self._local_to_world_batch(
+                np.array([lx]), np.array([ly]), ego_x, ego_y, ego_yaw
+            )
+            cx_w: float = float(cx_w_arr[0])
+            cy_w: float = float(cy_w_arr[0])
+
+            yaw_local: float = math.atan2(float(s_h), float(c_h))
+            yaw_world: float = yaw_local + ego_yaw
+
+            # 사각형(테두리) 그리기
+            self._static_np_list += self._draw_box(
+                engine,
+                cx_w=cx_w,
+                cy_w=cy_w,
+                yaw=yaw_world,
+                length=float(length),
+                width=float(width),
+                color=col,
+            )
+
+    @staticmethod
+    def _local_vec_to_world(vx: float, vy: float, ego_yaw: float) -> Tuple[
+        float, float]:
+        """(vx, vy) 를 병진 없이 yaw 만큼 회전한 월드벡터 반환"""
+        c: float = math.cos(ego_yaw)
+        s: float = math.sin(ego_yaw)
+        wx: float = vx * c - vy * s
+        wy: float = vx * s + vy * c
+        return wx, wy
+
+    # -----------------------------------------------
+    # 3)  바운딩-박스(차량) 그리기
+    # -----------------------------------------------
+    def _draw_box(
+            self,
+            engine: Any,
+            cx_w: float,
+            cy_w: float,
+            yaw: float,
+            length: float,
+            width: float,
+            color: Tuple[float, float, float, float],
+    ) -> List[Any]:
+        """월드 좌표 중심/크기로 사각형 전체를 폴리라인으로 그림"""
+        hl: float = 0.5 * length
+        hw: float = 0.5 * width
+        c, s = math.cos(yaw), math.sin(yaw)
+
+        corners: List[Tuple[float, float]] = []
+        for dx, dy in [(+hl, +hw), (+hl, -hw), (-hl, -hw), (-hl, +hw),
+                       (+hl, +hw)]:
+            x: float = cx_w + dx * c - dy * s
+            y: float = cy_w + dx * s + dy * c
+            corners.append((x, y))
+
+        return self._draw_polyline(
+            engine=engine,
+            pts_world=corners,
+            color=color,
+            dotted=False,
+            thickness=60,
+        )
+
+    # ──────────────── ② 메인 visualize 함수 ────────────────
+    @staticmethod
+    def _local_to_world_batch(px, py, ego_x, ego_y, ego_yaw):
+        """벡터화된 로컬→월드 변환"""
+        c, s = math.cos(ego_yaw), math.sin(ego_yaw)
+        wx = px * c - py * s + ego_x
+        wy = px * s + py * c + ego_y
+        return wx, wy
+
+    def _visualize_neighbors(
+            self,
+            vehicle: "BaseVehicle",
+            neighbor_array: np.ndarray,  # (32, 21, 11)
+    ) -> None:
+        engine: Any = vehicle.engine
+        if engine.mode == RENDER_MODE_NONE or not self._vis_neighbors:
+            return
+
+        # ── 지난 프레임 정리 ────────────────────────────────
+        for np_node in self._neighbor_np_list:
+            np_node.removeNode()
+        self._neighbor_np_list.clear()
+
+        ego_x, ego_y = vehicle.rear_axle_xy
+        ego_yaw: float = float(vehicle.heading_theta)
+
+        vmax: float = 100.0 / 3.6  # 100 km/h  → m/s
+        arrow_scale: float = 8.0  # 최대 화살표 길이 [m]
+
+        # ── 각 주변 에이전트 루프 ──────────────────────────
+        for agent_hist in neighbor_array:  # (21, 11)
+            if np.allclose(agent_hist, 0.0, atol=1e-6):
+                continue
+
+            # (a) 색상 결정 -------------------------------------------------
+            onehot: np.ndarray = agent_hist[-1, 8:11]
+            if onehot[0] == 1:  # Vehicle
+                col: Tuple[float, float, float, float] = (0.00, 0.60, 1.00, 1.0)
+            elif onehot[2] == 1:  # Bicycle
+                col = (1.00, 0.70, 0.00, 1.0)
+            else:  # Pedestrian
+                col = (0.00, 1.00, 0.00, 1.0)
+
+            # (b) 과거 21 스텝 모두 시각화 -------------------------------
+            #     오래된 샘플일수록 투명·얇게 해서 겹침을 줄임
+            for t_idx in range(agent_hist.shape[0]):  # 0 (과거) → 20 (현재)
+                x, y, c_h, s_h, *_tail = agent_hist[t_idx, :]
+                width, length = _tail[2], _tail[3]  # w, l 순서 주의
+
+                yaw_local: float = math.atan2(s_h, c_h)
+                yaw_world: float = yaw_local + ego_yaw
+
+                cx_w_arr, cy_w_arr = self._local_to_world_batch(
+                    np.array([x]), np.array([y]), ego_x, ego_y, ego_yaw
+                )
+                cx_w: float = float(cx_w_arr[0])
+                cy_w: float = float(cy_w_arr[0])
+
+                # 투명도/두께: 가장 최근(20) = 굵고 불투명, 가장 과거(0) = 얇고 투명
+                alpha: float = 0.15 + 0.85 * (t_idx / 20.0)
+                thick: int = int(30 + 30 * (t_idx / 20.0))
+
+                self._neighbor_np_list += self._draw_box(
+                    engine, cx_w, cy_w, yaw_world,
+                    float(length), float(width),
+                    color=(col[0], col[1], col[2], alpha),
+                )
+
+            # (c) 현재 스텝(마지막 인덱스)만 속도 화살표 추가 --------------
+            x, y, c_h, s_h, vx, vy, width, length = agent_hist[-1, :8]
+
+            speed: float = math.hypot(vx, vy)
+            if speed < 1e-2:
+                continue
+
+            vx_w, vy_w = self._local_vec_to_world(float(vx), float(vy), ego_yaw)
+            norm: float = min(speed / vmax, 1.0)
+            arr_len: float = norm * arrow_scale  # [m]
+
+            cx_w_arr, cy_w_arr = self._local_to_world_batch(
+                np.array([x]), np.array([y]), ego_x, ego_y, ego_yaw
+            )
+            cx_w, cy_w = float(cx_w_arr[0]), float(cy_w_arr[0])
+
+            ux: float = vx_w / speed * arr_len
+            uy: float = vy_w / speed * arr_len
+
+            self._neighbor_np_list += self._draw_polyline(
+                engine,
+                [(cx_w, cy_w), (cx_w + ux, cy_w + uy)],
+                color=col,
+                dotted=False,
+                thickness=40,
+            )
+
+    # -----------------------------------------------------------
+    # ② 폴리라인(연속 선분) 그리기
+    # -----------------------------------------------------------
+
+
+
+    def _draw_polyline(self, engine, pts_world, color, dotted, thickness):
+        """
+        pts_world : [(x, y), ...]  world 좌표
+        color     : (r, g, b) or (r, g, b, a)  ― 0~1 실수
+        """
+        # ① RGBA 정규화 --------------------------------------------------
+        if len(color) == 3:
+            r, g, b = color
+            a = 1.0
+        else:
+            r, g, b, a = color
+
+        np_list = []
+        step = 2 if dotted else 1
+
+        for p0, p1 in zip(pts_world[:-1:step], pts_world[1::step]):
+            np_node = engine._draw_line_3d(
+                LVector3(p0[0], p0[1], 0.35),
+                LVector3(p1[0], p1[1], 0.35),
+                color=(r, g, b),  # ← 원 함수 파라미터 (조명 필요)
+                thickness=thickness,
+            )
+
+            # ★★ 핵심 3 줄 ― 조명·재질 끄고, 순수 VertexColor 사용 ★★
+            np_node.setMaterialOff(True)  # 재질(=Material) 완전히 제거
+            np_node.setLightOff(True)  # 조명 영향 제거
+            np_node.setColor(r, g, b, a, 1)  # 우선순위 1 ⇒ 무조건 적용
+            # ----------------------------------------------------------------
+
+            np_node.reparentTo(engine.render)
+            np_list.append(np_node)
+        return np_list
+    # -----------------------------------------------------------
+    # ③ 일반 차선 + 경로 차선 시각화
+    # -----------------------------------------------------------
+    def _visualize_lanes(self, vehicle, lanes_array, route_array):
+        engine = vehicle.engine
+        if engine.mode == RENDER_MODE_NONE:
+            return
+
+        # ── 지난 프레임 선 모두 제거 ───────────────────────────
+        for np_node in self._lane_np_list + self._route_np_list:
+            np_node.removeNode()
+        self._lane_np_list.clear()
+        self._route_np_list.clear()
+
+        # 아무것도 안 그리는 모드라면 여기서 끝
+        if not (self._vis_lanes or self._vis_route):
+            return
+
+        # ── Ego 포즈 --------------------------------------------------
+        ego_x, ego_y   = vehicle.rear_axle_xy
+        ego_yaw        = vehicle.heading_theta
+
+        # ── C. 일반 차선 --------------------------------------------
+        if self._vis_lanes:
+            for lane_i in lanes_array:
+                if np.allclose(lane_i[:, :8], 0.0, atol=1e-6):
+                    continue
+                cx, cy        = lane_i[:, 0], lane_i[:, 1]
+                lx_off, ly_off = lane_i[:, 4], lane_i[:, 5]
+                rx_off, ry_off = lane_i[:, 6], lane_i[:, 7]
+
+                cx_w, cy_w = self._local_to_world_batch(cx,      cy,      ego_x, ego_y, ego_yaw)
+                lx_w, ly_w = self._local_to_world_batch(cx+lx_off, cy+ly_off, ego_x, ego_y, ego_yaw)
+                rx_w, ry_w = self._local_to_world_batch(cx+rx_off, cy+ry_off, ego_x, ego_y, ego_yaw)
+
+                self._lane_np_list += self._draw_polyline(engine, list(zip(cx_w, cy_w)), (1,1,1,1),  True, 40)
+                self._lane_np_list += self._draw_polyline(engine, list(zip(lx_w, ly_w)), (1,1,0,1), False, 50)
+                self._lane_np_list += self._draw_polyline(engine, list(zip(rx_w, ry_w)), (0.7,0.7,0.7,1), False, 50)
+
+        # ── D. 경로 차선 --------------------------------------------
+        if self._vis_route:
+            for route_i in route_array:
+                if np.allclose(route_i, 0.0, atol=1e-6):
+                    continue
+
+                # 0~7 번째 칼럼은 일반 차선과 동일한 의미!
+                cx,  cy  = route_i[:, 0], route_i[:, 1]          # 중앙선
+                lx_off, ly_off = route_i[:, 4], route_i[:, 5]    # 왼쪽 offset
+                rx_off, ry_off = route_i[:, 6], route_i[:, 7]    # 오른쪽 offset
+
+                # 월드 좌표 변환
+                cx_w,  cy_w  = self._local_to_world_batch(cx,           cy,
+                                                          ego_x, ego_y, ego_yaw)
+                lx_w,  ly_w  = self._local_to_world_batch(cx + lx_off,  cy + ly_off,
+                                                          ego_x, ego_y, ego_yaw)
+                rx_w,  ry_w  = self._local_to_world_batch(cx + rx_off,  cy + ry_off,
+                                                          ego_x, ego_y, ego_yaw)
+
+                # ① 중앙선 ― 빨간 점선  (step=2 자동 적용)
+                self._route_np_list += self._draw_polyline(
+                    engine, list(zip(cx_w, cy_w)),
+                    color=(1, 0, 0, 1),     # 빨강
+                    dotted=True,           # ← 점선
+                    thickness=90,
+                )
+                # ② 왼쪽 경계 ― 빨간 실선
+                self._route_np_list += self._draw_polyline(
+                    engine, list(zip(lx_w, ly_w)),
+                    color=(1, 0, 0, 1),
+                    dotted=False,          # 실선
+                    thickness=90,
+                )
+                # ③ 오른쪽 경계 ― 빨간 실선
+                self._route_np_list += self._draw_polyline(
+                    engine, list(zip(rx_w, ry_w)),
+                    color=(1, 0, 0, 1),
+                    dotted=False,
+                    thickness=90,
+                )
     @property
     def observation_space(self) -> gym.spaces.Dict:
         return self._observation_space
@@ -333,13 +680,13 @@ class DiffusionPlannerObservation(BaseObservation):
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         # 실제 함수 호출
         (lanes, lanes_speed_limit, lanes_has_speed_limit,
-         nav_lanes_array) = extract_local_lanes_in_square_bbox(
+         route_lanes) = extract_local_lanes_in_square_bbox(
              ego=vehicle,
              lane_roi_length=self.lane_roi_length,
              max_lane_num=self.max_lane_num,
              max_route_num=self.max_route_num,
              lane_len=self.lane_len)
-        return lanes, lanes_speed_limit, lanes_has_speed_limit, nav_lanes_array
+        return lanes, lanes_speed_limit, lanes_has_speed_limit, route_lanes
 
     def _get_static_objects(self, vehicle: BaseVehicle) -> np.ndarray:
         object_manager = vehicle.engine.managers.get("object_manager")
@@ -361,19 +708,21 @@ class DiffusionPlannerObservation(BaseObservation):
         extract_local_lanes_in_square_bbox() 호출
         """
         (lanes, lanes_speed_limit, lanes_has_speed_limit,
-         nav_lanes_array) = self._get_lanes(vehicle)
+         route_lanes) = self._get_lanes(vehicle)
+        self._visualize_lanes(vehicle, lanes, route_lanes)
         static_objects = self._get_static_objects(vehicle)
         neighbor_agents_past = self._get_neighbors(vehicle)
+        self._visualize_neighbors(vehicle, neighbor_agents_past)
+        self._visualize_static_objects(vehicle, static_objects)  # ← NEW
         # 결과 Dict으로 포장
         observation_dict = {
             "ego_current_state": np.array(
-                [0., 0., 1., 0.],
-                dtype=np.float32),  # ego centric x, y, cos, sin
+                [0., 0., 1., 0., 0., 0., 0., 0., 0., 0.], dtype=np.float32),
             "lanes": lanes.astype(np.float32
                                  ),
             "lanes_speed_limit": lanes_speed_limit.astype(np.float32),
             "lanes_has_speed_limit": lanes_has_speed_limit.astype(np.float32),
-            "nav_lanes_array": nav_lanes_array.astype(np.float32),
+            "route_lanes": route_lanes.astype(np.float32),
             "static_objects": static_objects.astype(np.float32),
             "neighbor_agents_past": neighbor_agents_past.astype(np.float32),
         }

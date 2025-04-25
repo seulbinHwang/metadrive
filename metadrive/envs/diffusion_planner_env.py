@@ -16,7 +16,7 @@ from diffusion_planner.utils.config import Config as DiffusionPlannerConfig
 from metadrive.manager.record_manager import RecordManager
 from metadrive.manager.replay_manager import ReplayManager
 from metadrive.envs.metadrive_env import MetaDriveEnv, METADRIVE_DEFAULT_CONFIG
-from metadrive.manager.traffic_manager import DiffusionTrafficManager
+from metadrive.manager.traffic_manager import HistoricalBufferTrafficManager
 from metadrive.manager.speed_limit_pg_map_manager import SpeedLimitPGMapManager
 from metadrive.manager.object_manager import TrafficObjectManager
 from metadrive.obs.diffusion_planner_obs import DiffusionPlannerObservation
@@ -58,7 +58,7 @@ DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
     random_lane_width=True,
     random_lane_num=True,
     agent_observation=DiffusionPlannerObservation,
-    accident_prob=0.,
+    accident_prob=1.0,
     traffic_mode=TrafficMode.Respawn,
     traffic_density=0.,
     random_spawn_lane_index=False,
@@ -82,6 +82,12 @@ class DiffusionPlannerEnv(MetaDriveEnv):
 
     @classmethod
     def default_config(cls) -> Config:
+        """
+        BASE_DEFAULT_CONFIG + METADRIVE_DEFAULT_CONFIG + DIFFUSION_PLANNER_DEFAULT_CONFIG
+        결과적으로는, 인자 config와 합쳐져서,
+            BaseEnv.config 가 됨
+            EngineCore.global_config 가 됨
+        """
         config = super().default_config()
         config.update(DIFFUSION_PLANNER_DEFAULT_CONFIG)
         return config
@@ -102,7 +108,7 @@ class DiffusionPlannerEnv(MetaDriveEnv):
         self.engine.register_manager("replay_manager", ReplayManager())
         self.engine.register_manager("map_manager", SpeedLimitPGMapManager())
         self.engine.register_manager("traffic_manager",
-                                     DiffusionTrafficManager())
+                                     HistoricalBufferTrafficManager())
         if abs(self.config["accident_prob"] - 0) > 1e-2:
             self.engine.register_manager("object_manager",
                                          TrafficObjectManager())

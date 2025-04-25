@@ -189,7 +189,9 @@ class DiffusionActorCriticPolicy(BasePolicy):
             if optimizer_class == torch.optim.Adam:
                 optimizer_kwargs["eps"] = 1e-5
         self.diffusion_planner_config = DiffusionPlannerConfig(
-            args_file=str(args_path)).to_dict()
+            args_file=str(args_path))
+        if features_extractor_kwargs is None:
+            features_extractor_kwargs = {}
         # TODO: features_extractor_kwargs 에 , features_dim 을 넣어야 하는지 고민
         features_extractor_kwargs["config"] = self.diffusion_planner_config
         super().__init__(
@@ -224,7 +226,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
         ), "squash_output=True is only available when using gSDE (use_sde=True)"
         self.use_sde = use_sde
         self._build(lr_schedule)
-        if not self.fine_tuning:
+        if not fine_tuning:
             (self.enc_dict, self.dec_dict,
              self.route_dict) = self._load_state_dict()
             self._set_state_dict()
@@ -234,12 +236,20 @@ class DiffusionActorCriticPolicy(BasePolicy):
         state_dict 를 encoder, decoder, route_encoder 로 나누어 저장합니다.
         """
         # encoder_state_dict
-        self.features_extractor.encoder.load_state_dict(self.enc_dict, strict=True)
+        self.features_extractor: DiffusionExtractor
+        self.features_extractor.encoder.load_state_dict(self.enc_dict,
+                                                        strict=True)
         # decoder_state_dict
-        self.diffusion_transformer.dit.load_state_dict(self.dec_dict, strict=True)
+        self.diffusion_transformer.dit.load_state_dict(self.dec_dict,
+                                                       strict=True)
         # route_encoder_state_dict
-        self.features_extractor.route_encoder.load_state_dict(
-            self.route_dict, strict=True)
+        self.features_extractor.route_encoder.load_state_dict(self.route_dict,
+                                                              strict=True)
+        if not self.share_features_extractor:
+            self.vf_features_extractor.encoder.load_state_dict(self.enc_dict,
+                                                               strict=True)
+            self.vf_features_extractor.route_encoder.load_state_dict(
+                self.route_dict, strict=True)
 
     def _load_state_dict(self) -> tuple[dict, dict, dict]:
         pth_path = os.path.join("checkpoints", "model.pth")
@@ -258,7 +268,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
         return enc_dict, dec_dict, route_dict
 
     @staticmethod
-    def extract_state_dicts(state_dict: dict) -> tuple[dict, dict, dict]:
+    def _extract_state_dicts(state_dict: dict) -> tuple[dict, dict, dict]:
         """
         state_dict에서 세 부분을 추출하고, 각 키에서 prefix를 제거합니다.
 
@@ -334,8 +344,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             features, observation)
 
         predictions = decoder_outputs['prediction']  # (B, P, V_future, 4)
-        ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
-            np.float64)  # (B, V_future = 80, 4)
+        ego_predictions = predictions[:, 0].detach()  # (B, V_future = 80, 4)
         return ego_predictions
 
     def forward(

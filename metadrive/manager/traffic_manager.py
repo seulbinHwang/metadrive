@@ -783,8 +783,8 @@ class HistoricalBufferTrafficManager(PGTrafficManager):
         self._next_int_id = 1
         self.history_buffer.reset()
         super(HistoricalBufferTrafficManager, self).reset()
-        neighbor_agents, neighbor_types = self._collect_neighbor_data()
-        self.history_buffer.update(neighbor_agents, neighbor_types)
+        # neighbor_agents, neighbor_types = self._collect_neighbor_data()
+        # self.history_buffer.update(neighbor_agents, neighbor_types)
 
     def after_step(self, *args, **kwargs):
         super(HistoricalBufferTrafficManager, self).after_step(*args, **kwargs)

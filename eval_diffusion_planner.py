@@ -25,9 +25,9 @@ def main():
     config = {
         "num_scenarios": 10,
         "start_seed": 0,
-        "traffic_density": 0.,
+        "traffic_density": 0.5,
         "map": 5,
-        # "random_traffic": True,
+        "random_traffic": True,
         "use_render": True,  # <- 화면 창 활성화
         "debug": False,
         "accident_prob": 0.,

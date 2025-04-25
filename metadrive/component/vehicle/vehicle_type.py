@@ -347,9 +347,7 @@ class KinematicBicycleVehicle(HistoryDefaultVehicle):
         _, _, base_offset, base_hpr = DefaultVehicle.path
         # 스케일이 바뀌면, 원본 모델 길이(model_len) 대비
         #   0.075m 가 모델 좌표계에서 얼마인지 다시 환산
-        offset_y_model_units = 0.075 / model_len  # 비율
-        offset_y_new = offset_y_model_units * scale_y  # 새 스케일로 보정
-        offset = (base_offset[0], offset_y_new, base_offset[2])
+        offset = (base_offset[0], base_offset[1] * scale_y, base_offset[2])
 
         return (
             base_path,  # asset 경로: 그대로 'ferra/vehicle.gltf'

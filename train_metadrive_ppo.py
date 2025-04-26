@@ -32,57 +32,6 @@ def make_metadrive_env(use_monitor=True):
 
 # 병렬 환경 개수 지정
 if __name__ == '__main__':
-    """
-key: overtake_vehicle_num type(value): <class 'int'>
-value: 0
-key: velocity type(value): <class 'float'>
-value: 0.0
-key: steering type(value): <class 'float'>
-value: 0.0
-key: acceleration type(value): <class 'float'>
-value: 0.0
-key: step_energy type(value): <class 'float'>
-value: 0.0
-key: episode_energy type(value): <class 'float'>
-value: 0.0
-key: policy type(value): <class 'str'>
-value: EnvInputPolicy
-key: navigation_command type(value): <class 'str'>
-value: forward
-key: navigation_forward type(value): <class 'bool'>
-value: True
-key: navigation_left type(value): <class 'bool'>
-value: False
-key: navigation_right type(value): <class 'bool'>
-value: False
-key: crash_vehicle type(value): <class 'bool'>
-value: False
-key: crash_object type(value): <class 'bool'>
-value: False
-key: crash_building type(value): <class 'bool'>
-value: False
-key: crash_human type(value): <class 'bool'>
-value: False
-key: crash_sidewalk type(value): <class 'bool'>
-value: False
-key: out_of_road type(value): <class 'bool'>
-value: False
-key: arrive_dest type(value): <class 'bool'>
-value: False
-key: max_step type(value): <class 'bool'>
-value: False
-key: env_seed type(value): <class 'int'>
-value: 369
-key: crash type(value): <class 'bool'>
-value: False
-key: step_reward type(value): <class 'float'>
-value: 0.0
-key: route_completion type(value): <class 'numpy.float64'>
-value: 0.011873212052783888
-key: cost type(value): <class 'int'>
-value: 0
-
-    """
     num_envs = 4  # 시스템 자원에 따라 4~8개 등으로 조절 가능
 
     # 재현성 있는 학습을 위해 난수 시드 설정

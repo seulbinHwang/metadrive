@@ -162,27 +162,27 @@ class DiffusionActorCriticPolicy(BasePolicy):
     """
 
     def __init__(
-        self,
-        observation_space: spaces.Space,  ###
-        action_space: spaces.Space,  ###
-        lr_schedule: Schedule,  ###
-        net_arch: Optional[Union[list[int], dict[str, list[int]]]] = None,
-        activation_fn: type[nn.Module] = nn.Tanh,
-        ortho_init: bool = False,
-        use_sde: bool = False,  ###
-        log_std_init: float = 0.0,
-        full_std: bool = True,
-        use_expln: bool = False,
-        squash_output: bool = False,
-        features_extractor_class: type[
-            BaseFeaturesExtractor] = DiffusionExtractor,
-        features_extractor_kwargs: Optional[dict[str, Any]] = None,
-        share_features_extractor: bool = True,
-        normalize_images: bool = False,
-        optimizer_class: type[torch.optim.Optimizer] = torch.optim.Adam,
-        optimizer_kwargs: Optional[dict[str, Any]] = None,
-        fine_tuning: bool = False,
-    ):
+            self,
+            observation_space: spaces.Space,  ###
+            action_space: spaces.Space,  ###
+            lr_schedule: Schedule,  ###
+            net_arch: Optional[Union[list[int], dict[str, list[int]]]] = None,
+            activation_fn: type[nn.Module] = nn.Tanh,
+            ortho_init: bool = False,
+            use_sde: bool = False,  ###
+            log_std_init: float = 0.0,
+            full_std: bool = True,
+            use_expln: bool = False,
+            squash_output: bool = False,
+            features_extractor_class: type[
+                BaseFeaturesExtractor] = DiffusionExtractor,
+            features_extractor_kwargs: Optional[dict[str, Any]] = None,
+            share_features_extractor: bool = True,
+            normalize_images: bool = False,
+            optimizer_class: type[torch.optim.Optimizer] = torch.optim.Adam,
+            optimizer_kwargs: Optional[dict[str, Any]] = None,
+            fine_tuning: bool = False,
+            double_decoder: bool = True):
         if optimizer_kwargs is None:
             optimizer_kwargs = {}
             # Small values to avoid NaN in Adam optimizer
@@ -204,6 +204,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             squash_output=squash_output,
             normalize_images=normalize_images,
         )
+        self._predictions_for_npc = None
         # Default network architecture, from stable-baselines
         self.activation_fn = activation_fn
         self.ortho_init = ortho_init
@@ -225,6 +226,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             squash_output and not use_sde
         ), "squash_output=True is only available when using gSDE (use_sde=True)"
         self.use_sde = use_sde
+        self.double_decoder = double_decoder
         self._build(lr_schedule)
         if not fine_tuning:
             (self.enc_dict, self.dec_dict,
@@ -242,6 +244,9 @@ class DiffusionActorCriticPolicy(BasePolicy):
         # decoder_state_dict
         self.diffusion_transformer.dit.load_state_dict(self.dec_dict,
                                                        strict=True)
+        if self.double_decoder:
+            self.diffusion_transformer_for_npc.dit.load_state_dict(
+                self.dec_dict, strict=True)
         # route_encoder_state_dict
         self.features_extractor.route_encoder.load_state_dict(self.route_dict,
                                                               strict=True)
@@ -314,6 +319,9 @@ class DiffusionActorCriticPolicy(BasePolicy):
 
         """
         self.diffusion_transformer = Decoder(self.diffusion_planner_config)
+        if self.double_decoder:
+            self.diffusion_transformer_for_npc = Decoder(
+                self.diffusion_planner_config)
         self.critic_net = TransformerCritic(
             hidden_dim=self.diffusion_planner_config.hidden_dim)
         # Setup optimizer with initial learning rate
@@ -342,9 +350,14 @@ class DiffusionActorCriticPolicy(BasePolicy):
                                          self.pi_features_extractor)
         decoder_outputs: Dict[str, torch.Tensor] = self.diffusion_transformer(
             features, observation)
-
         predictions = decoder_outputs['prediction']  # (B, P, V_future, 4)
         ego_predictions = predictions[:, 0].detach()  # (B, V_future = 80, 4)
+        if self.double_decoder:
+            decoder_outputs_for_npc: Dict[
+                str, torch.Tensor] = self.diffusion_transformer_for_npc(
+                    features, observation)
+            self._predictions_for_npc = decoder_outputs_for_npc[
+                'prediction'][:, 1:].detach().cpu().numpy().astype(np.float64)  # (B, P-1, V_future = 80, 4)
         return ego_predictions
 
     def forward(
@@ -373,6 +386,13 @@ class DiffusionActorCriticPolicy(BasePolicy):
             predictions = decoder_outputs['prediction']  # (B, P, V_future, 4)
             ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
                 np.float64)  # (B, 80, 4)
+            if self.double_decoder:
+                decoder_outputs_for_npc: Dict[
+                    str, torch.Tensor] = self.diffusion_transformer_for_npc(
+                        features, obs)
+                self._predictions_for_npc = decoder_outputs_for_npc[
+                    'prediction'][:,
+                                  1:].detach().cpu().numpy().astype(np.float64)
             values = self.critic_net(features['encoding'],
                                      features['route_encoding'])  # shape (B)
         else:
@@ -380,6 +400,13 @@ class DiffusionActorCriticPolicy(BasePolicy):
             decoder_outputs: Dict[str,
                                   torch.Tensor] = self.diffusion_transformer(
                                       pi_features, obs)
+            if self.double_decoder:
+                decoder_outputs_for_npc: Dict[
+                    str, torch.Tensor] = self.diffusion_transformer_for_npc(
+                        pi_features, obs)
+                self._predictions_for_npc = decoder_outputs_for_npc[
+                    'prediction'][:,
+                                  1:].detach().cpu().numpy().astype(np.float64)
             predictions = decoder_outputs['prediction']
             ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
                 np.float64)
@@ -392,6 +419,12 @@ class DiffusionActorCriticPolicy(BasePolicy):
         """
         # 특히 log_likelihood 의 shape 확인하기
         return ego_predictions, values, log_likelihood
+
+    @property
+    def predictions_for_npc(self) -> Optional[torch.Tensor]:
+        predictions_for_npc = self._predictions_for_npc.copy()
+        self._predictions_for_npc = None
+        return predictions_for_npc
 
     def predict_values(self, obs: PyTorchObs) -> torch.Tensor:
         """

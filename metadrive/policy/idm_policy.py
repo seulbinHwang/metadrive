@@ -270,8 +270,10 @@ class IDMPolicy(BasePolicy):
             "disable_idm_deceleration", False)
         self.heading_pid = PIDController(1.7, 0.01, 3.5)
         self.lateral_pid = PIDController(0.3, .002, 0.05)
+        # Customize
+        self._prev_steer_angle_rad = control_object.steering * control_object.max_steering
 
-    def act(self, *args, **kwargs):
+    def act(self, is_kinematic=False, *args, **kwargs):
         # concat lane
         success = self.move_to_next_road()
         all_objects = self.control_object.lidar.get_surrounding_objects(
@@ -301,10 +303,52 @@ class IDMPolicy(BasePolicy):
 
         # control by PID and IDM
         steering = self.steering_control(steering_target_lane)
-        acc = self.acceleration(acc_front_obj, acc_front_dist)
-        action = [steering, acc]
+        acc = self.acceleration(acc_front_obj, acc_front_dist) # -1 ~ + 1
+        if is_kinematic:
+            steer_rate = self._get_steering_rate(steering)
+            acceleration_ = self._get_acceleration(acc)
+            action = [steer_rate, acceleration_]
+        else:
+            action = [steering, acc]
         self.action_info["action"] = action
         return action
+
+    def _get_acceleration(self, normalized_acc):
+        max_acceleration = self.control_object.max_acceleration
+        max_deceleration = self.control_object.max_deceleration
+        if normalized_acc >= 0:
+            if  self.control_object.speed_km_h > self.control_object.max_speed_km_h:
+                acceleration_ = 0
+            else:
+                acceleration_ = max_acceleration * normalized_acc
+        else:
+            if self.control_object.enable_reverse:
+                acceleration_ = max_acceleration * normalized_acc
+            else:
+                DEADZONE = 0.01
+
+                # Speed m/s in car's heading:
+                heading = self.control_object.heading
+                velocity = self.control_object.velocity
+                speed_in_heading = velocity[0] * heading[0] + velocity[
+                    1] * heading[1]
+                if speed_in_heading < DEADZONE:
+                    acceleration_ = 0
+                else:
+                    acceleration_ = normalized_acc * max_deceleration
+        return acceleration_
+
+    def _get_steering_rate(self, steering):
+        max_steer_rad = self.control_object.max_steering * np.pi / 180.0
+        desired_angle_rad = np.clip(steering, -1, 1) * max_steer_rad
+        # Δt (= 엔진 1-step 시간)  -------------------------------------------------
+        dt = (self.engine.global_config["physics_world_step_size"]
+              * self.engine.global_config["decision_repeat"])
+        # ── (3) steering **rate**  [rad/s]  --------------------------------------
+        steer_rate = (desired_angle_rad - self._prev_steer_angle_rad) / max(
+            dt, 1e-6)
+        self._prev_steer_angle_rad = desired_angle_rad
+        return steer_rate
 
     def move_to_next_road(self):
         # routing target lane is in current ref lanes

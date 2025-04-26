@@ -152,7 +152,6 @@ class KinematicBicycleVehicle(BaseVehicle):
 # 2) vehicle_type["k_bicycle"] = KinematicBicycleVehicle 로 등록
 #############################################################################
 vehicle_type["k_bicycle"] = KinematicBicycleVehicle
-# bicycle_default
 
 
 def main():
@@ -196,7 +195,7 @@ def main():
     config["agent_configs"] = {
         "default_agent":
             dict(
-                vehicle_model="bicycle_default",  # 등록한 k_bicycle 키
+                vehicle_model="bicycle_history_default",  # 등록한 k_bicycle 키
             )
     }
 

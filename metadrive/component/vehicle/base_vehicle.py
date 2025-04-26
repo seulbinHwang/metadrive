@@ -138,7 +138,7 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         BaseObject.__init__(self, name, random_seed,
                             self.engine.global_config["vehicle_config"])
         BaseVehicleState.__init__(self)
-        self.update_config(vehicle_config)
+        self.update_config(vehicle_config, allow_add_new_key=True)
         self.set_metadrive_type(MetaDriveType.VEHICLE)
         use_special_color = self.config["use_special_color"]
 
@@ -341,14 +341,14 @@ class BaseVehicle(BaseObject, BaseVehicleState):
             self.rename(name)
 
         # reset fully
-        self.update_config(self.engine.global_config["vehicle_config"])
+        self.update_config(self.engine.global_config["vehicle_config"], allow_add_new_key=True)
         if random_seed is not None:
             assert isinstance(random_seed, int)
             self.seed(random_seed)
             self.sample_parameters()
 
         if vehicle_config is not None:
-            self.update_config(vehicle_config)
+            self.update_config(vehicle_config, allow_add_new_key=True)
         from metadrive.component.vehicle.vehicle_type import vehicle_class_to_type
         self.config["vehicle_model"] = vehicle_class_to_type[self.__class__]
 

@@ -70,7 +70,13 @@ DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
                 spawn_lane_index=(FirstPGBlock.NODE_1, FirstPGBlock.NODE_2, 1),
             )
     },
-    vehicle_config=dict(vehicle_model="bicycle_default",))
+    vehicle_config=dict(vehicle_model="bicycle_history_default",),
+traffic_vehicle_config=dict(
+max_acceleration_range=(2., 3.5),
+max_deceleration_range = (3. , 9.),
+)
+
+)
 diffusion_planner_config = DiffusionPlannerConfig(
     args_file=str(args_path)).to_dict()
 DIFFUSION_PLANNER_DEFAULT_CONFIG = merge_dicts(DIFFUSION_PLANNER_DEFAULT_CONFIG,

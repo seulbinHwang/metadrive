@@ -838,7 +838,7 @@ TrafficManager = PGTrafficManager
 # ── new_mixed_traffic_manager.py ───────────────────────────────────────────────
 
 
-class MixedPolicyHistoricalTrafficManager(HistoricalBufferTrafficManager):
+class DiffusionTrafficManager(HistoricalBufferTrafficManager):
     """
     • ego 와 가장 가까운 traffic-car 11대를 LQRPolicy 로,
       나머지는 IDMPolicy 로 운용한다.
@@ -881,7 +881,7 @@ class MixedPolicyHistoricalTrafficManager(HistoricalBufferTrafficManager):
         # ── 3.  action 적용
         for veh in self._traffic_vehicles:
             pol = self.engine.get_policy(veh.id)
-            veh.before_step(pol.act())
+            veh.before_step(pol.act(is_kinematic=True))
 
         return {}
 
@@ -923,3 +923,10 @@ class MixedPolicyHistoricalTrafficManager(HistoricalBufferTrafficManager):
         for veh, cls in swap_cache:
             # engine.add_policy → BasePolicy(control_object, random_seed, …)
             self.add_policy(veh.id, cls, veh, self.generate_seed())
+
+    def random_vehicle_type(self):
+        from metadrive.component.vehicle.vehicle_type import random_vehicle_type
+        vehicle_type = random_vehicle_type(self.np_random,
+                                           p=[0.2, 0.3, 0.3, 0.2, 0.0],
+                                           vehicle_type="bicycle_history")
+        return vehicle_type

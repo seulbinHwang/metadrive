@@ -74,6 +74,7 @@ DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
 traffic_vehicle_config=dict(
 max_acceleration_range=(2., 3.5),
 max_deceleration_range = (3. , 9.),
+ego_history_maxlen= 1,
 )
 
 )

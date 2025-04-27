@@ -881,8 +881,16 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         # ── 3.  action 적용
         for veh in self._traffic_vehicles:
             pol = self.engine.get_policy(veh.id)
-            veh.before_step(pol.act(is_kinematic=True))
-
+            if isinstance(pol, IDMPolicy):
+                veh.before_step(pol.act(is_kinematic=True))
+            elif isinstance(pol, LQRPolicy):
+                external_npc_actions = self.engine.external_npc_actions # (P-1, 80, 4)
+                external_npc_float_ids = self.engine.external_npc_float_ids # (P-1)
+                ########
+                veh_float_id = self._get_float_id_for_vehicle(veh.id)
+                idx = external_npc_float_ids.index(veh_float_id)
+                future_trajectory = external_npc_actions[idx] # (80, 4)
+                veh.before_step(pol.act(veh.id, future_trajectory))
         return {}
 
 

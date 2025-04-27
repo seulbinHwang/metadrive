@@ -1,6 +1,6 @@
 import copy
 from metadrive.component.navigation_module.node_network_navigation import NodeNetworkNavigation
-from typing import Union
+from typing import Union, List
 from metadrive.policy.lqr_policy import LQRPolicy
 import numpy as np
 
@@ -74,7 +74,6 @@ DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
 traffic_vehicle_config=dict(
 max_acceleration_range=(2., 3.5),
 max_deceleration_range = (3. , 9.),
-ego_history_maxlen= 1,
 )
 
 )
@@ -119,3 +118,8 @@ class DiffusionPlannerEnv(MetaDriveEnv):
         if abs(self.config["accident_prob"] - 0) > 1e-2:
             self.engine.register_manager("object_manager",
                                          TrafficObjectManager())
+
+    def set_external_npc_actions(self, npc_actions: np.ndarray, npc_ids: List[str]):
+        self.engine.external_npc_actions = npc_actions
+        self.engine.external_npc_float_ids = npc_ids
+

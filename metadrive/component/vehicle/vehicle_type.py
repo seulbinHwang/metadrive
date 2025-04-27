@@ -80,7 +80,7 @@ class HistoryDefaultVehicle(DefaultVehicle):
                  position=None,
                  heading=None,
                  _calling_reset=True,
-                 ego_history_maxlen=100):
+                 ego_history_maxlen=21):
         """
         :param ego_history_maxlen: ego_history에 최대 몇 개의 EgoState를 저장할지
         """
@@ -332,7 +332,7 @@ class KinematicBicycleHistoryVehicle(HistoryDefaultVehicle):
                  position=None,
                  heading=None,
                  _calling_reset=True,
-                 ego_history_maxlen=100):
+                 ego_history_maxlen=21):
         super().__init__(vehicle_config=vehicle_config,
                          name=name,
                          random_seed=random_seed,

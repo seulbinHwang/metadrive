@@ -29,8 +29,10 @@ class LQRPolicy(BasePolicy):
         self._hist_np_list: list = []  # ← 새로 추가
         self._traj_np_list: list = []  # 직전 프레임에 그려 둔 NodePath들
 
-    def act(self, agent_id):
-        future_trajectory = self.engine.external_actions[agent_id]
+    def act(self, agent_id, future_trajectory=None):
+        if future_trajectory is None:
+            external_actions = self.engine.external_actions
+            future_trajectory = external_actions[agent_id]
         ego_history = list(self.control_object.ego_history)
         # future_trajectory: np.ndarray (80, 4) # 80: number of future steps, 4: x, y, cos(yaw), sin(yaw)
         # Convert future_trajectory to control inputs(acceleration and steering rate)

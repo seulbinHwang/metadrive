@@ -204,7 +204,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             squash_output=squash_output,
             normalize_images=normalize_images,
         )
-        self._predictions_for_npc = None
+        self.npc_predictions = None
         # Default network architecture, from stable-baselines
         self.activation_fn = activation_fn
         self.ortho_init = ortho_init
@@ -232,6 +232,49 @@ class DiffusionActorCriticPolicy(BasePolicy):
             (self.enc_dict, self.dec_dict,
              self.route_dict) = self._load_state_dict()
             self._set_state_dict()
+
+    def is_vectorized_env(
+            self, observation: Union[np.ndarray, dict[str,
+                                                      np.ndarray]]) -> bool:
+        """
+        observation이 단일 샘플인지 배치(벡터화) 샘플인지 여부만 판단합니다.
+        :param observation: env.reset() 또는 env.step()이 반환한 관측값
+        :return: True면 (N, ...) 형태의 배치 관측값, False면 단일 샘플
+        """
+        vectorized = False
+
+        # observation_space는 self.observation_space를 그대로 사용
+        obs_space = self.observation_space
+
+        if isinstance(observation, dict):
+            assert isinstance(obs_space, spaces.Dict), \
+                "observation이 dict면 observation_space도 spaces.Dict여야 합니다."
+            for key, obs in observation.items():
+                sub_space = obs_space.spaces[key]
+                if is_image_space(sub_space):
+                    arr = maybe_transpose(obs, sub_space)
+                else:
+                    arr = np.array(obs)
+                vectorized = vectorized or is_vectorized_observation(
+                    arr, sub_space)
+        else:
+            if is_image_space(obs_space):
+                arr = maybe_transpose(observation, obs_space)
+            else:
+                arr = np.array(observation)
+            vectorized = is_vectorized_observation(arr, obs_space)
+
+        return vectorized
+
+    def get_npc_predictions(self, obs) -> np.ndarray:
+        vectorized_env = self.is_vectorized_env(obs)
+        npc_predictions = self.npc_predictions.copy()
+        if not vectorized_env:
+            assert isinstance(npc_predictions, np.ndarray)
+            npc_predictions = npc_predictions.squeeze(
+                axis=0)  # (P-1, V_future, 4)
+        self.npc_predictions = None
+        return npc_predictions  # (B, P-1, V_future = 80, 4)
 
     def _set_state_dict(self):
         """
@@ -356,8 +399,9 @@ class DiffusionActorCriticPolicy(BasePolicy):
             decoder_outputs_for_npc: Dict[
                 str, torch.Tensor] = self.diffusion_transformer_for_npc(
                     features, observation)
-            self._predictions_for_npc = decoder_outputs_for_npc[
-                'prediction'][:, 1:].detach().cpu().numpy().astype(np.float64)  # (B, P-1, V_future = 80, 4)
+            self.npc_predictions = decoder_outputs_for_npc[
+                'prediction'][:, 1:].detach().cpu().numpy().astype(
+                    np.float64)  # (B, P-1, V_future = 80, 4)
         return ego_predictions
 
     def forward(
@@ -390,7 +434,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
                 decoder_outputs_for_npc: Dict[
                     str, torch.Tensor] = self.diffusion_transformer_for_npc(
                         features, obs)
-                self._predictions_for_npc = decoder_outputs_for_npc[
+                self.npc_predictions = decoder_outputs_for_npc[
                     'prediction'][:,
                                   1:].detach().cpu().numpy().astype(np.float64)
             values = self.critic_net(features['encoding'],
@@ -404,7 +448,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
                 decoder_outputs_for_npc: Dict[
                     str, torch.Tensor] = self.diffusion_transformer_for_npc(
                         pi_features, obs)
-                self._predictions_for_npc = decoder_outputs_for_npc[
+                self.npc_predictions = decoder_outputs_for_npc[
                     'prediction'][:,
                                   1:].detach().cpu().numpy().astype(np.float64)
             predictions = decoder_outputs['prediction']
@@ -419,12 +463,6 @@ class DiffusionActorCriticPolicy(BasePolicy):
         """
         # 특히 log_likelihood 의 shape 확인하기
         return ego_predictions, values, log_likelihood
-
-    @property
-    def predictions_for_npc(self) -> Optional[torch.Tensor]:
-        predictions_for_npc = self._predictions_for_npc.copy()
-        self._predictions_for_npc = None
-        return predictions_for_npc
 
     def predict_values(self, obs: PyTorchObs) -> torch.Tensor:
         """

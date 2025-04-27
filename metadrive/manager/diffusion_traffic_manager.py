@@ -851,7 +851,6 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
     # ────────────────────────────────────────────────────────────────────────
     def reset(self):
         super().reset()
-        self._update_control_policies()        # 1회 초기화
 
 
     # ────────────────────────────────────────────────────────────────────────
@@ -874,30 +873,30 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
                         blk = self.block_triggered_vehicles.pop()
                         self._traffic_vehicles += list(
                             self.get_objects(blk.vehicles).values())
-
+        external_npc_actions = self.engine.external_npc_actions # (P-1, 80, 4)
+        diffusion_vehicle_num = external_npc_actions.shape[0]
         # ── 2.  이제 리스트가 확정됐으므로 policy 재배치
-        self._update_control_policies()
+        closest_idx = self._update_control_policies(external_npc_actions)
 
         # ── 3.  action 적용
-        for veh in self._traffic_vehicles:
+        for vehicle_idx, veh in enumerate(self._traffic_vehicles):
             pol = self.engine.get_policy(veh.id)
             if isinstance(pol, IDMPolicy):
                 veh.before_step(pol.act(is_kinematic=True))
             elif isinstance(pol, LQRPolicy):
-                external_npc_actions = self.engine.external_npc_actions # (P-1, 80, 4)
-                external_npc_float_ids = self.engine.external_npc_float_ids # (P-1)
-                ########
-                veh_float_id = self._get_float_id_for_vehicle(veh.id)
-                idx = external_npc_float_ids.index(veh_float_id)
-                future_trajectory = external_npc_actions[idx] # (80, 4)
-                veh.before_step(pol.act(veh.id, future_trajectory))
+                # external_npc_float_ids = self.engine.external_npc_float_ids # (P-1)
+                # veh_float_id = self._get_float_id_for_vehicle(veh.id)
+                # idx = external_npc_float_ids.index(veh_float_id)
+                # future_trajectory = external_npc_actions[idx] # (80, 4)
+                index = np.where(closest_idx == vehicle_idx)[0][0]
+                veh.before_step(pol.act(veh.id, external_npc_actions[index]))
         return {}
 
 
     # ────────────────────────────────────────────────────────────────────────
     # 내부 : 현 시점 traffic 차량들에 대해 “가까운 11대” 재계산 → policy 교체
     # ────────────────────────────────────────────────────────────────────────
-    def _update_control_policies(self) -> None:
+    def _update_control_policies(self, diffusion_vehicle_num = 11) -> np.ndarray:
         if not self._traffic_vehicles:  # ── (0) early-return
             return
 
@@ -914,8 +913,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         dists = np.linalg.norm(veh_positions - ego_pos, axis=1)  # (N,)
 
         # argpartition 은 완전 정렬보다 빠름  (O(N) ↘ O(N))
-        k = self.CLOSEST_LQR_NUM
-        closest_idx = np.argpartition(dists, k)[:k]  # k 개 인덱스
+        closest_idx = np.argpartition(dists, diffusion_vehicle_num)[:diffusion_vehicle_num]  # k 개 인덱스
         lqr_target_set = {self._traffic_vehicles[i] for i in closest_idx}
 
         # ── (3) 교체가 필요한 차량만 따로 모아 한 번에 처리 ────────────────
@@ -931,6 +929,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         for veh, cls in swap_cache:
             # engine.add_policy → BasePolicy(control_object, random_seed, …)
             self.add_policy(veh.id, cls, veh, self.generate_seed())
+        return closest_idx
 
     def random_vehicle_type(self):
         from metadrive.component.vehicle.vehicle_type import random_vehicle_type

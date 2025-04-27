@@ -2,7 +2,7 @@ from stable_baselines3.ppo import PPO
 import sys
 import time
 import warnings
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union, List, Tuple
 
 import numpy as np
 import torch as th
@@ -19,13 +19,14 @@ from stable_baselines3.common.vec_env import VecEnv
 
 class DiffusionPPO(PPO):
 
-    def get_predictions_for_npc(self) -> np.ndarray:
+    def get_npc_predictions(self, obs) -> np.ndarray:
         """
         Get the predictions for NPCs.
 
         :return: The predictions for NPCs.
         """
-        return self.policy.predictions_for_npc
+        # (B, P-1, V_future = 80, 4)  or # (P-1, V_future, 4)
+        return self.policy.get_npc_predictions(obs)
 
     def collect_rollouts(
         self,
@@ -68,6 +69,8 @@ class DiffusionPPO(PPO):
                 # Convert to pytorch tensor or to TensorDict
                 obs_tensor = obs_as_tensor(self._last_obs, self.device)
                 actions, values, log_probs = self.policy(obs_tensor)
+                # (B, P-1, V_future = 80, 4)
+                npc_predictions = self.get_npc_predictions(self._last_obs)
 
             actions = actions.cpu().numpy()
 
@@ -85,7 +88,8 @@ class DiffusionPPO(PPO):
                     # as we are sampling from an unbounded Gaussian distribution
                     clipped_actions = np.clip(actions, self.action_space.low,
                                               self.action_space.high)
-            # TODO: env.env_method(method_name="set_external_npc_actions", npc_actions=(N_env, P-1, 80, 4), npc_ids=List[] (len=N_env))
+            env.env_method(method_name="set_external_npc_actions",
+                           npc_actions=npc_predictions)
             new_obs, rewards, dones, infos = env.step(clipped_actions)
 
             self.num_timesteps += env.num_envs

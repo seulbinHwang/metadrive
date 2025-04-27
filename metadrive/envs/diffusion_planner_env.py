@@ -119,7 +119,10 @@ class DiffusionPlannerEnv(MetaDriveEnv):
             self.engine.register_manager("object_manager",
                                          TrafficObjectManager())
 
-    def set_external_npc_actions(self, npc_actions: np.ndarray, npc_ids: List[str]):
+    def set_external_npc_actions(self, npc_actions: np.ndarray):
+        """
+        npc_actions: (P-1, V_future, 4)
+
+        """
         self.engine.external_npc_actions = npc_actions
-        self.engine.external_npc_float_ids = npc_ids
 

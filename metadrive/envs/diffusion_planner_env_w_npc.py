@@ -16,7 +16,7 @@ from diffusion_planner.utils.config import Config as DiffusionPlannerConfig
 from metadrive.manager.record_manager import RecordManager
 from metadrive.manager.replay_manager import ReplayManager
 from metadrive.envs.metadrive_env import MetaDriveEnv, METADRIVE_DEFAULT_CONFIG
-from metadrive.manager.traffic_manager import HistoricalBufferTrafficManager
+from metadrive.manager.diffusion_traffic_manager import DiffusionTrafficManager
 from metadrive.manager.speed_limit_pg_map_manager import SpeedLimitPGMapManager
 from metadrive.manager.object_manager import TrafficObjectManager
 from metadrive.obs.diffusion_planner_obs import DiffusionPlannerObservation
@@ -73,7 +73,7 @@ DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
     vehicle_config=dict(vehicle_model="bicycle_history_default",),
 traffic_vehicle_config=dict(
 max_acceleration_range=(2., 3.5),
-max_deceleration_range = (3. , 9.),
+max_deceleration_range = (8.9 , 9.),
 )
 
 )
@@ -114,7 +114,15 @@ class DiffusionPlannerEnv(MetaDriveEnv):
         self.engine.register_manager("replay_manager", ReplayManager())
         self.engine.register_manager("map_manager", SpeedLimitPGMapManager())
         self.engine.register_manager("traffic_manager",
-                                     HistoricalBufferTrafficManager())
+                                     DiffusionTrafficManager())
         if abs(self.config["accident_prob"] - 0) > 1e-2:
             self.engine.register_manager("object_manager",
                                          TrafficObjectManager())
+
+    def set_external_npc_actions(self, npc_actions: np.ndarray):
+        """
+        npc_actions: (P-1, V_future, 4)
+
+        """
+        self.engine.external_npc_actions = npc_actions
+

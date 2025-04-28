@@ -47,7 +47,7 @@ class DefaultVehicle(BaseVehicle):
     FRONT_WHEELBASE = 1.05234
     REAR_WHEELBASE = 1.4166
     path = ('ferra/vehicle.gltf', (1, 1, 1), (0, 0.075, 0.), (0, 0, 0)
-            )  # asset path, scale, offset, HPR
+           )  # asset path, scale, offset, HPR
 
     DEFAULT_LENGTH = 4.515  # meters
     DEFAULT_HEIGHT = 1.19  # meters
@@ -64,7 +64,6 @@ class DefaultVehicle(BaseVehicle):
     @property
     def WIDTH(self):
         return self.DEFAULT_WIDTH
-
 
 
 class HistoryDefaultVehicle(DefaultVehicle):
@@ -94,6 +93,7 @@ class HistoryDefaultVehicle(DefaultVehicle):
         self.set_nuplan_vehicle_params(name)
         self._previous_velocity = None
         self._previous_ang_vel = None
+        self.last_updated_step_index = None
         super().__init__(vehicle_config=vehicle_config,
                          name=name,
                          random_seed=random_seed,
@@ -129,7 +129,6 @@ class HistoryDefaultVehicle(DefaultVehicle):
             height=self.HEIGHT  # 1.19
         )
 
-
     @property
     def rear_axle_xy(self) -> np.ndarray:
         """
@@ -152,11 +151,8 @@ class HistoryDefaultVehicle(DefaultVehicle):
         self.ego_history.clear()
         self._previous_velocity = None
         self._previous_ang_vel = None
-        #
-        # # 2) EgoState 생성
-        # current_ego_state = self._create_ego_state()
-        # # 3) 덱에 추가
-        # self.ego_history.append(current_ego_state)
+        self.last_updated_step_index = None
+        self.update_ego_history()
 
     def after_step(self):
         """
@@ -166,12 +162,21 @@ class HistoryDefaultVehicle(DefaultVehicle):
         # 1) 기존 DefaultVehicle의 after_step 수행
         step_info = super().after_step()
 
+        self.update_ego_history()
+
+        return step_info
+
+    def update_ego_history(self):
+        if (self.last_updated_step_index
+                is not None) and (self.last_updated_step_index
+                                  == self.engine.episode_step):
+            # 이미 업데이트한 스텝이라면, 다시 업데이트하지 않음
+            return
         # 2) EgoState 생성
         current_ego_state = self._create_ego_state()
         # 3) 덱에 추가
         self.ego_history.append(current_ego_state)
-
-        return step_info
+        self.last_updated_step_index = self.engine.episode_step
 
     def _create_ego_state(self) -> EgoState:
         """
@@ -186,7 +191,6 @@ self.engine.global_config["decision_repeat"]` 의 배수
 reset 되면 time_us가 0으로 초기화 되는지 확인
         """
         step_index = self.engine.episode_step
-
         # engine.global_config에서 dt 가져오기
         # dt = physics_world_step_size * decision_repeat
         dt = (self.engine.global_config["physics_world_step_size"] *
@@ -333,6 +337,7 @@ class KinematicBicycleHistoryVehicle(HistoryDefaultVehicle):
                  heading=None,
                  _calling_reset=True,
                  ego_history_maxlen=21):
+        self.ego_result_state = None
         super().__init__(vehicle_config=vehicle_config,
                          name=name,
                          random_seed=random_seed,
@@ -346,9 +351,10 @@ class KinematicBicycleHistoryVehicle(HistoryDefaultVehicle):
         # Initialize internal states for kinematic model
         self.current_velocity = self.velocity
         self.current_angular_velocity = self.body.getAngularVelocity()[-1]
-        self.ego_result_state = None
-        self.max_acceleration_range = vehicle_config.get("max_acceleration_range", (2., 3.5))
-        self.max_deceleration_range = vehicle_config.get("max_deceleration_range", (3. , 9.))
+        self.max_acceleration_range = vehicle_config.get(
+            "max_acceleration_range", (2., 3.5))
+        self.max_deceleration_range = vehicle_config.get(
+            "max_deceleration_range", (8.9, 9.))
         # ─── random sampling of max accel/decel ───
         # acceleration: 2.0 ≤ a < 3.5
         acc_min, acc_max = self.max_acceleration_range
@@ -370,6 +376,7 @@ class KinematicBicycleHistoryVehicle(HistoryDefaultVehicle):
         Called when resetting the vehicle. We'll also set it static so bullet won't move it.
         """
         # Use parent's reset to do basic config, set position, etc.
+        self.ego_result_state = None
         super().reset(vehicle_config=vehicle_config,
                       name=name,
                       random_seed=random_seed,
@@ -381,7 +388,6 @@ class KinematicBicycleHistoryVehicle(HistoryDefaultVehicle):
         self.current_angular_velocity = self.body.getAngularVelocity()[-1]
         # Let the bullet engine see this as static, so it won't update via forces
         # self.config["no_wheel_friction"] = True
-        self.ego_result_state = None
         self.body.setKinematic(True)
         #
         # Initialize states
@@ -461,6 +467,37 @@ class KinematicBicycleHistoryVehicle(HistoryDefaultVehicle):
 # When using DefaultVehicle as traffic, please use this class.
 
 
+class DefaultKinematicHistoryVehicle(KinematicBicycleHistoryVehicle):
+    PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.DEFAULT_VEHICLE)
+    # LENGTH = 4.51
+    # WIDTH = 1.852
+    # HEIGHT = 1.19
+    TIRE_RADIUS = 0.313
+    TIRE_WIDTH = 0.25
+    MASS = 1100
+    LATERAL_TIRE_TO_CENTER = 0.815
+    FRONT_WHEELBASE = 1.05234
+    REAR_WHEELBASE = 1.4166
+    path = ('ferra/vehicle.gltf', (1, 1, 1), (0, 0.075, 0.), (0, 0, 0)
+           )  # asset path, scale, offset, HPR
+
+    DEFAULT_LENGTH = 4.515  # meters
+    DEFAULT_HEIGHT = 1.19  # meters
+    DEFAULT_WIDTH = 1.852  # meters
+
+    @property
+    def LENGTH(self):
+        return self.DEFAULT_LENGTH
+
+    @property
+    def HEIGHT(self):
+        return self.DEFAULT_HEIGHT
+
+    @property
+    def WIDTH(self):
+        return self.DEFAULT_WIDTH
+
+
 class TrafficDefaultVehicle(DefaultVehicle):
     pass
 
@@ -503,6 +540,7 @@ class XLVehicle(BaseVehicle):
     def WIDTH(self):
         return self.DEFAULT_WIDTH
 
+
 class XLKinematicHistoryVehicle(KinematicBicycleHistoryVehicle):
     PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.XL_VEHICLE)
     # LENGTH = 5.8
@@ -536,6 +574,7 @@ class XLKinematicHistoryVehicle(KinematicBicycleHistoryVehicle):
     def WIDTH(self):
         return self.DEFAULT_WIDTH
 
+
 class LVehicle(BaseVehicle):
     PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.L_VEHICLE)
     # LENGTH = 4.5
@@ -565,6 +604,7 @@ class LVehicle(BaseVehicle):
     @property
     def WIDTH(self):
         return self.DEFAULT_WIDTH
+
 
 class LKinematicHistoryVehicle(KinematicBicycleHistoryVehicle):
     PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.L_VEHICLE)
@@ -626,6 +666,7 @@ class MVehicle(BaseVehicle):
     def WIDTH(self):
         return self.DEFAULT_WIDTH
 
+
 class MKinematicHistoryVehicle(KinematicBicycleHistoryVehicle):
     PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.M_VEHICLE)
     # LENGTH = 4.4
@@ -654,6 +695,7 @@ class MKinematicHistoryVehicle(KinematicBicycleHistoryVehicle):
     @property
     def WIDTH(self):
         return self.DEFAULT_WIDTH
+
 
 class SVehicle(BaseVehicle):
     PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.S_VEHICLE)
@@ -699,6 +741,7 @@ class SVehicle(BaseVehicle):
     @property
     def WIDTH(self):
         return self.DEFAULT_WIDTH
+
 
 class SKinematicHistoryVehicle(KinematicBicycleHistoryVehicle):
     PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.S_VEHICLE)
@@ -746,34 +789,29 @@ class SKinematicHistoryVehicle(KinematicBicycleHistoryVehicle):
         return self.DEFAULT_WIDTH
 
 
-
-
-
 class VaryingDynamicsVehicle(DefaultVehicle):
 
     @property
     def WIDTH(self):
         return self.config["width"] if self.config[
-                                           "width"] is not None else super(
-            VaryingDynamicsVehicle, self).WIDTH
+            "width"] is not None else super(VaryingDynamicsVehicle, self).WIDTH
 
     @property
     def LENGTH(self):
         return self.config[
             "length"] if self.config["length"] is not None else super(
-            VaryingDynamicsVehicle, self).LENGTH
+                VaryingDynamicsVehicle, self).LENGTH
 
     @property
     def HEIGHT(self):
         return self.config[
             "height"] if self.config["height"] is not None else super(
-            VaryingDynamicsVehicle, self).HEIGHT
+                VaryingDynamicsVehicle, self).HEIGHT
 
     @property
     def MASS(self):
         return self.config["mass"] if self.config[
-                                          "mass"] is not None else super(
-            VaryingDynamicsVehicle, self).MASS
+            "mass"] is not None else super(VaryingDynamicsVehicle, self).MASS
 
     def reset(
             self,
@@ -790,13 +828,13 @@ class VaryingDynamicsVehicle(DefaultVehicle):
         should_force_reset = False
         if vehicle_config is not None:
             if vehicle_config["width"] is not None and vehicle_config[
-                "width"] != self.WIDTH:
+                    "width"] != self.WIDTH:
                 should_force_reset = True
             if vehicle_config["height"] is not None and vehicle_config[
-                "height"] != self.HEIGHT:
+                    "height"] != self.HEIGHT:
                 should_force_reset = True
             if vehicle_config["length"] is not None and vehicle_config[
-                "length"] != self.LENGTH:
+                    "length"] != self.LENGTH:
                 should_force_reset = True
             if "max_engine_force" in vehicle_config and \
                     vehicle_config["max_engine_force"] is not None and \
@@ -1014,6 +1052,7 @@ def random_vehicle_type(np_random, p=None, vehicle_type=None):
             "m_bicycle_history": MKinematicHistoryVehicle,
             "l_bicycle_history": LKinematicHistoryVehicle,
             "xl_bicycle_history": XLKinematicHistoryVehicle,
+            "default_kinematic_history": DefaultKinematicHistoryVehicle,
         }
     if p:
         assert len(p) == len(v_type), \
@@ -1035,6 +1074,7 @@ vehicle_type = {
     "m_bicycle_history": MKinematicHistoryVehicle,
     "l_bicycle_history": LKinematicHistoryVehicle,
     "xl_bicycle_history": XLKinematicHistoryVehicle,
+    "default_kinematic_history": DefaultKinematicHistoryVehicle,
     "static_default": StaticDefaultVehicle,
     "varying_dynamics": VaryingDynamicsVehicle,
     "varying_dynamics_bounding_box": VaryingDynamicsBoundingBoxVehicle,

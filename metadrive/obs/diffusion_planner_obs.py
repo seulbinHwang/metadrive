@@ -345,7 +345,7 @@ class DiffusionPlannerObservation(BaseObservation):
                     dtype=np.float32),
         })
         # vis_mode = config.get("vis_mode", "all").lower()
-        vis_mode = "route"
+        vis_mode = "none"
         assert vis_mode in {"none", "lanes", "route", "all", "neighbors", "static"}
         self._vis_lanes  = vis_mode in {"lanes", "all"}
         self._vis_route  = vis_mode in {"route", "all"}

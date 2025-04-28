@@ -287,12 +287,11 @@ class DiffusionActorCriticPolicy(BasePolicy):
         # decoder_state_dict
         self.diffusion_transformer.dit.load_state_dict(self.dec_dict,
                                                        strict=True)
+        self.features_extractor.route_encoder.load_state_dict(self.route_dict,
+                                                              strict=True)
         if self.double_decoder:
             self.diffusion_transformer_for_npc.dit.load_state_dict(
                 self.dec_dict, strict=True)
-        # route_encoder_state_dict
-        self.features_extractor.route_encoder.load_state_dict(self.route_dict,
-                                                              strict=True)
         if not self.share_features_extractor:
             self.vf_features_extractor.encoder.load_state_dict(self.enc_dict,
                                                                strict=True)
@@ -393,15 +392,13 @@ class DiffusionActorCriticPolicy(BasePolicy):
                                          self.pi_features_extractor)
         decoder_outputs: Dict[str, torch.Tensor] = self.diffusion_transformer(
             features, observation)
-        predictions = decoder_outputs['prediction']  # (B, P, V_future, 4)
-        ego_predictions = predictions[:, 0].detach()  # (B, V_future = 80, 4)
+        ego_predictions = decoder_outputs["ego_prediction"].detach() # (B, P, V_future, 4)
         if self.double_decoder:
             decoder_outputs_for_npc: Dict[
                 str, torch.Tensor] = self.diffusion_transformer_for_npc(
                     features, observation)
             self.npc_predictions = decoder_outputs_for_npc[
-                'prediction'][:, 1:].detach().cpu().numpy().astype(
-                    np.float64)  # (B, P-1, V_future = 80, 4)
+                "npc_prediction"].detach().cpu().numpy().astype(np.float64) # (B, P-1, V_future, 4)
         return ego_predictions
 
     def forward(
@@ -427,7 +424,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             decoder_outputs: Dict[str,
                                   torch.Tensor] = self.diffusion_transformer(
                                       features, obs)
-            predictions = decoder_outputs['prediction']  # (B, P, V_future, 4)
+            predictions = decoder_outputs["ego_prediction"]  # (B, P, V_future, 4)
             ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
                 np.float64)  # (B, 80, 4)
             if self.double_decoder:
@@ -435,7 +432,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
                     str, torch.Tensor] = self.diffusion_transformer_for_npc(
                         features, obs)
                 self.npc_predictions = decoder_outputs_for_npc[
-                    'prediction'][:,
+                    "ego_prediction"][:,
                                   1:].detach().cpu().numpy().astype(np.float64)
             values = self.critic_net(features['encoding'],
                                      features['route_encoding'])  # shape (B)
@@ -449,9 +446,9 @@ class DiffusionActorCriticPolicy(BasePolicy):
                     str, torch.Tensor] = self.diffusion_transformer_for_npc(
                         pi_features, obs)
                 self.npc_predictions = decoder_outputs_for_npc[
-                    'prediction'][:,
+                    "ego_prediction"][:,
                                   1:].detach().cpu().numpy().astype(np.float64)
-            predictions = decoder_outputs['prediction']
+            predictions = decoder_outputs["ego_prediction"]
             ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
                 np.float64)
             values = self.critic_net(vf_features['encoding'],

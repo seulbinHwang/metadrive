@@ -255,7 +255,7 @@ class IDMPolicy(BasePolicy):
 
     # acc factor
     ACC_FACTOR = 1.0
-    DEACC_FACTOR = -5
+    DEACC_FACTOR = -50
 
     def __init__(self, control_object, random_seed):
         super(IDMPolicy, self).__init__(control_object=control_object,
@@ -307,7 +307,7 @@ class IDMPolicy(BasePolicy):
         if is_kinematic:
             steer_rate = self._get_steering_rate(steering)
             acceleration_ = self._get_acceleration(acc)
-            action = [steer_rate, acceleration_]
+            action = [acceleration_, steer_rate]
         else:
             action = [steering, acc]
         self.action_info["action"] = action
@@ -326,7 +326,6 @@ class IDMPolicy(BasePolicy):
                 acceleration_ = max_acceleration * normalized_acc
             else:
                 DEADZONE = 0.01
-
                 # Speed m/s in car's heading:
                 heading = self.control_object.heading
                 velocity = self.control_object.velocity
@@ -335,7 +334,16 @@ class IDMPolicy(BasePolicy):
                 if speed_in_heading < DEADZONE:
                     acceleration_ = 0
                 else:
-                    acceleration_ = normalized_acc * max_deceleration
+                    # 시뮬 dt 계산
+                    dt = (self.engine.global_config["physics_world_step_size"]
+                          * self.engine.global_config["decision_repeat"])
+                    # 후보 감속량
+                    candidate_acc = normalized_acc * max_deceleration
+                    # dt 후 속도가 음수가 되지 않도록 보정
+                    if speed_in_heading + candidate_acc * dt < 0:
+                        acceleration_ = - speed_in_heading / dt
+                    else:
+                        acceleration_ = candidate_acc
         return acceleration_
 
     def _get_steering_rate(self, steering):

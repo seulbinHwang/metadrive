@@ -2,6 +2,7 @@ import math
 import torch
 import torch.nn as nn
 from timm.models.layers import Mlp
+import numpy as np
 from timm.layers import DropPath
 from typing import List
 
@@ -76,11 +77,11 @@ class Decoder(nn.Module):
         # Extract ego & neighbor current states
         ego_current = inputs['ego_current_state'][:, None, :4]  # [B, 1, 4]
         neighbors_current = inputs[
-            "neighbor_agents_past"][:, :self._predicted_neighbor_num,
-                                    -1, :4]  # [B, P, 4]
-        not_zero = torch.ne(neighbors_current[..., :4], 0)  # [B, P, 4]
-        sum_ = torch.sum(not_zero, dim=-1)  # [B, P]
-        neighbor_current_mask = sum_ == 0  # [B, P] -> 차량 정보가 없는 경우 True
+            "neighbor_agents_past"][:, :self._predicted_neighbor_num, # _predicted_neighbor_num = P-1
+                                    -1, :4]  # [B, P-1, 4]
+        not_zero = torch.ne(neighbors_current[..., :4], 0)  # [B, P-1, 4]
+        sum_ = torch.sum(not_zero, dim=-1)  # [B, P-1]
+        neighbor_current_mask = sum_ == 0  # [B, P-1] -> 차량 정보가 없는 경우 True
 
         current_states = torch.cat([ego_current, neighbors_current],
                                    dim=1)  # [B, P, 4]
@@ -89,7 +90,7 @@ class Decoder(nn.Module):
         assert P == (1 + self._predicted_neighbor_num)
 
         # Extract context encoding
-        ego_neighbor_encoding = encoder_outputs['encoding'] # [B, P, D]
+        ego_neighbor_encoding = encoder_outputs['encoding'] # [B, P-1, D]
         route_encoding = encoder_outputs['route_encoding'] # [B, D]
 
         if self.training:
@@ -121,18 +122,31 @@ class Decoder(nn.Module):
             x0 = dpm_sampler(self.dit,
                              xT, # [B, P, (1 + V_future) * 4]
                              other_model_params={
-                                 "cross_c": ego_neighbor_encoding,
-                                 "route_encoding": route_encoding,
-                                 "neighbor_current_mask": neighbor_current_mask
+                                 "cross_c": ego_neighbor_encoding, # [B, P-1, D]
+                                 "route_encoding": route_encoding, # [B, D]
+                                 "neighbor_current_mask": neighbor_current_mask # [B, P-1]
                              },
                              dpm_solver_params={
                                  "correcting_xt_fn": initial_state_constraint,
                              })
-            x0 = self._state_normalizer.inverse(x0.reshape(B, P, -1, 4))[:, :,
-                                                                         1:]
+            x0 = x0.reshape(B, P, -1, 4) # [B, P, 1 + V_future, 4]
+            x0_inverse = self._state_normalizer.inverse(x0) # [B, P, 1 + V_future, 4]
+            x0 = x0_inverse # [:, :, 1:] # [B, P, V_future, 4] # Exclude current state
+
+            mask = neighbor_current_mask.unsqueeze(-1).unsqueeze(-1)  # [B, P-1, 1, 1]
+            mask = mask.expand(-1, -1, x0.size(2), x0.size(3))     # [B, P-1, T, 4]
+
+            # ego 예측(x0[:,0])은 그대로 두고, 나머지 neighbor 예측만 0 처리
+            ego_traj      = x0[:, 0, 1:, :]                       # [B,1,T,4]
+            neighbor_traj = x0[:, 1:, :, :].masked_fill(mask, 0.) # [B,P-1,T,4]
+            # x0 = torch.cat([ego_traj, neighbor_traj], dim=1)      # [B,P,T,4]
+            # print("ego_traj.shape", ego_traj.shape) # (B, 80, 4)
+            # print("neighbor_traj.shape", neighbor_traj.shape) # (B, 10, 81, 4)
             return {
-                "prediction":
-                    x0,  # [B, P, V_future, 4] # Include Ego, Neighbors # Exclude current state
+                "ego_prediction":
+                    ego_traj,  # [B, P, V_future, 4] # Include Ego, Neighbors # Exclude current state
+                "npc_prediction":
+                    neighbor_traj
             }
 
 

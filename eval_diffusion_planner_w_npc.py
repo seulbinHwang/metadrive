@@ -7,7 +7,7 @@ import colorsys
 from core.diffusion_dppo.diffusion_ppo import DiffusionPPO
 from metadrive.component.vehicle.base_vehicle import BaseVehicle
 from metadrive.component.road_network.node_road_network import NodeRoadNetwork
-from metadrive.envs.diffusion_planner_env import DiffusionPlannerEnv
+from metadrive.envs.diffusion_planner_env_w_npc import DiffusionPlannerEnv
 from core.common.policies import DiffusionActorCriticPolicy
 import time
 import numpy as np
@@ -24,7 +24,7 @@ def main():
 
     config = {
         "num_scenarios": 10,
-        "start_seed": 0,
+        "start_seed": 100,
         "traffic_density": 0.5,
         "map": 5,
         "random_traffic": True,

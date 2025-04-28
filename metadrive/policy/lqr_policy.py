@@ -29,10 +29,22 @@ class LQRPolicy(BasePolicy):
         self._hist_np_list: list = []  # ← 새로 추가
         self._traj_np_list: list = []  # 직전 프레임에 그려 둔 NodePath들
 
+    def reset(self):
+        super().reset()
+        for np_node in self._hist_np_list:
+            np_node.removeNode()
+        self._hist_np_list.clear()
+        for np_node in self._traj_np_list:
+            np_node.removeNode()
+        self._traj_np_list.clear()
+
     def act(self, agent_id, future_trajectory=None):
         if future_trajectory is None:
             external_actions = self.engine.external_actions
             future_trajectory = external_actions[agent_id]
+            return 0., 0.
+        else:
+            return 0., 0.
         ego_history = list(self.control_object.ego_history)
         # future_trajectory: np.ndarray (80, 4) # 80: number of future steps, 4: x, y, cos(yaw), sin(yaw)
         # Convert future_trajectory to control inputs(acceleration and steering rate)
@@ -41,7 +53,7 @@ class LQRPolicy(BasePolicy):
             trajectory=outputs_to_trajectory(future_trajectory, ego_history))
         # ② 궤적을 화면에 그리기
         # self._draw_history()
-        self._draw_trajectory(trajectory)
+        # self._draw_trajectory(trajectory)
         # Compute the dynamic state to propagate the model
         ego_state = ego_history[-1]
         current_iteration = SimulationIteration(

@@ -317,8 +317,7 @@ class BaseVehicle(BaseObject, BaseVehicleState):
         """
         distance = norm(self.last_position[0] - self.position[0],
                         self.last_position[1] - self.position[1]) / 1000  # km
-        step_energy = 3.25 * math.pow(np.e,
-                                      0.01 * self.speed_km_h) * distance / 100
+        step_energy = 3.25 * np.exp(0.01 * self.speed_km_h) * distance / 100
         # step_energy is in Liter, we return mL
         step_energy = step_energy * 1000
         self.energy_consumption += step_energy  # L/100 km
@@ -341,7 +340,8 @@ class BaseVehicle(BaseObject, BaseVehicleState):
             self.rename(name)
 
         # reset fully
-        self.update_config(self.engine.global_config["vehicle_config"], allow_add_new_key=True)
+        self.update_config(self.engine.global_config["vehicle_config"],
+                           allow_add_new_key=True)
         if random_seed is not None:
             assert isinstance(random_seed, int)
             self.seed(random_seed)

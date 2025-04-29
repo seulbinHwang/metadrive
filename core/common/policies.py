@@ -431,6 +431,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
                 decoder_outputs_for_npc: Dict[
                     str, torch.Tensor] = self.diffusion_transformer_for_npc(
                         features, obs)
+                # TODO
                 self.npc_predictions = decoder_outputs_for_npc[
                     "ego_prediction"][:,
                                   1:].detach().cpu().numpy().astype(np.float64)
@@ -445,6 +446,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
                 decoder_outputs_for_npc: Dict[
                     str, torch.Tensor] = self.diffusion_transformer_for_npc(
                         pi_features, obs)
+                # TODO
                 self.npc_predictions = decoder_outputs_for_npc[
                     "ego_prediction"][:,
                                   1:].detach().cpu().numpy().astype(np.float64)

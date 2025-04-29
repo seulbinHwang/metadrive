@@ -207,10 +207,11 @@ def extract_local_lanes_in_square_bbox(
               ln_idx_tuple) in enumerate(zip(selected_lanes, selected_indices)):
         ln_len = ln.length
         sl = getattr(ln, "speed_limit", None)  # 존재하지 않으면 None
-        if sl is not None and sl > 0:
-            lanes_speed_limit[idx, 0] = sl * (1000 / 3600
-                                             )  # sl * (1000/3600) 로 m/s 변환
-            lanes_has_speed_limit[idx, 0] = True
+        # TODO: check
+        # if sl is not None and sl > 0:
+        #     lanes_speed_limit[idx, 0] = sl * (1000 / 3600
+        #                                      )  # sl * (1000/3600) 로 m/s 변환
+        #     lanes_has_speed_limit[idx, 0] = True
 
         s_vals = np.linspace(0.0, ln_len, lane_len,
                              endpoint=True)  # shape=(lane_len,)
@@ -345,7 +346,7 @@ class DiffusionPlannerObservation(BaseObservation):
                     dtype=np.float32),
         })
         # vis_mode = config.get("vis_mode", "all").lower()
-        vis_mode = "none"
+        vis_mode = "route"
         assert vis_mode in {"none", "lanes", "route", "all", "neighbors", "static"}
         self._vis_lanes  = vis_mode in {"lanes", "all"}
         self._vis_route  = vis_mode in {"route", "all"}
@@ -439,19 +440,19 @@ class DiffusionPlannerObservation(BaseObservation):
             width: float,
             color: Tuple[float, float, float, float],
     ) -> List[Any]:
-        """월드 좌표 중심/크기로 사각형 전체를 폴리라인으로 그림"""
+        """월드 좌표 중심/크기로 사각형 전체를 폴리라인으로 그리고, 중앙에서 heading 화살표를 그립니다."""
         hl: float = 0.5 * length
         hw: float = 0.5 * width
         c, s = math.cos(yaw), math.sin(yaw)
 
         corners: List[Tuple[float, float]] = []
-        for dx, dy in [(+hl, +hw), (+hl, -hw), (-hl, -hw), (-hl, +hw),
-                       (+hl, +hw)]:
+        for dx, dy in [(+hl, +hw), (+hl, -hw), (-hl, -hw), (-hl, +hw), (+hl, +hw)]:
             x: float = cx_w + dx * c - dy * s
             y: float = cy_w + dx * s + dy * c
             corners.append((x, y))
 
-        return self._draw_polyline(
+        # 1) 박스 테두리 그리기
+        np_list = self._draw_polyline(
             engine=engine,
             pts_world=corners,
             color=color,
@@ -459,6 +460,24 @@ class DiffusionPlannerObservation(BaseObservation):
             thickness=60,
         )
 
+        # 2) 중앙에서 heading 방향으로 화살표(선) 그리기
+        #    길이를 박스 길이의 1.5배로
+        arrow_length = length * 1.5
+        # 박스 앞쪽 꼭짓점이 아닌 박스 중심에서 시작
+        start = LVector3(cx_w, cy_w, 0.1)
+        end_x = cx_w + arrow_length * c
+        end_y = cy_w + arrow_length * s
+        end = LVector3(end_x, end_y, 0.1)
+        heading_node = engine._draw_line_3d(
+            start,
+            end,
+            color=(1.0, 0.0, 0.0, 1.0),  # 진한 빨강으로
+            thickness=80,
+        )
+        heading_node.reparentTo(engine.render)
+        np_list.append(heading_node)
+
+        return np_list
     # ──────────────── ② 메인 visualize 함수 ────────────────
     @staticmethod
     def _local_to_world_batch(px, py, ego_x, ego_y, ego_yaw):
@@ -487,7 +506,6 @@ class DiffusionPlannerObservation(BaseObservation):
 
         vmax: float = 100.0 / 3.6  # 100 km/h  → m/s
         arrow_scale: float = 8.0  # 최대 화살표 길이 [m]
-
         # ── 각 주변 에이전트 루프 ──────────────────────────
         for agent_hist in neighbor_array:  # (21, 11)
             if np.allclose(agent_hist, 0.0, atol=1e-6):
@@ -529,11 +547,9 @@ class DiffusionPlannerObservation(BaseObservation):
 
             # (c) 현재 스텝(마지막 인덱스)만 속도 화살표 추가 --------------
             x, y, c_h, s_h, vx, vy, width, length = agent_hist[-1, :8]
-
             speed: float = math.hypot(vx, vy)
             if speed < 1e-2:
                 continue
-
             vx_w, vy_w = self._local_vec_to_world(float(vx), float(vy), ego_yaw)
             norm: float = min(speed / vmax, 1.0)
             arr_len: float = norm * arrow_scale  # [m]
@@ -553,7 +569,6 @@ class DiffusionPlannerObservation(BaseObservation):
                 dotted=False,
                 thickness=40,
             )
-
     # -----------------------------------------------------------
     # ② 폴리라인(연속 선분) 그리기
     # -----------------------------------------------------------

@@ -244,7 +244,7 @@ class IDMPolicy(BasePolicy):
     LANE_CHANGE_FREQ = 50  # [step]
     LANE_CHANGE_SPEED_INCREASE = 10
     SAFE_LANE_CHANGE_DISTANCE = 15
-    MAX_LONG_DIST = 30
+    MAX_LONG_DIST = 200
     MAX_SPEED = 100  # km/h
 
     # Normal speed
@@ -255,7 +255,7 @@ class IDMPolicy(BasePolicy):
 
     # acc factor
     ACC_FACTOR = 1.0
-    DEACC_FACTOR = -50
+    DEACC_FACTOR = -5
 
     def __init__(self, control_object, random_seed):
         super(IDMPolicy, self).__init__(control_object=control_object,

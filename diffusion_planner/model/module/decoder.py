@@ -57,8 +57,10 @@ class Decoder(nn.Module):
                     "neighbor_agents_past": past and current neighbor states,
                         -  [1, 32, 21, 11]
 
-                    [training-only] "sampled_trajectories": sampled current-future ego & neighbor states,        [B, P, 1 + V_future, 4]
-                    [training-only] "diffusion_time": timestep of diffusion process $t \in [0, 1]$,              [B]
+                    [training-only] "sampled_trajectories": sampled current-future ego & neighbor states,
+                        [B, P, 1 + V_future, 4]
+                    [training-only] "diffusion_time": timestep of diffusion process $t \in [0, 1]$,
+                        [B]
                     ...
                 }
             neighbor_agents_token_str: List[List[str]]
@@ -94,16 +96,17 @@ class Decoder(nn.Module):
         route_encoding = encoder_outputs['route_encoding'] # [B, D]
 
         if self.training:
-            raise NotImplementedError("Training mode is not implemented yet.")
             sampled_trajectories = inputs['sampled_trajectories'].reshape(
                 B, P, -1)  # [B, 1 + predicted_neighbor_num, (1 + V_future) * 4]
             diffusion_time = inputs['diffusion_time']
-
-            return {
-                "score":
-                    self.dit(sampled_trajectories, diffusion_time,
+            score = self.dit(sampled_trajectories, diffusion_time,
                              ego_neighbor_encoding, route_encoding,
                              neighbor_current_mask).reshape(B, P, -1, 4)
+            print("score.shape:", score.shape) # [B, P, T, 4]
+            raise NotImplementedError
+            return {
+                "score":score
+
             }
         else:
             # [B, P(=1 + predicted_neighbor_num), (1 + V_future) * 4]
@@ -130,15 +133,13 @@ class Decoder(nn.Module):
                                  "correcting_xt_fn": initial_state_constraint,
                              })
             x0 = x0.reshape(B, P, -1, 4) # [B, P, 1 + V_future, 4]
-            x0_inverse = self._state_normalizer.inverse(x0) # [B, P, 1 + V_future, 4]
-            x0 = x0_inverse # [:, :, 1:] # [B, P, V_future, 4] # Exclude current state
-
+            x0 = self._state_normalizer.inverse(x0) # [B, P, 1 + V_future, 4]
             mask = neighbor_current_mask.unsqueeze(-1).unsqueeze(-1)  # [B, P-1, 1, 1]
-            mask = mask.expand(-1, -1, x0.size(2), x0.size(3))     # [B, P-1, T, 4]
+            mask = mask.expand(-1, -1, x0.size(2), x0.size(3))     # [B, P-1, 1 + V_future, 4]
 
             # ego 예측(x0[:,0])은 그대로 두고, 나머지 neighbor 예측만 0 처리
-            ego_traj      = x0[:, 0, 1:, :]                       # [B,1,T,4]
-            neighbor_traj = x0[:, 1:, :, :].masked_fill(mask, 0.) # [B,P-1,T,4]
+            ego_traj      = x0[:, 0, 1:, :]                       # [B,1, V_future,4]
+            neighbor_traj = x0[:, 1:, :, :].masked_fill(mask, 0.) # [B,P-1,1 + V_future,4]
             # x0 = torch.cat([ego_traj, neighbor_traj], dim=1)      # [B,P,T,4]
             # print("ego_traj.shape", ego_traj.shape) # (B, 80, 4)
             # print("neighbor_traj.shape", neighbor_traj.shape) # (B, 10, 81, 4)
@@ -146,7 +147,7 @@ class Decoder(nn.Module):
                 "ego_prediction":
                     ego_traj,  # [B, P, V_future, 4] # Include Ego, Neighbors # Exclude current state
                 "npc_prediction":
-                    neighbor_traj
+                    neighbor_traj # [B,P-1,1 + V_future,4]
             }
 
 
@@ -280,7 +281,6 @@ class DiT(nn.Module):
             x = block(x, cross_c, y, attn_mask)
 
         x = self.final_layer(x, y)
-
         if self._model_type == "score":
             return x / (self.marginal_prob_std(t)[:, None, None] + 1e-6)
         elif self._model_type == "x_start":

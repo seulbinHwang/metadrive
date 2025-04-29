@@ -456,6 +456,10 @@ class PGTrafficManager(BaseManager):
             self.np_random.shuffle(vehicle_longs)
             for long in vehicle_longs[:int(
                     np.ceil(traffic_density * len(vehicle_longs)))]:
+                # TODO: remove
+                if len(self._traffic_vehicles) >= 10:
+                    break
+
                 # if self.np_random.rand() > traffic_density and abs(lane.length - InRampOnStraight.RAMP_LEN) > 0.1:
                 #     # Do special handling for ramp, and there must be vehicles created there
                 #     continue
@@ -520,6 +524,9 @@ class PGTrafficManager(BaseManager):
 
             from metadrive.policy.idm_policy import IDMPolicy
             for v_config in selected:
+                # TODO: remove
+                if len(self._traffic_vehicles) >= 10:
+                    break
                 vehicle_type = self.random_vehicle_type()
                 v_config.update(
                     self.engine.global_config["traffic_vehicle_config"])
@@ -901,6 +908,10 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         super().reset()
         # 궤적 그림 초기화
         self._clear_traffic_trajs()
+        # safety cap: 항상 최대 10대
+        # TODO: remove
+        if len(self._traffic_vehicles) > 10:
+            self._traffic_vehicles = self._traffic_vehicles[:10]
 
     def _clear_traffic_trajs(self):
         """이전 프레임에 그렸던 궤적 NodePath를 모두 제거."""
@@ -922,10 +933,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         ego_yaw = ego.heading_theta
 
         # 외부 NPC들이 예측해온 궤적
-        try:
-            external_npc = engine.external_npc_actions[:, :1]  # (N, T, 4)
-        except:
-            return
+        external_npc = engine.external_npc_actions# [:, :1, :]  # (N, T, 4)
         # 각 traffic 차량의 글로벌 궤적 좌표 구하기
         # 3) 차량별로 한 궤적씩 변환 → world coords (T,2)
         for idx, npc_traj in enumerate(external_npc):  # npc_traj.shape == (T,4)
@@ -937,7 +945,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
             for (x, y) in coords_g:
                 np_node = engine._draw_line_3d(
                     LVector3(x, y, 1.5),
-                    LVector3(x, y, 12.52),
+                    LVector3(x, y, (idx+1.) *3. + 2. ),
                     color=(0, 1, 0, 1),  # 초록
                     thickness=250
                 )
@@ -956,8 +964,8 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         2) 가장 가까운 10 대에 LQRPolicy 부여
         3) 각 vehicle.before_step(action) 호출
         """
-        self._clear_traffic_trajs()
-        self._draw_all_traffic_trajs()
+        # self._clear_traffic_trajs()
+        # self._draw_all_traffic_trajs()
         external_npc_actions = self.engine.external_npc_actions[:, 1:]  # (P-1, 80, 4)
         diffusion_vehicle_num = external_npc_actions.shape[0]
         # ── 2.  이제 리스트가 확정됐으므로 policy 재배치
@@ -967,18 +975,19 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         ego_pos = np.array(ego.position[:2], dtype=np.float32)
         ego_yaw = ego.heading_theta
         if closest_idx is not None:
-            for vehicle_idx, veh in enumerate(self._traffic_vehicles):
+            sorted_traffic_vehicles = [
+                self._traffic_vehicles[i] for i in closest_idx
+            ]
+            for vehicle_idx, veh in enumerate(sorted_traffic_vehicles):
                 pol = self.engine.get_policy(veh.id)
-                if isinstance(pol, LQRPolicy):
-                    # ego 기준 꺼내온 트래젝토리
-                    npc_traj_wrt_ego = external_npc_actions[np.where(
-                        closest_idx == vehicle_idx)[0][0]]
-                    # global → vehicle 로컬로 일괄 변환
-                    future_traj = transform_trajectory(
-                        npc_traj_wrt_ego, ego_pos, ego_yaw,
-                        np.array(veh.position[:2], dtype=np.float32),
-                        veh.heading_theta)
-                    veh.before_step(pol.act(veh.id, future_traj))
+                assert isinstance(pol, (LQRPolicy))
+                npc_traj_wrt_ego = external_npc_actions[vehicle_idx]
+                # global → vehicle 로컬로 일괄 변환
+                future_traj = transform_trajectory(
+                    npc_traj_wrt_ego, ego_pos, ego_yaw,
+                    np.array(veh.position[:2], dtype=np.float32),
+                    veh.heading_theta)
+                veh.before_step(pol.act(veh.id, future_traj))
 
         # ── 1.  block trigger 처리 (부모 로직 그대로)
         if self.mode != TrafficMode.Respawn:

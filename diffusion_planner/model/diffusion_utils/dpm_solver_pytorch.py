@@ -188,11 +188,11 @@ def model_wrapper(
     noise_schedule,
     model_type="noise",
     model_kwargs={},
-    guidance_type="uncond",
+    guidance_type="uncond",  # "classifier"
     condition=None,
     unconditional_condition=None,
-    guidance_scale=1.,
-    classifier_fn=None,
+    guidance_scale=1.,  # 0.5
+    classifier_fn=None,  # self._guidance_fn # GuidanceWrapper
     classifier_kwargs={},
 ):
     """Create a wrapper function for the noise prediction model.
@@ -271,6 +271,9 @@ def model_wrapper(
         model_type: A `str`. The parameterization type of the diffusion model.
                     "noise" or "x_start" or "v" or "score".
         model_kwargs: A `dict`. A dict for the other inputs of the model function.
+            "cross_c": ego_neighbor_encoding,  # [B, P-1, D]
+            "route_encoding": route_encoding,  # [B, D]
+            "neighbor_current_mask": neighbor_current_mask  # [B, P-1]
         guidance_type: A `str`. The type of the guidance for sampling.
                     "uncond" or "classifier" or "classifier-free".
         condition: A pytorch tensor. The condition for the guided sampling.
@@ -280,6 +283,17 @@ def model_wrapper(
         guidance_scale: A `float`. The scale for the guided sampling.
         classifier_fn: A classifier function. Only used for the classifier guidance.
         classifier_kwargs: A `dict`. A dict for the other inputs of the classifier function.
+            {
+                "model": self.dit,
+                "model_condition": {
+                    "cross_c": ego_neighbor_encoding,
+                    "route_encoding": route_encoding,
+                    "neighbor_current_mask": neighbor_current_mask
+                },
+                "inputs": inputs,
+                "observation_normalizer": self._observation_normalizer,
+                "state_normalizer": self._state_normalizer
+            },
     Returns:
         A noise prediction model that accepts the noised data and the continuous time as the inputs.
     """
@@ -323,8 +337,23 @@ def model_wrapper(
         """
         with torch.enable_grad():
             x_in = x.detach().requires_grad_(True)
+
+            # log_prob: energy 의 총 합
             log_prob = classifier_fn(x_in, t_input, condition,
                                      **classifier_kwargs)
+            """ classifier_kwargs
+            {
+                "model": self.dit,
+                "model_condition": {
+                    "cross_c": ego_neighbor_encoding,
+                    "route_encoding": route_encoding,
+                    "neighbor_current_mask": neighbor_current_mask
+                },
+                "inputs": inputs,
+                "observation_normalizer": self._observation_normalizer,
+                "state_normalizer": self._state_normalizer
+            },
+            """
             return torch.autograd.grad(log_prob.sum(), x_in)[0]
 
     def model_fn(x, t_continuous):
@@ -336,6 +365,7 @@ def model_wrapper(
         elif guidance_type == "classifier":
             assert classifier_fn is not None
             t_input = get_model_input_time(t_continuous)
+            # cond_grad : energy 의 총 합
             cond_grad = cond_grad_fn(x, t_input)
             sigma_t = noise_schedule.marginal_std(t_continuous)
             noise = noise_pred_fn(x, t_continuous)
@@ -364,7 +394,7 @@ class DPM_Solver:
 
     def __init__(
         self,
-        model_fn,
+        model_fn,  # GuidanceWrapper
         noise_schedule,
         algorithm_type="dpmsolver++",
         correcting_x0_fn=None,

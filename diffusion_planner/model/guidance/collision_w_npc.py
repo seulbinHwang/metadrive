@@ -2,7 +2,8 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from nuplan.common.actor_state.vehicle_parameters import VehicleParameters, get_pacifica_parameters
+from nuplan.common.actor_state.vehicle_parameters import VehicleParameters, \
+    get_pacifica_parameters
 
 ego_size = [get_pacifica_parameters().length, get_pacifica_parameters().width]
 
@@ -15,7 +16,7 @@ def batch_signed_distance_rect(rect1, rect2):
     '''
     rect1: [B, 4, 2]
     rect2: [B, 4, 2]
-    
+
     return [B] (signed distance between two rectangles)
     '''
     B, _, _ = rect1.shape
@@ -52,7 +53,7 @@ def batch_signed_distance_rect(rect1, rect2):
 def center_rect_to_points(rect):
     '''
     rect: [B, 6] (x, y, cos_h, sin_h, l, w)
-    
+
     return [B, 4, 2] (4 points of the rectangle)
     '''
 
@@ -80,8 +81,36 @@ def collision_guidance_fn(x, t, cond, inputs, *args, **kwargs) -> torch.Tensor:
     inputs: Dict[str, torch.Tensor]
     """
     B, P, T, _ = x.shape
-    neighbor_current_mask = inputs["neighbor_current_mask"]  # [B, Pn]
+    neighbor_current_mask = inputs["neighbor_current_mask"]  # (B, 10)
+    all_neighbor_current_mask = inputs["all_neighbor_current_mask"]  # (B, 32)
+    predicted_agents_num = x.shape[1] - 1  # Pn
+    assert (predicted_agents_num == 10)
 
+    # ==== 추가된 부분: nearest 10대/나머지 분리 ====
+    # inputs["neighbor_agents_past"]: [B, N=32, 21, 11]
+    # 현재 시점 feature (x,y,cos,sin,vx,vy,width,length,…)
+    neighbor_agents_current = inputs[
+        "neighbor_agents_past"][:, :, -1, :]  # [B, N, 11]
+    leftover_agents_current = neighbor_agents_current[:,
+                                                      predicted_agents_num:, :]  # [B, N-10, 11]
+    far_count = leftover_agents_current.size(1)  # 22
+    half_T = (T - 1) // 2  # 80 -> 40
+    assert half_T == 40
+    # ==== 추가된 부분: 나머지 차량 constant-velocity future 생성 ====
+    pos = leftover_agents_current[..., 0:2]  # [B,22,2]
+    vel = leftover_agents_current[..., 4:6]  # [B,22,2]
+    heading = leftover_agents_current[..., 2:4]  # [B,22,2]
+    # ==== 수정된 부분: 시간 간격 Δt 적용 ====
+    delta_t = 0.1  # 인접 점 간 시간 간격 (s)
+    a = torch.arange(1, T, device=x.device)
+    times = a.view(1, 1, T - 1, 1) * delta_t  # [1,1,80,1]
+    pos_fut = pos.unsqueeze(2) + vel.unsqueeze(2) * times  # [1,22,80,2]
+    cos_fut = heading[..., 0].unsqueeze(2).expand(-1, -1, T - 1)  # [B,22,80]
+    sin_fut = heading[..., 1].unsqueeze(2).expand(-1, -1, T - 1)  # [B,22,80]
+    neighbor_leftover_agents_future = torch.cat(
+        [pos_fut, cos_fut.unsqueeze(-1),
+         sin_fut.unsqueeze(-1)], dim=-1)  # [B,22,80,4]
+    # ============================
     x: torch.Tensor = x.reshape(B, P, -1, 4)
     mask_diffusion_time = (t < 0.1 and t > 0.005)
     x = torch.where(mask_diffusion_time, x, x.detach())
@@ -104,27 +133,58 @@ def collision_guidance_fn(x, t, cond, inputs, *args, **kwargs) -> torch.Tensor:
 
     B, Pn, T, _ = neighbors_pred.shape
 
-    predictions = torch.cat([ego_pred, neighbors_pred.detach()],
-                            dim=1)  # [B, P + 1, T, 4]
-    # "neighbor_agents_past" : [B, 32, 21, 11]
+    # predictions = torch.cat([ego_pred, neighbors_pred.detach()],
+    #                         dim=1)  # [B, P + 1, T, 4]
+    # ==== 기존 predictions 확장 ====
+    #  - 원본: torch.cat([ego_pred, neighbors_pred.detach()], dim=1)
+    predictions = torch.cat(
+        [
+            ego_pred,
+            neighbors_pred.detach(),
+            neighbor_leftover_agents_future  # [B, 1+Pn+22, T, 4]
+        ],
+        dim=1)  # (1, 33, 80, 4)
+    # ==== 기존 lw 확장 ====
+    #  - 원본: lw = torch.cat([ego_size, inputs["neighbor_agents_past"][:,:Pn,-1,[7,6]]], dim=1)
     lw = torch.cat([
         torch.tensor(ego_size, device=predictions.device)[None, None, :].repeat(
             B, 1, 1), inputs["neighbor_agents_past"][:, :Pn, -1, [7, 6]]
     ],
-                   dim=1)  # [B, P, 2]
-
+                   dim=1)  # [1, 11, 2)
+    leftover_lw = inputs["neighbor_agents_past"][:, predicted_agents_num:, -1,
+                                                 [7, 6]]  # [1,22,2]
+    lw = torch.cat(
+        [
+            lw,  # 이전까지 [B, 1+Pn, 2]
+            leftover_lw  # 추가 -> [B, 1+Pn+22, 2]
+        ],
+        dim=1)  # (1, 33, 2)
     bbox = torch.cat(
         [predictions,
          lw.unsqueeze(2).expand(-1, -1, T, -1) + INFLATION],
-        dim=-1)  # [B, P, T, 6] # (1, 11, 80, 6)
+        dim=-1)  # (1, 33, 80, 6)
     bbox = center_rect_to_points(bbox.reshape(-1, 6)).reshape(
-        B, Pn + 1, T, 4, 2)  # (1, 11, 80, 4, 2)
-    ego_bbox = bbox[:, :1, :, :, :].expand(-1, Pn, -1, -1,
-                                           -1)[~neighbor_current_mask].reshape(
-                                               -1, 4, 2)  # (800, 4, 2)
-    neighbor_bbox = bbox[:, 1:, :, :, :][~neighbor_current_mask].reshape(
-        -1, 4, 2)  # (800, 4, 2)
-    distances = batch_signed_distance_rect(ego_bbox, neighbor_bbox)
+        B, 1 + Pn + far_count, T, 4, 2)  # (1, 33, 80, 4, 2)
+    # ==== 추가된 부분: near/far bounding‐box flattening ====
+    # 원본은 전체 Pn에 대해 전부 T timestep을 비교했지만,
+    # → near 10대는 T 전체, far 22대는 half_T(40)만 비교
+    near_ego = bbox[:, :1, :, :, :].expand(-1, predicted_agents_num, -1, -1,
+                                           -1)  # (1, 10,80, 4, 2)
+    near_nbr = bbox[:, 1:1 + predicted_agents_num, :, :, :]  # (1, 10, 80, 4, 2)
+    far_ego = bbox[:, :1, :half_T, :, :].expand(-1, far_count, half_T, -1,
+                                                -1)  # [1, 22, 40, 4, 2]
+    far_nbr = bbox[:, 1 +
+                   predicted_agents_num:, :half_T, :, :]  # [1, 22, 40, 4, 2]
+    far_mask = all_neighbor_current_mask[:, predicted_agents_num:]  # [B,22]
+    ego_near_flat = near_ego[~neighbor_current_mask].reshape(-1, 4, 2)  #
+    nbr_near_flat = near_nbr[~neighbor_current_mask].reshape(-1, 4, 2)
+    ego_far_flat = far_ego[~far_mask].reshape(-1, 4, 2)
+    nbr_far_flat = far_nbr[~far_mask].reshape(-1, 4, 2)
+
+    ego_bbox = torch.cat([ego_near_flat, ego_far_flat], dim=0)  # (_, 4, 2)
+    neighbor_bbox = torch.cat([nbr_near_flat, nbr_far_flat], dim=0)  # (_, 4, 2)
+    distances = batch_signed_distance_rect(ego_bbox, neighbor_bbox)  # (_)
+    ######################
     clip_distances = torch.maximum(1 - distances / CLIP_DISTANCE,
                                    torch.tensor(0.0, device=distances.device))
 
@@ -149,7 +209,9 @@ def collision_guidance_fn(x, t, cond, inputs, *args, **kwargs) -> torch.Tensor:
     # x_aux = torch.cat([x_aux[:, :5], torch.zeros_like(x_aux[:, 5:])], dim=1)
 
     x_aux = torch.stack([
-        torch.einsum("bt,it->bi", x_aux[..., 0], torch.tril((-torch.linspace(0, 1, T, device=x.device)).exp().unsqueeze(0).repeat(T, 1))) * 0,
+        torch.einsum("bt,it->bi", x_aux[..., 0], torch.tril(
+            (-torch.linspace(0, 1, T, device=x.device)).exp().unsqueeze(
+                0).repeat(T, 1))) * 0,
         F.conv1d(
             F.pad(x_aux[:, None, :, 1], (10, 10), mode='replicate'),
             torch.ones(1, 1, 21, device=x.device) * \

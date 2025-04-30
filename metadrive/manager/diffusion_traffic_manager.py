@@ -457,8 +457,8 @@ class PGTrafficManager(BaseManager):
             for long in vehicle_longs[:int(
                     np.ceil(traffic_density * len(vehicle_longs)))]:
                 # TODO: remove
-                if len(self._traffic_vehicles) >= 10:
-                    break
+                # if len(self._traffic_vehicles) >= 13:
+                #     break
 
                 # if self.np_random.rand() > traffic_density and abs(lane.length - InRampOnStraight.RAMP_LEN) > 0.1:
                 #     # Do special handling for ramp, and there must be vehicles created there
@@ -525,8 +525,8 @@ class PGTrafficManager(BaseManager):
             from metadrive.policy.idm_policy import IDMPolicy
             for v_config in selected:
                 # TODO: remove
-                if len(self._traffic_vehicles) >= 10:
-                    break
+                # if len(self._traffic_vehicles) >= 13:
+                #     break
                 vehicle_type = self.random_vehicle_type()
                 v_config.update(
                     self.engine.global_config["traffic_vehicle_config"])
@@ -910,8 +910,8 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         self._clear_traffic_trajs()
         # safety cap: 항상 최대 10대
         # TODO: remove
-        if len(self._traffic_vehicles) > 10:
-            self._traffic_vehicles = self._traffic_vehicles[:10]
+        # if len(self._traffic_vehicles) > 13:
+        #     self._traffic_vehicles = self._traffic_vehicles[:13]
 
     def _clear_traffic_trajs(self):
         """이전 프레임에 그렸던 궤적 NodePath를 모두 제거."""

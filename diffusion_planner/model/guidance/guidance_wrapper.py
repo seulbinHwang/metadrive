@@ -2,7 +2,9 @@ from typing import List
 import torch
 
 from diffusion_planner.model.diffusion_utils.sde import VPSDE_linear
-from diffusion_planner.model.guidance.collision import collision_guidance_fn
+# from diffusion_planner.model.guidance.collision import collision_guidance_fn
+from diffusion_planner.model.guidance.collision_w_npc import collision_guidance_fn
+from diffusion_planner.model.module.decoder import DiT
 
 N = 1
 sde = VPSDE_linear()
@@ -16,6 +18,22 @@ class GuidanceWrapper:
     def __call__(self, x_in, t_input, cond, *args, **kwargs):
         """
         This function is a wrapper for the guidance functions in the model.
+
+        cond = None
+
+        kwargs
+            {
+                "model": self.dit,
+                "model_condition": {
+                    "cross_c": ego_neighbor_encoding,
+                    "route_encoding": route_encoding,
+                    "neighbor_current_mask": neighbor_current_mask
+                },
+                "inputs": inputs,
+                "observation_normalizer": self._observation_normalizer,
+                "state_normalizer": self._state_normalizer
+            }
+
         """
         energy = 0
 
@@ -23,20 +41,7 @@ class GuidanceWrapper:
         observation_normalizer = kwargs["observation_normalizer"]
 
         B, P, _ = x_in.shape
-        """ kwargs
- {
-                        "model": self.dit,
-                        "model_condition": {
-                            "cross_c": ego_neighbor_encoding,
-                            "route_encoding": route_encoding,
-                            "neighbor_current_mask": neighbor_current_mask
-                        },
-                        "inputs": inputs,
-                        "observation_normalizer": self._observation_normalizer,
-                        "state_normalizer": self._state_normalizer
-                    },        
-        """
-        model = kwargs["model"] # self.dit
+        model: DiT = kwargs["model"]  # self.dit
         model_condition = kwargs["model_condition"]
 
         x_fix = model(x_in, t_input, **model_condition).detach() - x_in.detach()
@@ -53,7 +58,8 @@ class GuidanceWrapper:
         # x_in = torch.cat([x_in[:, :1] + sigma_t[:, None, None] * torch.randn_like(x_in[:, :1]), x_in[:, 1:]], dim=1)
 
         x_in = state_normalizer.inverse(x_in.reshape(B, P, -1, 4))
-        kwargs["inputs"] = observation_normalizer.inverse(kwargs["inputs"])
+        kwargs["inputs"] = observation_normalizer.inverse(
+            kwargs["inputs"])  # inputs: observations
 
         for guidance_fn in self._guidance_fns:
             energy += guidance_fn(x_in, t_input, cond, **kwargs)

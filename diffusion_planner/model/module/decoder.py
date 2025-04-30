@@ -35,7 +35,7 @@ class Decoder(nn.Module):
         self._state_normalizer: StateNormalizer = config.state_normalizer
         self._observation_normalizer: ObservationNormalizer = config.observation_normalizer
 
-        self._guidance_fn = config.guidance_fn
+        self._guidance_fn = config.guidance_fn  # GuidanceWrapper
 
     @property
     def sde(self):
@@ -90,6 +90,15 @@ class Decoder(nn.Module):
         sum_ = torch.sum(not_zero, dim=-1)  # [B, P-1]
         neighbor_current_mask = sum_ == 0  # [B, P-1] -> 차량 정보가 없는 경우 True
         inputs["neighbor_current_mask"] = neighbor_current_mask  # [B, P-1]
+        #############
+        all_neighbors_current = inputs["neighbor_agents_past"][:, :, -1, :
+                                                               4]  # [B, 32, 4]
+        not_zero_all = torch.ne(all_neighbors_current[..., :4], 0)  # [B, 32, 4]
+        sum_all = torch.sum(not_zero_all, dim=-1)  # [B, 32]
+        all_neighbor_current_mask = sum_all == 0  # [B, 32] -> 차량 정보가 없는 경우 True
+        inputs[
+            "all_neighbor_current_mask"] = all_neighbor_current_mask  # [B, 32]
+        ##############
 
         current_states = torch.cat([ego_current, neighbors_current],
                                    dim=1)  # [B, P, 4]
@@ -126,8 +135,8 @@ class Decoder(nn.Module):
                 return xt.reshape(B, P, -1)
 
             x0 = dpm_sampler(
-                self.dit,
-                xT,  # [B, P, (1 + V_future) * 4]
+                model=self.dit,
+                x_T=xT,  # [B, P, (1 + V_future) * 4]
                 other_model_params={
                     "cross_c": ego_neighbor_encoding,  # [B, P-1, D]
                     "route_encoding": route_encoding,  # [B, D]

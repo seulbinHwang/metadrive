@@ -398,7 +398,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
                 str, torch.Tensor] = self.diffusion_transformer_for_npc(
                     features, observation)
             self.npc_predictions = decoder_outputs_for_npc[
-                "npc_prediction"].detach().cpu().numpy().astype(np.float64) # (B, P-1, V_future, 4)
+                "npc_prediction"].detach().cpu().numpy().astype(np.float64) # (B, P-1, 1+V_future, 4)
         return ego_predictions
 
     def forward(

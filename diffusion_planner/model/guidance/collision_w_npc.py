@@ -168,22 +168,40 @@ def collision_guidance_fn(x, t, cond, inputs, *args, **kwargs) -> torch.Tensor:
     # ==== 추가된 부분: near/far bounding‐box flattening ====
     # 원본은 전체 Pn에 대해 전부 T timestep을 비교했지만,
     # → near 10대는 T 전체, far 22대는 half_T(40)만 비교
-    near_ego = bbox[:, :1, :, :, :].expand(-1, predicted_agents_num, -1, -1,
-                                           -1)  # (1, 10,80, 4, 2)
-    near_nbr = bbox[:, 1:1 + predicted_agents_num, :, :, :]  # (1, 10, 80, 4, 2)
-    far_ego = bbox[:, :1, :half_T, :, :].expand(-1, far_count, half_T, -1,
-                                                -1)  # [1, 22, 40, 4, 2]
     far_nbr = bbox[:, 1 +
                    predicted_agents_num:, :half_T, :, :]  # [1, 22, 40, 4, 2]
-    far_mask = all_neighbor_current_mask[:, predicted_agents_num:]  # [B,22]
-    ego_near_flat = near_ego[~neighbor_current_mask].reshape(-1, 4, 2)  #
-    nbr_near_flat = near_nbr[~neighbor_current_mask].reshape(-1, 4, 2)
-    ego_far_flat = far_ego[~far_mask].reshape(-1, 4, 2)
-    nbr_far_flat = far_nbr[~far_mask].reshape(-1, 4, 2)
+    distances = []
+    # TODO: remove for loop?
+    for idx in range(1, 1 + predicted_agents_num):  # 0 ~ 10
+        near_ego = bbox[:,
+                        idx:idx + 1, :, :, :].expand(-1, predicted_agents_num,
+                                                     -1, -1,
+                                                     -1)  # (1, 10, 80, 4, 2)
+        far_ego = bbox[:, idx:idx + 1, :half_T, :, :].expand(
+            -1, far_count, half_T, -1, -1)  # [1, 22, 40, 4, 2]
+        a = bbox[:, :idx, :, :, :]
+        b = bbox[:, idx + 1:1 + predicted_agents_num, :, :, :]
+        near_nbr = torch.cat([a, b], dim=1)  # [1, 10, 80, 4, 2]
+        a = all_neighbor_current_mask[:, :idx - 1]
+        b = all_neighbor_current_mask[:, idx: predicted_agents_num]
+        near_mask = torch.cat([a, b], dim=1)  # [B, 10]
+        true_padding = torch.ones_like(near_mask[:, :1],
+                                       device=near_mask.device)  # [B, 1]
+        # pad True in front.
+        near_mask = torch.cat([true_padding, near_mask], dim=1)  # [B, 11]
+        ego_near_flat = near_ego[~near_mask].reshape(-1, 4, 2)
+        nbr_near_flat = near_nbr[~near_mask].reshape(-1, 4, 2)
 
-    ego_bbox = torch.cat([ego_near_flat, ego_far_flat], dim=0)  # (_, 4, 2)
-    neighbor_bbox = torch.cat([nbr_near_flat, nbr_far_flat], dim=0)  # (_, 4, 2)
-    distances = batch_signed_distance_rect(ego_bbox, neighbor_bbox)  # (_)
+        far_mask = all_neighbor_current_mask[:, predicted_agents_num:]  # [B,22]
+        ego_far_flat = far_ego[~far_mask].reshape(-1, 4, 2)
+        nbr_far_flat = far_nbr[~far_mask].reshape(-1, 4, 2)
+
+        ego_bbox = torch.cat([ego_near_flat, ego_far_flat], dim=0)  # (_, 4, 2)
+        neighbor_bbox = torch.cat([nbr_near_flat, nbr_far_flat],
+                                  dim=0)  # (_, 4, 2)
+        a_distances = batch_signed_distance_rect(ego_bbox, neighbor_bbox)  # (_)
+        distances.append(a_distances)
+    distances = torch.cat(distances, dim=0)  # [N]
     ######################
     clip_distances = torch.maximum(1 - distances / CLIP_DISTANCE,
                                    torch.tensor(0.0, device=distances.device))

@@ -20,14 +20,12 @@ from nuplan.planning.simulation.planner.ml_planner.transform_utils import transf
 # from diffusion_planner.utils.config import Config
 
 
-def outputs_to_trajectory(
-        predictions: np.ndarray,
-        ego_state_history: Deque[EgoState],
-future_horizon = 8.,
-step_interval = 0.1
-) -> List[InterpolatableState]:
+def outputs_to_trajectory(predictions: np.ndarray,
+                          ego_state_history: Deque[EgoState],
+                          future_horizon=8.,
+                          step_interval=0.1) -> List[InterpolatableState]:
     heading = np.arctan2(predictions[:, 3], predictions[:, 2])[...,
-    None]  # T, 1
+                                                               None]  # T, 1
     predictions = np.concatenate([predictions[..., :2], heading],
                                  axis=-1)  # T, 3
 

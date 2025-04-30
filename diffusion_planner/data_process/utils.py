@@ -14,6 +14,7 @@ from enum import Enum
 import numpy as np
 import torch
 
+
 class TrackedObjectType(Enum):
     """Enum of classification types for TrackedObject."""
 
@@ -58,8 +59,6 @@ class TrackedObjectType(Enum):
     def __hash__(self) -> int:
         """Hash"""
         return hash((self.name, self.value))
-
-
 
 
 class EgoInternalIndex:
@@ -139,6 +138,7 @@ class EgoInternalIndex:
         :return: number of features.
         """
         return 7
+
 
 class AgentInternalIndex:
     """
@@ -228,7 +228,6 @@ class AgentInternalIndex:
         return 8
 
 
-
 def _state_se2_array_to_transform_matrix_batch(input_data):
 
     # Transform the incoming coordinates so transformation can be done with a simple matrix multiply.
@@ -290,7 +289,6 @@ def _state_se2_array_to_transform_matrix(input_data):
     return np.array([[cosine, -sine, x], [sine, cosine, y], [0.0, 0.0, 1.0]])
 
 
-
 def _transform_matrix_to_state_se2_array_batch(input_data):
     """
     Converts a Nx3x3 batch transformation matrix into a Nx3 array of [x, y, heading] rows.
@@ -306,7 +304,6 @@ def _transform_matrix_to_state_se2_array_batch(input_data):
     result[:, 2] = angles
 
     return result
-
 
 
 def _global_state_se2_array_to_local(global_states, local_state):

@@ -300,7 +300,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
 
     def _load_state_dict(self) -> tuple[dict, dict, dict]:
         pth_path = os.path.join("checkpoints", "model.pth")
-        raw = torch.load(pth_path, map_location="cpu")
+        raw = torch.load(pth_path, map_location=self.device)
         state_dict = raw['ema_state_dict']
         # DDP로 저장된 키 제거
         model_state_dict = {
@@ -392,13 +392,15 @@ class DiffusionActorCriticPolicy(BasePolicy):
                                          self.pi_features_extractor)
         decoder_outputs: Dict[str, torch.Tensor] = self.diffusion_transformer(
             features, observation)
-        ego_predictions = decoder_outputs["ego_prediction"].detach() # (B, P, V_future, 4)
+        ego_predictions = decoder_outputs["ego_prediction"].detach(
+        )  # (B, P, V_future, 4)
         if self.double_decoder:
             decoder_outputs_for_npc: Dict[
                 str, torch.Tensor] = self.diffusion_transformer_for_npc(
                     features, observation)
             self.npc_predictions = decoder_outputs_for_npc[
-                "npc_prediction"].detach().cpu().numpy().astype(np.float64) # (B, P-1, 1+V_future, 4)
+                "npc_prediction"].detach().cpu().numpy().astype(
+                    np.float64)  # (B, P-1, 1+V_future, 4)
         return ego_predictions
 
     def forward(
@@ -424,7 +426,8 @@ class DiffusionActorCriticPolicy(BasePolicy):
             decoder_outputs: Dict[str,
                                   torch.Tensor] = self.diffusion_transformer(
                                       features, obs)
-            predictions = decoder_outputs["ego_prediction"]  # (B, P, V_future, 4)
+            predictions = decoder_outputs[
+                "ego_prediction"]  # (B, P, V_future, 4)
             ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
                 np.float64)  # (B, 80, 4)
             if self.double_decoder:
@@ -433,8 +436,8 @@ class DiffusionActorCriticPolicy(BasePolicy):
                         features, obs)
                 # TODO
                 self.npc_predictions = decoder_outputs_for_npc[
-                    "ego_prediction"][:,
-                                  1:].detach().cpu().numpy().astype(np.float64)
+                    "ego_prediction"][:, 1:].detach().cpu().numpy().astype(
+                        np.float64)
             values = self.critic_net(features['encoding'],
                                      features['route_encoding'])  # shape (B)
         else:
@@ -448,8 +451,8 @@ class DiffusionActorCriticPolicy(BasePolicy):
                         pi_features, obs)
                 # TODO
                 self.npc_predictions = decoder_outputs_for_npc[
-                    "ego_prediction"][:,
-                                  1:].detach().cpu().numpy().astype(np.float64)
+                    "ego_prediction"][:, 1:].detach().cpu().numpy().astype(
+                        np.float64)
             predictions = decoder_outputs["ego_prediction"]
             ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
                 np.float64)

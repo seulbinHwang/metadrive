@@ -8,7 +8,7 @@ from typing import List
 
 from diffusion_planner.model.diffusion_utils.sampling import dpm_sampler
 from diffusion_planner.model.diffusion_utils.sde import SDE, VPSDE_linear
-from diffusion_planner.utils.normalizer import StateNormalizer
+from diffusion_planner.utils.normalizer import ObservationNormalizer, StateNormalizer
 from diffusion_planner.model.module.mixer import MixerBlock
 from diffusion_planner.model.module.dit import TimestepEmbedder, DiTBlock, FinalLayer
 
@@ -33,6 +33,9 @@ class Decoder(nn.Module):
             model_type=config.diffusion_model_type)
 
         self._state_normalizer: StateNormalizer = config.state_normalizer
+        self._observation_normalizer: ObservationNormalizer = config.observation_normalizer
+
+        self._guidance_fn = config.guidance_fn
 
     @property
     def sde(self):
@@ -78,12 +81,15 @@ class Decoder(nn.Module):
         """
         # Extract ego & neighbor current states
         ego_current = inputs['ego_current_state'][:, None, :4]  # [B, 1, 4]
-        neighbors_current = inputs[
-            "neighbor_agents_past"][:, :self._predicted_neighbor_num, # _predicted_neighbor_num = P-1
-                                    -1, :4]  # [B, P-1, 4]
+        neighbors_current = inputs["neighbor_agents_past"][
+            :,
+            :self._predicted_neighbor_num,  # _predicted_neighbor_num = P-1
+            -1,
+            :4]  # [B, P-1, 4]
         not_zero = torch.ne(neighbors_current[..., :4], 0)  # [B, P-1, 4]
         sum_ = torch.sum(not_zero, dim=-1)  # [B, P-1]
         neighbor_current_mask = sum_ == 0  # [B, P-1] -> 차량 정보가 없는 경우 True
+        inputs["neighbor_current_mask"] = neighbor_current_mask  # [B, P-1]
 
         current_states = torch.cat([ego_current, neighbors_current],
                                    dim=1)  # [B, P, 4]
@@ -92,8 +98,8 @@ class Decoder(nn.Module):
         assert P == (1 + self._predicted_neighbor_num)
 
         # Extract context encoding
-        ego_neighbor_encoding = encoder_outputs['encoding'] # [B, P-1, D]
-        route_encoding = encoder_outputs['route_encoding'] # [B, D]
+        ego_neighbor_encoding = encoder_outputs['encoding']  # [B, P-1, D]
+        route_encoding = encoder_outputs['route_encoding']  # [B, D]
 
         if self.training:
             sampled_trajectories = inputs['sampled_trajectories'].reshape(
@@ -102,52 +108,73 @@ class Decoder(nn.Module):
             score = self.dit(sampled_trajectories, diffusion_time,
                              ego_neighbor_encoding, route_encoding,
                              neighbor_current_mask).reshape(B, P, -1, 4)
-            print("score.shape:", score.shape) # [B, P, T, 4]
-            raise NotImplementedError
-            return {
-                "score":score
-
-            }
+            return {"score": score}
         else:
             # [B, P(=1 + predicted_neighbor_num), (1 + V_future) * 4]
             xT = torch.cat(
                 [
                     current_states[:, :, None],  # [B, P, 1, 4]
                     torch.randn(B, P, self._future_len, 4).to(
-                        current_states.device) * 0.5 # [B, P, V_future, 4] # (0, 1) -> (0, 0.5)
+                        current_states.device) *
+                    0.5  # [B, P, V_future, 4] # (0, 1) -> (0, 0.5)
                 ],
-                dim=2).reshape(B, P, -1) # [B, P, (1 + V_future) * 4]
+                dim=2).reshape(B, P, -1)  # [B, P, (1 + V_future) * 4]
 
             def initial_state_constraint(xt, t, step):
                 xt = xt.reshape(B, P, -1, 4)
                 xt[:, :, 0, :] = current_states
                 return xt.reshape(B, P, -1)
-            x0 = dpm_sampler(self.dit,
-                             xT, # [B, P, (1 + V_future) * 4]
-                             other_model_params={
-                                 "cross_c": ego_neighbor_encoding, # [B, P-1, D]
-                                 "route_encoding": route_encoding, # [B, D]
-                                 "neighbor_current_mask": neighbor_current_mask # [B, P-1]
-                             },
-                             dpm_solver_params={
-                                 "correcting_xt_fn": initial_state_constraint,
-                             })
-            x0 = x0.reshape(B, P, -1, 4) # [B, P, 1 + V_future, 4]
-            x0 = self._state_normalizer.inverse(x0) # [B, P, 1 + V_future, 4]
-            mask = neighbor_current_mask.unsqueeze(-1).unsqueeze(-1)  # [B, P-1, 1, 1]
-            mask = mask.expand(-1, -1, x0.size(2), x0.size(3))     # [B, P-1, 1 + V_future, 4]
+
+            x0 = dpm_sampler(
+                self.dit,
+                xT,  # [B, P, (1 + V_future) * 4]
+                other_model_params={
+                    "cross_c": ego_neighbor_encoding,  # [B, P-1, D]
+                    "route_encoding": route_encoding,  # [B, D]
+                    "neighbor_current_mask": neighbor_current_mask  # [B, P-1]
+                },
+                dpm_solver_params={
+                    "correcting_xt_fn": initial_state_constraint,
+                },
+                model_wrapper_params={
+                    "classifier_fn":
+                        self._guidance_fn,
+                    "classifier_kwargs": {
+                        "model": self.dit,
+                        "model_condition": {
+                            "cross_c": ego_neighbor_encoding,
+                            "route_encoding": route_encoding,
+                            "neighbor_current_mask": neighbor_current_mask
+                        },
+                        "inputs": inputs,
+                        "observation_normalizer": self._observation_normalizer,
+                        "state_normalizer": self._state_normalizer
+                    },
+                    "guidance_scale":
+                        0.5,
+                    "guidance_type":
+                        "classifier"
+                        if self._guidance_fn is not None else "uncond"
+                },
+            )
+            x0 = x0.reshape(B, P, -1, 4)  # [B, P, 1 + V_future, 4]
+            x0 = self._state_normalizer.inverse(x0)  # [B, P, 1 + V_future, 4]
+            mask = neighbor_current_mask.unsqueeze(-1).unsqueeze(
+                -1)  # [B, P-1, 1, 1]
+            mask = mask.expand(-1, -1, x0.size(2),
+                               x0.size(3))  # [B, P-1, 1 + V_future, 4]
 
             # ego 예측(x0[:,0])은 그대로 두고, 나머지 neighbor 예측만 0 처리
-            ego_traj      = x0[:, 0, 1:, :]                       # [B,1, V_future,4]
-            neighbor_traj = x0[:, 1:, :, :].masked_fill(mask, 0.) # [B,P-1,1 + V_future,4]
+            ego_traj = x0[:, 0, 1:, :]  # [B,1, V_future,4]
+            neighbor_traj = x0[:, 1:, :, :].masked_fill(
+                mask, 0.)  # [B,P-1,1 + V_future,4]
             # x0 = torch.cat([ego_traj, neighbor_traj], dim=1)      # [B,P,T,4]
             # print("ego_traj.shape", ego_traj.shape) # (B, 80, 4)
             # print("neighbor_traj.shape", neighbor_traj.shape) # (B, 10, 81, 4)
             return {
                 "ego_prediction":
                     ego_traj,  # [B, P, V_future, 4] # Include Ego, Neighbors # Exclude current state
-                "npc_prediction":
-                    neighbor_traj # [B,P-1,1 + V_future,4]
+                "npc_prediction": neighbor_traj  # [B,P-1,1 + V_future,4]
             }
 
 

@@ -1,6 +1,7 @@
 import torch
 
 from diffusion_planner.utils.train_utils import openjson
+from copy import copy, deepcopy
 
 
 class StateNormalizer:
@@ -54,25 +55,26 @@ class ObservationNormalizer:
         return cls(ndt)
 
     def __call__(self, data):
+        norm_data = copy(data)
         for k, v in self._normalization_dict.items():
             if k not in data:  # Check if key `k` exists in `data`
                 continue
-            mean = v["mean"].to(data[k].device)
-            std = v["std"].to(data[k].device)
             mask = torch.sum(torch.ne(data[k], 0), dim=-1) == 0
-            data[k] = (data[k] - mean) / std
-            data[k][mask] = 0
-        return data
+            norm_data[k] = (data[k] - v["mean"].to(
+                data[k].device)) / v["std"].to(data[k].device)
+            norm_data[k][mask] = 0
+        return norm_data
 
     def inverse(self, data):
+        norm_data = copy(data)
         for k, v in self._normalization_dict.items():
             if k not in data:  # Check if key `k` exists in `data`
                 continue
             mask = torch.sum(torch.ne(data[k], 0), dim=-1) == 0
-            data[k] = data[k] * v["std"].to(data[k].device) + v["mean"].to(
+            norm_data[k] = data[k] * v["std"].to(data[k].device) + v["mean"].to(
                 data[k].device)
-            data[k][mask] = 0
-        return data
+            norm_data[k][mask] = 0
+        return norm_data
 
     def to_dict(self):
         return {

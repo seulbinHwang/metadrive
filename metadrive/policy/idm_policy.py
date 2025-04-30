@@ -303,7 +303,7 @@ class IDMPolicy(BasePolicy):
 
         # control by PID and IDM
         steering = self.steering_control(steering_target_lane)
-        acc = self.acceleration(acc_front_obj, acc_front_dist) # -1 ~ + 1
+        acc = self.acceleration(acc_front_obj, acc_front_dist)  # -1 ~ + 1
         if is_kinematic:
             steer_rate = self._get_steering_rate(steering)
             acceleration_ = self._get_acceleration(acc)
@@ -317,7 +317,7 @@ class IDMPolicy(BasePolicy):
         max_acceleration = self.control_object.max_acceleration
         max_deceleration = self.control_object.max_deceleration
         if normalized_acc >= 0:
-            if  self.control_object.speed_km_h > self.control_object.max_speed_km_h:
+            if self.control_object.speed_km_h > self.control_object.max_speed_km_h:
                 acceleration_ = 0
             else:
                 acceleration_ = max_acceleration * normalized_acc
@@ -335,13 +335,13 @@ class IDMPolicy(BasePolicy):
                     acceleration_ = 0
                 else:
                     # 시뮬 dt 계산
-                    dt = (self.engine.global_config["physics_world_step_size"]
-                          * self.engine.global_config["decision_repeat"])
+                    dt = (self.engine.global_config["physics_world_step_size"] *
+                          self.engine.global_config["decision_repeat"])
                     # 후보 감속량
                     candidate_acc = normalized_acc * max_deceleration
                     # dt 후 속도가 음수가 되지 않도록 보정
                     if speed_in_heading + candidate_acc * dt < 0:
-                        acceleration_ = - speed_in_heading / dt
+                        acceleration_ = -speed_in_heading / dt
                     else:
                         acceleration_ = candidate_acc
         return acceleration_
@@ -350,8 +350,8 @@ class IDMPolicy(BasePolicy):
         max_steer_rad = self.control_object.max_steering * np.pi / 180.0
         desired_angle_rad = np.clip(steering, -1, 1) * max_steer_rad
         # Δt (= 엔진 1-step 시간)  -------------------------------------------------
-        dt = (self.engine.global_config["physics_world_step_size"]
-              * self.engine.global_config["decision_repeat"])
+        dt = (self.engine.global_config["physics_world_step_size"] *
+              self.engine.global_config["decision_repeat"])
         # ── (3) steering **rate**  [rad/s]  --------------------------------------
         steer_rate = (desired_angle_rad - self._prev_steer_angle_rad) / max(
             dt, 1e-6)

@@ -2,14 +2,12 @@ import json
 import torch
 from typing import Dict, Any
 from diffusion_planner.utils.normalizer import StateNormalizer, ObservationNormalizer
+from diffusion_planner.model.guidance.guidance_wrapper import GuidanceWrapper
 
 
 class Config:
 
-    def __init__(
-        self,
-        args_file,
-    ):
+    def __init__(self, args_file):
         with open(args_file, 'r') as f:
             args_dict = json.load(f)
 
@@ -23,6 +21,8 @@ class Config:
                 'std': torch.as_tensor(v['std'])
             } for k, v in self.observation_normalizer.items()
         })
+        self.guidance_fn = GuidanceWrapper()
+
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert current Config object's public attributes into a dictionary.

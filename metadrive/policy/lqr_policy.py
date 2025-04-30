@@ -44,7 +44,7 @@ class LQRPolicy(BasePolicy):
             future_trajectory = external_actions[agent_id]
             # return 0., 0.
         # else:
-            # return 0., 0.
+        # return 0., 0.
         ego_history = list(self.control_object.ego_history)
         # future_trajectory: np.ndarray (80, 4) # 80: number of future steps, 4: x, y, cos(yaw), sin(yaw)
         # Convert future_trajectory to control inputs(acceleration and steering rate)

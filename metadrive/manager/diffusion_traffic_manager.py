@@ -927,13 +927,11 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         engine = self.engine
         # active ego 위치/방향
         ego = next(iter(engine.agent_manager.active_agents.values()))
-        ego_pos = np.array([
-            ego.rear_axle_xy[0], ego.rear_axle_xy[1]
-        ])
+        ego_pos = np.array([ego.rear_axle_xy[0], ego.rear_axle_xy[1]])
         ego_yaw = ego.heading_theta
 
         # 외부 NPC들이 예측해온 궤적
-        external_npc = engine.external_npc_actions# [:, :1, :]  # (N, T, 4)
+        external_npc = engine.external_npc_actions  # [:, :1, :]  # (N, T, 4)
         # 각 traffic 차량의 글로벌 궤적 좌표 구하기
         # 3) 차량별로 한 궤적씩 변환 → world coords (T,2)
         for idx, npc_traj in enumerate(external_npc):  # npc_traj.shape == (T,4)
@@ -945,12 +943,12 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
             for (x, y) in coords_g:
                 np_node = engine._draw_line_3d(
                     LVector3(x, y, 1.5),
-                    LVector3(x, y, (idx+1.) *3. + 2. ),
+                    LVector3(x, y, (idx + 1.) * 3. + 2.),
                     color=(0, 1, 0, 1),  # 초록
-                    thickness=250
-                )
+                    thickness=250)
                 np_node.reparentTo(engine.render)
                 self._traffic_traj_nodes.append(np_node)
+
     # ────────────────────────────────────────────────────────────────────────
     # reset 단계 – 트래픽 차량을 만든 뒤 1회 초기 분배
     # ────────────────────────────────────────────────────────────────────────
@@ -966,7 +964,8 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         """
         # self._clear_traffic_trajs()
         # self._draw_all_traffic_trajs()
-        external_npc_actions = self.engine.external_npc_actions[:, 1:]  # (P-1, 80, 4)
+        external_npc_actions = self.engine.external_npc_actions[:,
+                                                                1:]  # (P-1, 80, 4)
         diffusion_vehicle_num = external_npc_actions.shape[0]
         # ── 2.  이제 리스트가 확정됐으므로 policy 재배치
         closest_idx = self._update_control_policies(0)

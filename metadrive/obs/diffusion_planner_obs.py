@@ -14,12 +14,14 @@ from metadrive.component.lane.abs_lane import AbstractLane
 # from .somewhere import extract_local_lanes_in_square_bbox
 from metadrive.constants import RENDER_MODE_ONSCREEN, BKG_COLOR, RENDER_MODE_NONE
 from panda3d.core import LVector3, Vec4
-from typing import Any, List, Tuple   # ← 맨 위 import 확인
+from typing import Any, List, Tuple  # ← 맨 위 import 확인
+
 
 def _to_vec4(color_tuple):
     """(r,g,b,a) -> Vec4; 값 범위 0~1 로 보정"""
     r, g, b, a = color_tuple
     return Vec4(float(r), float(g), float(b), float(a))
+
 
 def _to_local_coords_batch(px: np.ndarray, py: np.ndarray, ego_x: float,
                            ego_y: float,
@@ -347,14 +349,16 @@ class DiffusionPlannerObservation(BaseObservation):
         })
         # vis_mode = config.get("vis_mode", "all").lower()
         vis_mode = "route"
-        assert vis_mode in {"none", "lanes", "route", "all", "neighbors", "static"}
-        self._vis_lanes  = vis_mode in {"lanes", "all"}
-        self._vis_route  = vis_mode in {"route", "all"}
+        assert vis_mode in {
+            "none", "lanes", "route", "all", "neighbors", "static"
+        }
+        self._vis_lanes = vis_mode in {"lanes", "all"}
+        self._vis_route = vis_mode in {"route", "all"}
         self._vis_neighbors = vis_mode in {"neighbors", "all"}  # ← 추가
         self._vis_static = vis_mode in {"static", "all"}  # ← NEW
 
-        self._lane_np_list: list = []          # ← 여기에 그려둔 선 NodePath 보관
-        self._route_np_list: list = []   # 경로 차선 선(NodePath) 캐시  ← NEW
+        self._lane_np_list: list = []  # ← 여기에 그려둔 선 NodePath 보관
+        self._route_np_list: list = []  # 경로 차선 선(NodePath) 캐시  ← NEW
         self._neighbor_np_list: List[Any] = []  # 주변 Agent NodePath
         self._static_np_list: List[Any] = []  # 정적 오브젝트 NodePath 캐시  ← NEW
 
@@ -363,9 +367,9 @@ class DiffusionPlannerObservation(BaseObservation):
     #   static_array : (max_obj, 10)
     # ──────────────────────────────────────────────────────────
     def _visualize_static_objects(
-            self,
-            vehicle: "BaseVehicle",
-            static_array: np.ndarray,
+        self,
+        vehicle: "BaseVehicle",
+        static_array: np.ndarray,
     ) -> None:
         engine: Any = vehicle.engine
         if engine.mode == RENDER_MODE_NONE or not self._vis_static:
@@ -398,8 +402,7 @@ class DiffusionPlannerObservation(BaseObservation):
 
             # 로컬 → 월드 변환
             cx_w_arr, cy_w_arr = self._local_to_world_batch(
-                np.array([lx]), np.array([ly]), ego_x, ego_y, ego_yaw
-            )
+                np.array([lx]), np.array([ly]), ego_x, ego_y, ego_yaw)
             cx_w: float = float(cx_w_arr[0])
             cy_w: float = float(cy_w_arr[0])
 
@@ -418,8 +421,8 @@ class DiffusionPlannerObservation(BaseObservation):
             )
 
     @staticmethod
-    def _local_vec_to_world(vx: float, vy: float, ego_yaw: float) -> Tuple[
-        float, float]:
+    def _local_vec_to_world(vx: float, vy: float,
+                            ego_yaw: float) -> Tuple[float, float]:
         """(vx, vy) 를 병진 없이 yaw 만큼 회전한 월드벡터 반환"""
         c: float = math.cos(ego_yaw)
         s: float = math.sin(ego_yaw)
@@ -431,14 +434,14 @@ class DiffusionPlannerObservation(BaseObservation):
     # 3)  바운딩-박스(차량) 그리기
     # -----------------------------------------------
     def _draw_box(
-            self,
-            engine: Any,
-            cx_w: float,
-            cy_w: float,
-            yaw: float,
-            length: float,
-            width: float,
-            color: Tuple[float, float, float, float],
+        self,
+        engine: Any,
+        cx_w: float,
+        cy_w: float,
+        yaw: float,
+        length: float,
+        width: float,
+        color: Tuple[float, float, float, float],
     ) -> List[Any]:
         """월드 좌표 중심/크기로 사각형 전체를 폴리라인으로 그리고, 중앙에서 heading 화살표를 그립니다."""
         hl: float = 0.5 * length
@@ -446,7 +449,8 @@ class DiffusionPlannerObservation(BaseObservation):
         c, s = math.cos(yaw), math.sin(yaw)
 
         corners: List[Tuple[float, float]] = []
-        for dx, dy in [(+hl, +hw), (+hl, -hw), (-hl, -hw), (-hl, +hw), (+hl, +hw)]:
+        for dx, dy in [(+hl, +hw), (+hl, -hw), (-hl, -hw), (-hl, +hw),
+                       (+hl, +hw)]:
             x: float = cx_w + dx * c - dy * s
             y: float = cy_w + dx * s + dy * c
             corners.append((x, y))
@@ -478,6 +482,7 @@ class DiffusionPlannerObservation(BaseObservation):
         np_list.append(heading_node)
 
         return np_list
+
     # ──────────────── ② 메인 visualize 함수 ────────────────
     @staticmethod
     def _local_to_world_batch(px, py, ego_x, ego_y, ego_yaw):
@@ -530,8 +535,7 @@ class DiffusionPlannerObservation(BaseObservation):
                 yaw_world: float = yaw_local + ego_yaw
 
                 cx_w_arr, cy_w_arr = self._local_to_world_batch(
-                    np.array([x]), np.array([y]), ego_x, ego_y, ego_yaw
-                )
+                    np.array([x]), np.array([y]), ego_x, ego_y, ego_yaw)
                 cx_w: float = float(cx_w_arr[0])
                 cy_w: float = float(cy_w_arr[0])
 
@@ -540,8 +544,12 @@ class DiffusionPlannerObservation(BaseObservation):
                 thick: int = int(30 + 30 * (t_idx / 20.0))
 
                 self._neighbor_np_list += self._draw_box(
-                    engine, cx_w, cy_w, yaw_world,
-                    float(length), float(width),
+                    engine,
+                    cx_w,
+                    cy_w,
+                    yaw_world,
+                    float(length),
+                    float(width),
                     color=(col[0], col[1], col[2], alpha),
                 )
 
@@ -555,8 +563,7 @@ class DiffusionPlannerObservation(BaseObservation):
             arr_len: float = norm * arrow_scale  # [m]
 
             cx_w_arr, cy_w_arr = self._local_to_world_batch(
-                np.array([x]), np.array([y]), ego_x, ego_y, ego_yaw
-            )
+                np.array([x]), np.array([y]), ego_x, ego_y, ego_yaw)
             cx_w, cy_w = float(cx_w_arr[0]), float(cy_w_arr[0])
 
             ux: float = vx_w / speed * arr_len
@@ -569,11 +576,10 @@ class DiffusionPlannerObservation(BaseObservation):
                 dotted=False,
                 thickness=40,
             )
+
     # -----------------------------------------------------------
     # ② 폴리라인(연속 선분) 그리기
     # -----------------------------------------------------------
-
-
 
     def _draw_polyline(self, engine, pts_world, color, dotted, thickness):
         """
@@ -607,6 +613,7 @@ class DiffusionPlannerObservation(BaseObservation):
             np_node.reparentTo(engine.render)
             np_list.append(np_node)
         return np_list
+
     # -----------------------------------------------------------
     # ③ 일반 차선 + 경로 차선 시각화
     # -----------------------------------------------------------
@@ -626,25 +633,34 @@ class DiffusionPlannerObservation(BaseObservation):
             return
 
         # ── Ego 포즈 --------------------------------------------------
-        ego_x, ego_y   = vehicle.rear_axle_xy
-        ego_yaw        = vehicle.heading_theta
+        ego_x, ego_y = vehicle.rear_axle_xy
+        ego_yaw = vehicle.heading_theta
 
         # ── C. 일반 차선 --------------------------------------------
         if self._vis_lanes:
             for lane_i in lanes_array:
                 if np.allclose(lane_i[:, :8], 0.0, atol=1e-6):
                     continue
-                cx, cy        = lane_i[:, 0], lane_i[:, 1]
+                cx, cy = lane_i[:, 0], lane_i[:, 1]
                 lx_off, ly_off = lane_i[:, 4], lane_i[:, 5]
                 rx_off, ry_off = lane_i[:, 6], lane_i[:, 7]
 
-                cx_w, cy_w = self._local_to_world_batch(cx,      cy,      ego_x, ego_y, ego_yaw)
-                lx_w, ly_w = self._local_to_world_batch(cx+lx_off, cy+ly_off, ego_x, ego_y, ego_yaw)
-                rx_w, ry_w = self._local_to_world_batch(cx+rx_off, cy+ry_off, ego_x, ego_y, ego_yaw)
+                cx_w, cy_w = self._local_to_world_batch(cx, cy, ego_x, ego_y,
+                                                        ego_yaw)
+                lx_w, ly_w = self._local_to_world_batch(cx + lx_off,
+                                                        cy + ly_off, ego_x,
+                                                        ego_y, ego_yaw)
+                rx_w, ry_w = self._local_to_world_batch(cx + rx_off,
+                                                        cy + ry_off, ego_x,
+                                                        ego_y, ego_yaw)
 
-                self._lane_np_list += self._draw_polyline(engine, list(zip(cx_w, cy_w)), (1,1,1,1),  True, 40)
-                self._lane_np_list += self._draw_polyline(engine, list(zip(lx_w, ly_w)), (1,1,0,1), False, 50)
-                self._lane_np_list += self._draw_polyline(engine, list(zip(rx_w, ry_w)), (0.7,0.7,0.7,1), False, 50)
+                self._lane_np_list += self._draw_polyline(
+                    engine, list(zip(cx_w, cy_w)), (1, 1, 1, 1), True, 40)
+                self._lane_np_list += self._draw_polyline(
+                    engine, list(zip(lx_w, ly_w)), (1, 1, 0, 1), False, 50)
+                self._lane_np_list += self._draw_polyline(
+                    engine, list(zip(rx_w, ry_w)), (0.7, 0.7, 0.7, 1), False,
+                    50)
 
         # ── D. 경로 차선 --------------------------------------------
         if self._vis_route:
@@ -653,39 +669,45 @@ class DiffusionPlannerObservation(BaseObservation):
                     continue
 
                 # 0~7 번째 칼럼은 일반 차선과 동일한 의미!
-                cx,  cy  = route_i[:, 0], route_i[:, 1]          # 중앙선
-                lx_off, ly_off = route_i[:, 4], route_i[:, 5]    # 왼쪽 offset
-                rx_off, ry_off = route_i[:, 6], route_i[:, 7]    # 오른쪽 offset
+                cx, cy = route_i[:, 0], route_i[:, 1]  # 중앙선
+                lx_off, ly_off = route_i[:, 4], route_i[:, 5]  # 왼쪽 offset
+                rx_off, ry_off = route_i[:, 6], route_i[:, 7]  # 오른쪽 offset
 
                 # 월드 좌표 변환
-                cx_w,  cy_w  = self._local_to_world_batch(cx,           cy,
-                                                          ego_x, ego_y, ego_yaw)
-                lx_w,  ly_w  = self._local_to_world_batch(cx + lx_off,  cy + ly_off,
-                                                          ego_x, ego_y, ego_yaw)
-                rx_w,  ry_w  = self._local_to_world_batch(cx + rx_off,  cy + ry_off,
-                                                          ego_x, ego_y, ego_yaw)
+                cx_w, cy_w = self._local_to_world_batch(cx, cy, ego_x, ego_y,
+                                                        ego_yaw)
+                lx_w, ly_w = self._local_to_world_batch(cx + lx_off,
+                                                        cy + ly_off, ego_x,
+                                                        ego_y, ego_yaw)
+                rx_w, ry_w = self._local_to_world_batch(cx + rx_off,
+                                                        cy + ry_off, ego_x,
+                                                        ego_y, ego_yaw)
 
                 # ① 중앙선 ― 빨간 점선  (step=2 자동 적용)
                 self._route_np_list += self._draw_polyline(
-                    engine, list(zip(cx_w, cy_w)),
-                    color=(1, 0, 0, 1),     # 빨강
-                    dotted=True,           # ← 점선
+                    engine,
+                    list(zip(cx_w, cy_w)),
+                    color=(1, 0, 0, 1),  # 빨강
+                    dotted=True,  # ← 점선
                     thickness=90,
                 )
                 # ② 왼쪽 경계 ― 빨간 실선
                 self._route_np_list += self._draw_polyline(
-                    engine, list(zip(lx_w, ly_w)),
+                    engine,
+                    list(zip(lx_w, ly_w)),
                     color=(1, 0, 0, 1),
-                    dotted=False,          # 실선
+                    dotted=False,  # 실선
                     thickness=90,
                 )
                 # ③ 오른쪽 경계 ― 빨간 실선
                 self._route_np_list += self._draw_polyline(
-                    engine, list(zip(rx_w, ry_w)),
+                    engine,
+                    list(zip(rx_w, ry_w)),
                     color=(1, 0, 0, 1),
                     dotted=False,
                     thickness=90,
                 )
+
     @property
     def observation_space(self) -> gym.spaces.Dict:
         return self._observation_space
@@ -731,15 +753,21 @@ class DiffusionPlannerObservation(BaseObservation):
         self._visualize_static_objects(vehicle, static_objects)  # ← NEW
         # 결과 Dict으로 포장
         observation_dict = {
-            "ego_current_state": np.array(
-                [0., 0., 1., 0., 0., 0., 0., 0., 0., 0.], dtype=np.float32),
-            "lanes": lanes.astype(np.float32
-                                 ),
-            "lanes_speed_limit": lanes_speed_limit.astype(np.float32),
-            "lanes_has_speed_limit": lanes_has_speed_limit.astype(np.float32),
-            "route_lanes": route_lanes.astype(np.float32),
-            "static_objects": static_objects.astype(np.float32),
-            "neighbor_agents_past": neighbor_agents_past.astype(np.float32),
+            "ego_current_state":
+                np.array([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.],
+                         dtype=np.float32),
+            "lanes":
+                lanes.astype(np.float32),
+            "lanes_speed_limit":
+                lanes_speed_limit.astype(np.float32),
+            "lanes_has_speed_limit":
+                lanes_has_speed_limit.astype(np.float32),
+            "route_lanes":
+                route_lanes.astype(np.float32),
+            "static_objects":
+                static_objects.astype(np.float32),
+            "neighbor_agents_past":
+                neighbor_agents_past.astype(np.float32),
         }
         # observation_dict = self.observation_normalizer(observation_dict)
         self.current_observation = observation_dict

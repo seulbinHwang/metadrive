@@ -318,8 +318,8 @@ class LaneFusionEncoder(nn.Module):
         traffic = traffic.view(B * P, -1)
 
         # Apply embedding directly to valid speed limit data
-        has_speed_limit = has_speed_limit[valid_indices].squeeze(-1) # (B * P)
-        speed_limit = speed_limit[valid_indices].squeeze(-1) # (B * P)
+        has_speed_limit = has_speed_limit[valid_indices].squeeze(-1)  # (B * P)
+        speed_limit = speed_limit[valid_indices].squeeze(-1)  # (B * P)
         speed_limit_embedding = torch.zeros(
             (speed_limit.shape[0], self._channel), device=x.device)
 

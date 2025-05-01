@@ -14,7 +14,7 @@ sde = VPSDE_linear()
 class GuidanceWrapper:
 
     def __init__(self):
-        self._guidance_fns = [collision_guidance_fn, feasible_guidance_fn]
+        self._guidance_fns =  [collision_guidance_fn, feasible_guidance_fn]
 
     def __call__(self, x_in, t_input, cond, *args, **kwargs):
         """
@@ -61,9 +61,10 @@ class GuidanceWrapper:
         x_in = state_normalizer.inverse(x_in.reshape(B, P, -1, 4))
         kwargs["inputs"] = observation_normalizer.inverse(
             kwargs["inputs"])  # inputs: observations
-
+        idx = 0
         for guidance_fn in self._guidance_fns:
             energy += guidance_fn(x_in, t_input, cond, **kwargs)
+            # print(f"guidance_fn {idx} energy: {energy}")
         # energy1 = self._guidance_fns[0](x_in, t_input, cond, **kwargs)
         # energy2 = self._guidance_fns[1](x_in, t_input, cond, **kwargs)
 

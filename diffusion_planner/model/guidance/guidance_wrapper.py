@@ -4,6 +4,7 @@ import torch
 from diffusion_planner.model.diffusion_utils.sde import VPSDE_linear
 # from diffusion_planner.model.guidance.collision import collision_guidance_fn
 from diffusion_planner.model.guidance.collision_w_npc import collision_guidance_fn
+from diffusion_planner.model.guidance.feasible import feasible_guidance_fn
 from diffusion_planner.model.module.decoder import DiT
 
 N = 1
@@ -13,7 +14,7 @@ sde = VPSDE_linear()
 class GuidanceWrapper:
 
     def __init__(self):
-        self._guidance_fns = [collision_guidance_fn]
+        self._guidance_fns = [collision_guidance_fn, feasible_guidance_fn]
 
     def __call__(self, x_in, t_input, cond, *args, **kwargs):
         """

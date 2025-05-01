@@ -211,32 +211,45 @@ def collision_guidance_fn(x, t, cond, inputs, *args, **kwargs) -> torch.Tensor:
                torch.sum(clip_distances[clip_distances <= 1]) / (torch.sum(
                    (clip_distances[clip_distances <= 1].detach() > 0).float()) +
                                                                  1e-5)).exp()
-
-    x_aux = torch.autograd.grad(reward.sum(),
-                                x,
-                                retain_graph=True,
-                                allow_unused=True)[0][:, 0, :, :2]  # [B, T, 2]
-
     T += 1
-    x_mat = torch.einsum(
-        "btd,nd->btn", x[:, 0, :, 2:],
-        torch.tensor([[1., 0], [0, 1], [0, -1], [1, 0]],
-                     device=x.device)).reshape(B, T, 2, 2)
+    # 1) ego 대신 나머지 Pn대 차량에 대한 gradient 계산
+    grad_all = torch.autograd.grad(
+        reward.sum(),      # scalar reward의 합
+        x,                 # wrt 전체 trajectory tensor
+        retain_graph=True,
+        allow_unused=True
+    )[0]  # 결과 shape: [B, P+1, T+1, 4] # (1, 11, 81, 4)
+    # 2) ego(0번) 제외하고 위치 성분만 추출 ([B, Pn, T+1, 2])
+    x_aux = grad_all[:, 1:, :, :2] # (1, 10, 81, 2)
+    # 3) 각 neighbor 차량별 heading(cos, sin)으로 회전 행렬 생성
+    cos_n = x[:, 1:, :, 2]   # [B, Pn, T+1]
+    sin_n = x[:, 1:, :, 3]   # [B, Pn, T+1]
+    rot = torch.stack([cos_n,  sin_n,
+                       -sin_n, cos_n], dim=-1)  # [B, Pn, T+1, 4]
+    B, Pn, Tp1, _ = rot.shape
+    x_mat = rot.view(B, Pn, Tp1, 2, 2)  # [B, Pn, T+1, 2, 2] # (1, 10, 81, 2, 2)
+    # 4) world frame으로 회전
+    # (1, 10, 81, 2, 2) @ (1, 10, 81, 2) -> (1, 10, 81, 2)
+    x_aux = torch.einsum("bptij,bptj->bpti", x_mat, x_aux)  # [B, Pn, T+1, 2]
+    # 5) lateral(y) 성분만 Gaussian smoothing
+    x_lat = x_aux[..., 1].contiguous().view(B * Pn, 1, Tp1)  # [B*Pn, 1, T+1]
+    x_lat = F.pad(x_lat, (10, 10), mode='replicate')
+    kernel = torch.exp(-torch.linspace(-2, 2, 21, device=x.device)**2 / 4).view(1, 1, 21)
+    x_lat = F.conv1d(x_lat, kernel)  # [B*Pn, 1, T+1]
+    x_lat = x_lat.view(B, Pn, Tp1)   # [B, Pn, T+1]
 
-    x_aux = torch.einsum("btij,btj->bti", x_mat, x_aux)
-    # x_aux = torch.cat([x_aux[:, :5], torch.zeros_like(x_aux[:, 5:])], dim=1)
-
+    # 6) longitudinal(x) 성분은 0으로, lateral 성분만 재조합
+    # x_aux: (1, 10, 81, 2)
     x_aux = torch.stack([
-        torch.einsum("bt,it->bi", x_aux[..., 0], torch.tril(
-            (-torch.linspace(0, 1, T, device=x.device)).exp().unsqueeze(
-                0).repeat(T, 1))) * 0,
-        F.conv1d(
-            F.pad(x_aux[:, None, :, 1], (10, 10), mode='replicate'),
-            torch.ones(1, 1, 21, device=x.device) * \
-            (- torch.linspace(-2, 2, 21, device=x.device) ** 2 / 4).exp()
-        )[:, 0] * 1.0
-    ], dim=2)
-    x_aux = torch.einsum("btji,btj->bti", x_mat, x_aux)  # [B, T, 2]
-
-    reward = torch.sum(x_aux.detach() * x[:, 0, :, :2], dim=(1, 2))
+        torch.zeros_like(x_lat),  # longitudinal
+        x_lat                     # smoothed lateral
+    ], dim=-1)  # [B, Pn, T+1, 2]
+    # 7) world→ego inverse 회전
+    # x_aux: (1, 10, 81, 2)
+    x_aux = torch.einsum("bptji,bptj->bpti", x_mat, x_aux)  # [B, Pn, T+1, 2]
+    # 8) 각 차량별 reward 계산 후 평균
+    # reward: (B, 10)
+    reward_n = torch.sum(x_aux.detach() * x[:, 1:, :, :2], dim=(2, 3))  # [B, Pn]
+    # reward: (B)
+    reward   = reward_n.mean(dim=1)                                    # [B]
     return 3.0 * reward

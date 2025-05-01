@@ -91,8 +91,8 @@ def collision_guidance_fn(x, t, cond, inputs, *args, **kwargs) -> torch.Tensor:
         torch.norm(x[:, :, :, 2:].detach(), dim=-1, keepdim=True)
     ],
                   dim=-1)  # [B, P + 1, T, 4]
-
     ego_pred = x[:, :1, 1:, :]  # [B, 1, T, 4]
+    # TODO: 이거 왜 하는건지
     cos_h, sin_h = ego_pred[..., 2:3], ego_pred[..., 3:4]
     ego_pred = torch.cat([
         ego_pred[..., 0:1] + cos_h * COG_TO_REAR,
@@ -128,35 +128,33 @@ def collision_guidance_fn(x, t, cond, inputs, *args, **kwargs) -> torch.Tensor:
     clip_distances = torch.maximum(1 - distances / CLIP_DISTANCE,
                                    torch.tensor(0.0, device=distances.device))
 
+    # reward는 ego 기준 좌표계에서 계산한 값
     reward = -(torch.sum(clip_distances[clip_distances > 1]) / (torch.sum(
         (clip_distances[clip_distances > 1].detach() > 0).float()) + 1e-5) +
                torch.sum(clip_distances[clip_distances <= 1]) / (torch.sum(
                    (clip_distances[clip_distances <= 1].detach() > 0).float()) +
-                                                                 1e-5)).exp()
-
-    x_aux = torch.autograd.grad(reward.sum(),
+                                                                 1e-5)).exp() # scalar
+    # x 는 ego 기준 좌표계
+    x_aux = torch.autograd.grad(reward.sum(), # scalar
                                 x,
                                 retain_graph=True,
-                                allow_unused=True)[0][:, 0, :, :2]  # [B, T, 2]
-
+                                allow_unused=True)[0][:, 0, :, :2]  # [B, 81, 2]
     T += 1
+    # ego 좌표계 기준 -> world 좌표계 기준
     x_mat = torch.einsum(
         "btd,nd->btn", x[:, 0, :, 2:],
         torch.tensor([[1., 0], [0, 1], [0, -1], [1, 0]],
-                     device=x.device)).reshape(B, T, 2, 2)
+                     device=x.device)).reshape(B, T, 2, 2) # (B, 81, 2, 2)
 
-    x_aux = torch.einsum("btij,btj->bti", x_mat, x_aux)
-    # x_aux = torch.cat([x_aux[:, :5], torch.zeros_like(x_aux[:, 5:])], dim=1)
-
+    x_aux = torch.einsum("btij,btj->bti", x_mat, x_aux) # (B, 81, 2)
     x_aux = torch.stack([
         torch.einsum("bt,it->bi", x_aux[..., 0], torch.tril((-torch.linspace(0, 1, T, device=x.device)).exp().unsqueeze(0).repeat(T, 1))) * 0,
         F.conv1d(
             F.pad(x_aux[:, None, :, 1], (10, 10), mode='replicate'),
             torch.ones(1, 1, 21, device=x.device) * \
             (- torch.linspace(-2, 2, 21, device=x.device) ** 2 / 4).exp()
-        )[:, 0] * 1.0
+        )[:, 0] * 1.0 # (B, 81, 2)
     ], dim=2)
-    x_aux = torch.einsum("btji,btj->bti", x_mat, x_aux)  # [B, T, 2]
-
-    reward = torch.sum(x_aux.detach() * x[:, 0, :, :2], dim=(1, 2))
+    x_aux = torch.einsum("btji,btj->bti", x_mat, x_aux)  # [B, 81, 2]
+    reward = torch.sum(x_aux.detach() * x[:, 0, :, :2], dim=(1, 2)) # [1]
     return 3.0 * reward

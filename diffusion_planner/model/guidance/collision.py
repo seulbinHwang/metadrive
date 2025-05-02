@@ -131,22 +131,24 @@ def collision_guidance_fn(x, t, cond, inputs, *args, **kwargs) -> torch.Tensor:
     # reward는 ego 기준 좌표계에서 계산한 값
     reward = -(torch.sum(clip_distances[clip_distances > 1]) / (torch.sum(
         (clip_distances[clip_distances > 1].detach() > 0).float()) + 1e-5) +
-               torch.sum(clip_distances[clip_distances <= 1]) / (torch.sum(
+               torch.sum(clip_distances[clip_distances <= 1]) /
+               (torch.sum(
                    (clip_distances[clip_distances <= 1].detach() > 0).float()) +
-                                                                 1e-5)).exp() # scalar
+                1e-5)).exp()  # scalar
     # x 는 ego 기준 좌표계
-    x_aux = torch.autograd.grad(reward.sum(), # scalar
-                                x,
-                                retain_graph=True,
-                                allow_unused=True)[0][:, 0, :, :2]  # [B, 81, 2]
+    x_aux = torch.autograd.grad(
+        reward.sum(),  # scalar
+        x,
+        retain_graph=True,
+        allow_unused=True)[0][:, 0, :, :2]  # [B, 81, 2]
     T += 1
     # ego 좌표계 기준 -> world 좌표계 기준
     x_mat = torch.einsum(
         "btd,nd->btn", x[:, 0, :, 2:],
         torch.tensor([[1., 0], [0, 1], [0, -1], [1, 0]],
-                     device=x.device)).reshape(B, T, 2, 2) # (B, 81, 2, 2)
+                     device=x.device)).reshape(B, T, 2, 2)  # (B, 81, 2, 2)
 
-    x_aux = torch.einsum("btij,btj->bti", x_mat, x_aux) # (B, 81, 2)
+    x_aux = torch.einsum("btij,btj->bti", x_mat, x_aux)  # (B, 81, 2)
     x_aux = torch.stack([
         torch.einsum("bt,it->bi", x_aux[..., 0], torch.tril((-torch.linspace(0, 1, T, device=x.device)).exp().unsqueeze(0).repeat(T, 1))) * 0,
         F.conv1d(
@@ -156,5 +158,5 @@ def collision_guidance_fn(x, t, cond, inputs, *args, **kwargs) -> torch.Tensor:
         )[:, 0] * 1.0 # (B, 81, 2)
     ], dim=2)
     x_aux = torch.einsum("btji,btj->bti", x_mat, x_aux)  # [B, 81, 2]
-    reward = torch.sum(x_aux.detach() * x[:, 0, :, :2], dim=(1, 2)) # [1]
+    reward = torch.sum(x_aux.detach() * x[:, 0, :, :2], dim=(1, 2))  # [1]
     return 3.0 * reward

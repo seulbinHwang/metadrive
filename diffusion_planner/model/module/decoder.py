@@ -35,7 +35,7 @@ class Decoder(nn.Module):
         self._state_normalizer: StateNormalizer = config.state_normalizer
         self._observation_normalizer: ObservationNormalizer = config.observation_normalizer
 
-        self._guidance_fn = None #config.guidance_fn  # GuidanceWrapper
+        self._guidance_fn = None  #config.guidance_fn  # GuidanceWrapper
 
     @property
     def sde(self):

@@ -10,11 +10,17 @@ import logging
 
 class FrontBackObjects:
 
-    def __init__(self, front_ret, back_ret, front_dist, back_dist):
+    def __init__(self,
+                 front_ret,
+                 back_ret,
+                 front_dist,
+                 back_dist,
+                 is_crossing=False):
         self.front_objs = front_ret
         self.back_objs = back_ret
         self.front_dist = front_dist
         self.back_dist = back_dist
+        self.is_crossing = is_crossing
 
     def left_lane_exist(self):
         return True if self.front_dist[0] is not None else False
@@ -100,7 +106,6 @@ class FrontBackObjects:
             idx +
             1] if ref_lanes is not None and idx + 1 < len(ref_lanes) else None
         lanes = [left_lane, lane, right_lane]
-
         min_front_long = [
             max_distance if lane is not None else None for lane in lanes
         ]
@@ -122,14 +127,19 @@ class FrontBackObjects:
             lane.length - current_long[idx] if lane is not None else None
             for idx, lane in enumerate(lanes)
         ]
-
+        is_crossing = False
         for i, lane in enumerate(lanes):
             if lane is None:
                 continue
             for obj in objs:
-                if obj.lane is lane:
-                    long = lane.local_coordinates(
-                        obj.position)[0] - current_long[i]
+                if obj.lane.is_same_end(lane):
+                    if obj.lane is lane:
+                        is_crossing = False
+                    else:
+                        is_crossing = True
+                    long = left_long[i] - (
+                        obj.lane.length -
+                        obj.lane.local_coordinates(obj.position)[0])
                     if min_front_long[i] > long > 0:
                         min_front_long[i] = long
                         front_ret[i] = obj
@@ -138,23 +148,28 @@ class FrontBackObjects:
                         min_back_long[i] = abs(long)
                         back_ret[i] = obj
                         find_back_in_current_lane[i] = True
-
-                elif not find_front_in_current_lane[
-                        i] and lane.is_previous_lane_of(obj.lane):
-                    long = obj.lane.local_coordinates(
-                        obj.position)[0] + left_long[i]
-                    if min_front_long[i] > long > 0:
-                        min_front_long[i] = long
-                        front_ret[i] = obj
-                elif not find_back_in_current_lane[
-                        i] and obj.lane.is_previous_lane_of(lane):
+                else:
+                    is_prev_lane, is_crossing = lane.is_previous_lanes_of(
+                        obj.lane)
+                    if is_prev_lane:
+                        # TODOL next lane 없자나?
+                        long = (left_long[i] + lane.next_lane.length) - (
+                            obj.lane.length -
+                            obj.lane.local_coordinates(obj.position)[0] )
+                        if min_front_long[i] > long > 0:
+                            min_front_long[i] = long
+                            front_ret[i] = obj
+                        if long < 0 and abs(long) < min_back_long[i]:
+                            min_back_long[i] = abs(long)
+                            back_ret[i] = obj
+                if obj.lane.is_previous_lane_of(lane):
                     long = obj.lane.length - obj.lane.local_coordinates(
                         obj.position)[0] + current_long[i]
                     if min_back_long[i] > long:
                         min_back_long[i] = long
                         back_ret[i] = obj
-
-        return cls(front_ret, back_ret, min_front_long, min_back_long)
+        return cls(front_ret, back_ret, min_front_long, min_back_long,
+                   is_crossing)
 
     @classmethod
     def get_find_front_back_objs_single_lane(cls, objs, lane, position,
@@ -265,7 +280,7 @@ class IDMPolicy(BasePolicy):
         self.available_routing_index_range = None
         self.overtake_timer = self.np_random.randint(0, self.LANE_CHANGE_FREQ)
         self.enable_lane_change = self.engine.global_config.get(
-            "enable_idm_lane_change", True)
+            "enable_idm_lane_change", False)
         self.disable_idm_deceleration = self.engine.global_config.get(
             "disable_idm_deceleration", False)
         self.heading_pid = PIDController(1.7, 0.01, 3.5)
@@ -285,6 +300,12 @@ class IDMPolicy(BasePolicy):
                     all_objects)
             else:
                 # can not find routing target lane
+                current_lanes = self.control_object.navigation.current_ref_lanes
+                next_lanes = self.control_object.navigation.next_ref_lanes
+                for current_lane in current_lanes:
+                    for next_lane in next_lanes:
+                        if current_lane.is_previous_lane_of(next_lane):
+                            current_lane.next_lane = next_lane
                 surrounding_objects = FrontBackObjects.get_find_front_back_objs(
                     all_objects,
                     self.routing_target_lane,
@@ -412,6 +433,7 @@ class IDMPolicy(BasePolicy):
         d0 = self.DISTANCE_WANTED
         tau = self.TIME_WANTED
         ab = -self.ACC_FACTOR * self.DEACC_FACTOR
+        # TODO
         dv = np.dot(ego_vehicle.velocity_km_h - front_obj.velocity_km_h, ego_vehicle.heading) if projected \
             else ego_vehicle.speed_km_h - front_obj.speed_km_h
         d_star = d0 + ego_vehicle.speed_km_h * tau + ego_vehicle.speed_km_h * dv / (
@@ -428,6 +450,11 @@ class IDMPolicy(BasePolicy):
 
     def lane_change_policy(self, all_objects):
         current_lanes = self.control_object.navigation.current_ref_lanes
+        next_lanes = self.control_object.navigation.next_ref_lanes
+        for current_lane in current_lanes:
+            for next_lane in next_lanes:
+                if current_lane.is_previous_lane_of(next_lane):
+                    current_lane.next_lane = next_lane
         surrounding_objects = FrontBackObjects.get_find_front_back_objs(
             all_objects, self.routing_target_lane, self.control_object.position,
             self.MAX_LONG_DIST, current_lanes)

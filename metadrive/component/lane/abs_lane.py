@@ -24,6 +24,7 @@ class AbstractLane(MetaDriveType):
         self._polygon = None
         self._shapely_polygon = None
         self.need_lane_localization = True
+        self.next_lane = None
 
     def set_speed_limit(self, speed_limit):
         self.speed_limit = speed_limit
@@ -84,6 +85,24 @@ class AbstractLane(MetaDriveType):
     def is_previous_lane_of(self, target_lane, error_region=1e-1):
         x_1, y_1 = self.end
         x_2, y_2 = target_lane.start
+        if norm(x_1 - x_2, y_1 - y_2) < error_region:
+            return True
+        return False
+
+    def is_previous_lanes_of(self, target_lane, error_region=1e-1):
+        if not self.next_lane:
+            return self.is_previous_lane_of(target_lane, error_region), False
+        if target_lane is self.next_lane:
+            return True, False
+        x_1, y_1 = self.next_lane.end
+        x_2, y_2 = target_lane.end
+        if norm(x_1 - x_2, y_1 - y_2) < error_region:
+            return True, True
+        return False, False
+
+    def is_same_end(self, target_lane, error_region=1e-1):
+        x_1, y_1 = self.end
+        x_2, y_2 = target_lane.end
         if norm(x_1 - x_2, y_1 - y_2) < error_region:
             return True
         return False

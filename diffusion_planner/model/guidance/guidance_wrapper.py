@@ -14,7 +14,7 @@ sde = VPSDE_linear()
 class GuidanceWrapper:
 
     def __init__(self):
-        self._guidance_fns =  [collision_guidance_fn, feasible_guidance_fn]
+        self._guidance_fns = [collision_guidance_fn, feasible_guidance_fn]
 
     def __call__(self, x_in, t_input, cond, *args, **kwargs):
         """

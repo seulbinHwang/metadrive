@@ -174,9 +174,9 @@ class Decoder(nn.Module):
                                x0.size(3))  # [B, P-1, 1 + V_future, 4]
 
             # ego 예측(x0[:,0])은 그대로 두고, 나머지 neighbor 예측만 0 처리
-            ego_traj = x0[:, 0, 1:, :]  # [B,1, V_future,4]
+            ego_traj = x0[:, 0, 1:, :]  # [B,1, V_future,4] # [B, 80, 4]
             neighbor_traj = x0[:, 1:, :, :].masked_fill(
-                mask, 0.)  # [B,P-1,1 + V_future,4]
+                mask, 0.)  # [B,10, 81, 4]
             # x0 = torch.cat([ego_traj, neighbor_traj], dim=1)      # [B,P,T,4]
             # print("ego_traj.shape", ego_traj.shape) # (B, 80, 4)
             # print("neighbor_traj.shape", neighbor_traj.shape) # (B, 10, 81, 4)

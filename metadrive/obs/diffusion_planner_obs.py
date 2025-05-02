@@ -217,6 +217,7 @@ def extract_local_lanes_in_square_bbox(
 
         s_vals = np.linspace(0.0, ln_len, lane_len,
                              endpoint=True)  # shape=(lane_len,)
+        assert len(s_vals) == lane_len
         w = getattr(ln, "width", 3.5)
         half_w = w * 0.5
 
@@ -348,7 +349,7 @@ class DiffusionPlannerObservation(BaseObservation):
                     dtype=np.float32),
         })
         # vis_mode = config.get("vis_mode", "all").lower()
-        vis_mode = "lanes"
+        vis_mode = "none"
         assert vis_mode in {
             "none", "lanes", "route", "all", "neighbors", "static"
         }

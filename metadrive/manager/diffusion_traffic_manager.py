@@ -775,6 +775,8 @@ class HistoricalBufferTrafficManager(PGTrafficManager):
                        agents_array.shape[-1]:] = [0, 1,
                                                    0]  # Mark as PEDESTRIAN
             else:  # TrackedObjectType.BICYCLE
+                raise ValueError("Unknown agent type: {}".format(
+                    agent_types[sorted_idx]))
                 agents[i, :, agents_array.shape[-1]:] = [0, 0,
                                                          1]  # Mark as BICYCLE
         return agents
@@ -962,8 +964,8 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         2) 가장 가까운 10 대에 LQRPolicy 부여
         3) 각 vehicle.before_step(action) 호출
         """
-        # self._clear_traffic_trajs()
-        # self._draw_all_traffic_trajs()
+        self._clear_traffic_trajs()
+        self._draw_all_traffic_trajs()
         external_npc_actions = self.engine.external_npc_actions[:,
                                                                 1:]  # (P-1, 80, 4)
         diffusion_vehicle_num = external_npc_actions.shape[0]

@@ -209,11 +209,10 @@ def extract_local_lanes_in_square_bbox(
               ln_idx_tuple) in enumerate(zip(selected_lanes, selected_indices)):
         ln_len = ln.length
         sl = getattr(ln, "speed_limit", None)  # 존재하지 않으면 None
-        # TODO: check
-        # if sl is not None and sl > 0:
-        #     lanes_speed_limit[idx, 0] = sl * (1000 / 3600
-        #                                      )  # sl * (1000/3600) 로 m/s 변환
-        #     lanes_has_speed_limit[idx, 0] = True
+        if sl is not None and sl > 0:
+            lanes_speed_limit[idx, 0] = sl * (1000 / 3600
+                                             )  # sl * (1000/3600) 로 m/s 변환
+            lanes_has_speed_limit[idx, 0] = True
 
         s_vals = np.linspace(0.0, ln_len, lane_len,
                              endpoint=True)  # shape=(lane_len,)
@@ -335,6 +334,16 @@ class DiffusionPlannerObservation(BaseObservation):
                 gym.spaces.Box(low=-1e10,
                                high=1e10,
                                shape=(self.max_route_num, self.lane_len, 12),
+                               dtype=np.float32),
+            "route_lanes_speed_limit":
+                gym.spaces.Box(low=-1e10,
+                               high=1e10,
+                               shape=(self.max_route_num, 1),
+                               dtype=np.float32),
+            "route_lanes_has_speed_limit":
+                gym.spaces.Box(low=-1e10,
+                               high=1e10,
+                               shape=(self.max_route_num, 1),
                                dtype=np.float32),
             "static_objects":
                 gym.spaces.Box(low=-1e10,

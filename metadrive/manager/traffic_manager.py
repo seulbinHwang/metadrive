@@ -624,7 +624,6 @@ class PGTrafficManager(BaseManager):
 
 class HistoricalBufferTrafficManager(PGTrafficManager):
     VEHICLE_GAP = 10  # m
-    PRIORITY = 9
 
     def __init__(self):
         """

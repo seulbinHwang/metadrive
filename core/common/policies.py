@@ -181,7 +181,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             normalize_images: bool = False,
             optimizer_class: type[torch.optim.Optimizer] = torch.optim.Adam,
             optimizer_kwargs: Optional[dict[str, Any]] = None,
-            fine_tuning: bool = False,
+            fine_tuning: bool = True,
             double_decoder: bool = True):
         if optimizer_kwargs is None:
             optimizer_kwargs = {}
@@ -212,6 +212,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
         ) = self.diffusion_planner_config.observation_normalizer
         self.share_features_extractor = share_features_extractor
         self.features_extractor = self.make_features_extractor()
+
         self.features_dim = self.features_extractor.features_dim
         if self.share_features_extractor:
             self.pi_features_extractor = self.features_extractor
@@ -228,7 +229,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
         self.use_sde = use_sde
         self.double_decoder = double_decoder
         self._build(lr_schedule)
-        if not fine_tuning:
+        if fine_tuning:
             (self.enc_dict, self.dec_dict,
              self.route_dict) = self._load_state_dict()
             self._set_state_dict()
@@ -289,6 +290,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
                                                        strict=True)
         self.features_extractor.route_encoder.load_state_dict(self.route_dict,
                                                               strict=True)
+
         if self.double_decoder:
             self.diffusion_transformer_for_npc.dit.load_state_dict(
                 self.dec_dict, strict=True)
@@ -489,8 +491,9 @@ class DiffusionActorCriticPolicy(BasePolicy):
         :param features_extractor: The features extractor to use.
         :return: The extracted features
         """
-        preprocessed_obs = preprocess_obs(
-            obs, self.observation_space, normalize_images=self.normalize_images)
+        preprocessed_obs = obs
+        # preprocessed_obs = preprocess_obs(
+        #     obs, self.observation_space, normalize_images=False)
         return features_extractor(preprocessed_obs)
 
     def extract_features(  # type: ignore[override]

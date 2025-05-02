@@ -109,7 +109,6 @@ class Decoder(nn.Module):
         # Extract context encoding
         ego_neighbor_encoding = encoder_outputs['encoding']  # [B, P-1, D]
         route_encoding = encoder_outputs['route_encoding']  # [B, D]
-
         if self.training:
             sampled_trajectories = inputs['sampled_trajectories'].reshape(
                 B, P, -1)  # [B, 1 + predicted_neighbor_num, (1 + V_future) * 4]
@@ -128,7 +127,6 @@ class Decoder(nn.Module):
                     0.5  # [B, P, V_future, 4] # (0, 1) -> (0, 0.5)
                 ],
                 dim=2).reshape(B, P, -1)  # [B, P, (1 + V_future) * 4]
-
             def initial_state_constraint(xt, t, step):
                 xt = xt.reshape(B, P, -1, 4)
                 xt[:, :, 0, :] = current_states

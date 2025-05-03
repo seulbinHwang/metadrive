@@ -472,8 +472,7 @@ class BaseEngine(EngineCore, Randomizable):
             # simulate or replay
             for name, manager in self.managers.items():
                 if TRIGGER:
-                    print("[BaseEngine][step] manager_name", name, "manager",
-                          manager)
+                    print("[BaseEngine][step] manager_name", name)
                 if name != "record_manager":
                     manager.step()
             self.step_physics_world()

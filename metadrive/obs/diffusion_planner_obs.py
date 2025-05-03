@@ -430,15 +430,7 @@ class DiffusionPlannerObservation(BaseObservation):
                 color=col,
             )
 
-    @staticmethod
-    def _local_vec_to_world(vx: float, vy: float,
-                            ego_yaw: float) -> Tuple[float, float]:
-        """(vx, vy) 를 병진 없이 yaw 만큼 회전한 월드벡터 반환"""
-        c: float = math.cos(ego_yaw)
-        s: float = math.sin(ego_yaw)
-        wx: float = vx * c - vy * s
-        wy: float = vx * s + vy * c
-        return wx, wy
+
 
     # -----------------------------------------------
     # 3)  바운딩-박스(차량) 그리기
@@ -471,7 +463,7 @@ class DiffusionPlannerObservation(BaseObservation):
             pts_world=corners,
             color=color,
             dotted=False,
-            thickness=60,
+            thickness=1,
         )
 
         # 2) 중앙에서 heading 방향으로 화살표(선) 그리기
@@ -486,7 +478,7 @@ class DiffusionPlannerObservation(BaseObservation):
             start,
             end,
             color=(1.0, 0.0, 0.0, 1.0),  # 진한 빨강으로
-            thickness=80,
+            thickness=3,
         )
         heading_node.reparentTo(engine.render)
         np_list.append(heading_node)
@@ -500,6 +492,16 @@ class DiffusionPlannerObservation(BaseObservation):
         c, s = math.cos(ego_yaw), math.sin(ego_yaw)
         wx = px * c - py * s + ego_x
         wy = px * s + py * c + ego_y
+        return wx, wy
+
+    @staticmethod
+    def _local_vec_to_world(vx: float, vy: float,
+                            ego_yaw: float) -> Tuple[float, float]:
+        """(vx, vy) 를 병진 없이 yaw 만큼 회전한 월드벡터 반환"""
+        c: float = math.cos(ego_yaw)
+        s: float = math.sin(ego_yaw)
+        wx: float = vx * c - vy * s
+        wy: float = vx * s + vy * c
         return wx, wy
 
     def _visualize_neighbors(
@@ -538,6 +540,8 @@ class DiffusionPlannerObservation(BaseObservation):
             # (b) 과거 21 스텝 모두 시각화 -------------------------------
             #     오래된 샘플일수록 투명·얇게 해서 겹침을 줄임
             for t_idx in range(agent_hist.shape[0]):  # 0 (과거) → 20 (현재)
+                if t_idx != agent_hist.shape[0] - 1:
+                    continue
                 x, y, c_h, s_h, *_tail = agent_hist[t_idx, :]
                 width, length = _tail[2], _tail[3]  # w, l 순서 주의
 
@@ -570,7 +574,7 @@ class DiffusionPlannerObservation(BaseObservation):
                 continue
             vx_w, vy_w = self._local_vec_to_world(float(vx), float(vy), ego_yaw)
             norm: float = min(speed / vmax, 1.0)
-            arr_len: float = norm * arrow_scale  # [m]
+            arr_len: float = norm * arrow_scale * 10  # [m]
 
             cx_w_arr, cy_w_arr = self._local_to_world_batch(
                 np.array([x]), np.array([y]), ego_x, ego_y, ego_yaw)
@@ -584,7 +588,7 @@ class DiffusionPlannerObservation(BaseObservation):
                 [(cx_w, cy_w), (cx_w + ux, cy_w + uy)],
                 color=col,
                 dotted=False,
-                thickness=40,
+                thickness=1,
             )
 
     # -----------------------------------------------------------

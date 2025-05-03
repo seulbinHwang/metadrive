@@ -33,7 +33,26 @@ from nuplan.planning.simulation.controller.motion_model.kinematic_bicycle import
 from metadrive.utils.math import wrap_to_pi
 
 from metadrive.utils.math import clip, wrap_to_pi
+import numpy as np
+from typing import Sequence
 
+def body_to_world_vel(v_body: Sequence[float], heading_rad: float) -> np.ndarray:
+    """
+    차체(local) 기준 2-D 속도를 월드 좌표계 xyz 벡터로 변환한다.
+
+    Args
+    ----
+    v_body : (vx, vy)  # [m/s]  차체 전방/좌향 축 성분
+    heading_rad : float  # [rad] 월드 기준 차체 헤딩 각
+
+    Returns
+    -------
+    np.ndarray shape=(3,)  # (vx_world, vy_world, vz=0)
+    """
+    c, s = np.cos(heading_rad), np.sin(heading_rad)
+    vx_w = c * v_body[0] - s * v_body[1]
+    vy_w = s * v_body[0] + c * v_body[1]
+    return np.array([vx_w, vy_w], dtype=float)
 
 class DefaultVehicle(BaseVehicle):
     PARAMETER_SPACE = ParameterSpace(VehicleParameterSpace.DEFAULT_VEHICLE)
@@ -354,7 +373,7 @@ class KinematicBicycleHistoryVehicle(HistoryDefaultVehicle):
         self.max_acceleration_range = vehicle_config.get(
             "max_acceleration_range", (2., 3.5))
         self.max_deceleration_range = vehicle_config.get(
-            "max_deceleration_range", (8.9, 9.))
+            "max_deceleration_range", (1.5, 2.5))
         # ─── random sampling of max accel/decel ───
         # acceleration: 2.0 ≤ a < 3.5
         acc_min, acc_max = self.max_acceleration_range
@@ -438,9 +457,11 @@ class KinematicBicycleHistoryVehicle(HistoryDefaultVehicle):
         ##############
         self.set_position(current_state.center.point.array)
         self.set_heading_theta(current_state.center.heading)
-        self.current_velocity = current_state.dynamic_car_state.center_velocity_2d.array
-        self.current_angular_velocity = current_state.dynamic_car_state.angular_velocity
+        heading = current_state.center.heading
+        v_body = current_state.dynamic_car_state.center_velocity_2d.array  # (vx, vy)
+        self.current_velocity = body_to_world_vel(v_body, heading)
         self.set_velocity(self.current_velocity)
+        self.current_angular_velocity = current_state.dynamic_car_state.angular_velocity
         self.set_angular_velocity(self.current_angular_velocity)
         # self._body.setLinearVelocity(
         #     LVector3(0.0, 0.0, 0.0))

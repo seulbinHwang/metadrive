@@ -42,9 +42,9 @@ class LQRPolicy(BasePolicy):
         if future_trajectory is None:
             external_actions = self.engine.external_actions
             future_trajectory = external_actions[agent_id]
-            # return 0., 0.
+            return 0., 0.
         # else:
-            # return 0., 0.
+        # return 0., 0.
         ego_history = list(self.control_object.ego_history)
         # future_trajectory: np.ndarray (80, 4) # 80: number of future steps, 4: x, y, cos(yaw), sin(yaw)
         # Convert future_trajectory to control inputs(acceleration and steering rate)
@@ -53,7 +53,7 @@ class LQRPolicy(BasePolicy):
             trajectory=outputs_to_trajectory(future_trajectory, ego_history))
         # ② 궤적을 화면에 그리기
         # self._draw_history()
-        self._draw_trajectory(trajectory)
+        # self._draw_trajectory(trajectory)
         # Compute the dynamic state to propagate the model
         ego_state = ego_history[-1]
         current_iteration = SimulationIteration(
@@ -117,9 +117,9 @@ class LQRPolicy(BasePolicy):
             x, y, z = state.rear_axle.x, state.rear_axle.y, 1.5
             np_dot = engine._draw_line_3d(
                 LVector3(x, y, z),
-                LVector3(x, y, z + 12.52),  # 매우 짧은 선 = 점처럼 보임
+                LVector3(x, y, z + 5.52),  # 매우 짧은 선 = 점처럼 보임
                 color=(0, 0, 1, 1),  # 빨간색
-                thickness=160  # 점 크기 조절
+                thickness=5  # 점 크기 조절
             )
             # **중요!** 월드에 부착해야 보인다
             np_dot.reparentTo(engine.render)

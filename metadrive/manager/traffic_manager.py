@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 
 import math
 import numpy as np
-
+from metadrive.manager.speed_limit_pg_map_manager import SpeedLimitPGMapManager
 from metadrive.component.lane.abs_lane import AbstractLane
 from metadrive.component.map.base_map import BaseMap
 from metadrive.component.road_network import Road
@@ -14,7 +14,7 @@ from metadrive.constants import TARGET_VEHICLES, TRAFFIC_VEHICLES, OBJECT_TO_AGE
 from metadrive.manager.base_manager import BaseManager
 from metadrive.utils import merge_dicts
 from diffusion_planner.data_process.utils import convert_absolute_quantities_to_relative, TrackedObjectType, AgentInternalIndex, EgoInternalIndex
-
+from metadrive.policy.idm_policy import IDMPolicy
 BlockVehicles = namedtuple("block_vehicles", "trigger_road vehicles")
 
 
@@ -252,7 +252,7 @@ class PGTrafficManager(BaseManager):
         Control the whole traffic flow
         """
         super(PGTrafficManager, self).__init__()
-
+        self.max_speed_km_h = None
         self._traffic_vehicles = []
 
         # triggered by the event. TODO(lqy) In the future, event trigger can be introduced
@@ -263,13 +263,25 @@ class PGTrafficManager(BaseManager):
         self.random_traffic = self.engine.global_config["random_traffic"]
         self.density = self.engine.global_config["traffic_density"]
         self.respawn_lanes = None
+        if isinstance(self.engine.map_manager, SpeedLimitPGMapManager):
+            self.use_advanced_idm_policy = True
+        else:
+            self.use_advanced_idm_policy = False
+
 
     def reset(self):
         """
         Generate traffic on map, according to the mode and density
         :return: List of Traffic vehicles
         """
+
         map = self.current_map
+        if isinstance(self.engine.map_manager, SpeedLimitPGMapManager):
+            self.max_speed_km_h = self.engine.map_manager.speed_limit_kph
+            assert self.max_speed_km_h is not None, \
+                "Speed limit should be set before traffic manager reset"
+        else:
+            self.max_speed_km_h = None
         logging.debug("load scene {}".format(
             "Use random traffic" if self.random_traffic else ""))
 
@@ -335,11 +347,14 @@ class PGTrafficManager(BaseManager):
                 long = self.np_random.rand() * lane.length / 2
                 traffic_v_config = {
                     "spawn_lane_index": lane_idx,
-                    "spawn_longitude": long
+                    "spawn_longitude": long,
                 }
+                if self.max_speed_km_h is not None:
+                    traffic_v_config["max_speed_km_h"] = self.max_speed_km_h
                 new_v = self.spawn_object(vehicle_type,
                                           vehicle_config=traffic_v_config)
-                from metadrive.policy.idm_policy import IDMPolicy
+                if self.use_advanced_idm_policy:
+                    from metadrive.policy.advanced_idm_policy import IDMPolicy
                 self.add_policy(new_v.id, IDMPolicy, new_v,
                                 self.generate_seed())
                 self._traffic_vehicles.append(new_v)
@@ -457,13 +472,16 @@ class PGTrafficManager(BaseManager):
                 vehicle_type = self.random_vehicle_type()
                 traffic_v_config = {
                     "spawn_lane_index": lane.index,
-                    "spawn_longitude": long
+                    "spawn_longitude": long,
                 }
+                if self.max_speed_km_h is not None:
+                    traffic_v_config["max_speed_km_h"] = self.max_speed_km_h
                 traffic_v_config.update(
                     self.engine.global_config["traffic_vehicle_config"])
                 random_v = self.spawn_object(vehicle_type,
                                              vehicle_config=traffic_v_config)
-                from metadrive.policy.idm_policy import IDMPolicy
+                if self.use_advanced_idm_policy:
+                    from metadrive.policy.advanced_idm_policy import IDMPolicy
                 self.add_policy(random_v.id, IDMPolicy, random_v,
                                 self.generate_seed())
                 self._traffic_vehicles.append(random_v)
@@ -513,14 +531,17 @@ class PGTrafficManager(BaseManager):
                 total_vehicles, len(potential_vehicle_configs))]
             # print("We have {} candidates! We are spawning {} vehicles!".format(total_vehicles, len(selected)))
 
-            from metadrive.policy.idm_policy import IDMPolicy
             for v_config in selected:
                 vehicle_type = self.random_vehicle_type()
                 v_config.update(
                     self.engine.global_config["traffic_vehicle_config"])
+                if self.max_speed_km_h is not None:
+                    v_config.update({"max_speed_km_h": self.max_speed_km_h})
                 random_v = self.spawn_object(vehicle_type,
                                              vehicle_config=v_config)
                 seed = self.generate_seed()
+                if self.use_advanced_idm_policy:
+                    from metadrive.policy.advanced_idm_policy import IDMPolicy
                 self.add_policy(random_v.id, IDMPolicy, random_v, seed)
                 vehicles_on_block.append(random_v.name)
 
@@ -809,7 +830,6 @@ class HistoricalBufferTrafficManager(PGTrafficManager):
         for v in self._traffic_vehicles:
             # toy example
             vehicle_id = self._get_float_id_for_vehicle(v.id)
-
             vx = v.velocity[0]  # m/s
             vy = v.velocity[1]  # m/s
             heading = v.heading_theta  # rad
@@ -872,7 +892,7 @@ class MixedPGTrafficManager(PGTrafficManager):
             selected = potential_vehicle_configs[:min(
                 total_vehicles, len(potential_vehicle_configs))]
 
-            from metadrive.policy.idm_policy import IDMPolicy
+
             from metadrive.policy.expert_policy import ExpertPolicy
             # print("===== We are initializing {} vehicles =====".format(len(selected)))
             # print("Current seed: ", self.engine.global_random_seed)
@@ -888,6 +908,9 @@ class MixedPGTrafficManager(PGTrafficManager):
                     self.add_policy(random_v.id, ExpertPolicy, random_v,
                                     self.generate_seed())
                 else:
+                    if self.use_advanced_idm_policy:
+                        from metadrive.policy.advanced_idm_policy import \
+                            IDMPolicy
                     self.add_policy(random_v.id, IDMPolicy, random_v,
                                     self.generate_seed())
                 vehicles_on_block.append(random_v.name)

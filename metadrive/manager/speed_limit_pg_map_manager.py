@@ -36,6 +36,8 @@ class SpeedLimitPGMapManager(PGMapManager):
             self.engine.global_config["max_speed_kph_limit"] -
             self.engine.global_config["min_speed_kph_limit"]) + \
             self.engine.global_config["min_speed_kph_limit"]
+        self.speed_limit_kph = 30
+        print("[SpeedLimitPGMapManager] Speed limit: ", self.speed_limit_kph)
         return map_config
 
     # --------------------------------------------------------------------- #

@@ -28,7 +28,7 @@ def main():
         "traffic_density": 0.5,
         "map": 5,
         "random_traffic": True,
-        "use_render": True,  # <- 화면 창 활성화
+        "use_render": False,  # <- 화면 창 활성화
         "debug": False,
         "accident_prob": 0.,
     }

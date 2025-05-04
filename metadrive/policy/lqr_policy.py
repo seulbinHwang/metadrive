@@ -42,7 +42,7 @@ class LQRPolicy(BasePolicy):
         if future_trajectory is None:
             external_actions = self.engine.external_actions
             future_trajectory = external_actions[agent_id]
-            return 0., 0.
+            # return 0., 0.
         # else:
         # return 0., 0.
         ego_history = list(self.control_object.ego_history)

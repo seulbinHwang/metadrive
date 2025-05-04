@@ -15,7 +15,6 @@ from nuplan.planning.simulation.planner.ml_planner.transform_utils import transf
 # from nuplan.planning.simulation.planner.abstract_planner import (
 #     AbstractPlanner, PlannerInitialization, PlannerInput)
 #
-# from diffusion_planner.model.diffusion_planner import Diffusion_Planner
 # from diffusion_planner.data_process.data_processor import DataProcessor
 # from diffusion_planner.utils.config import Config
 

@@ -21,7 +21,7 @@ def feasible_guidance_fn(x: torch.Tensor, t: torch.Tensor, cond, inputs: dict,
         torch.Tensor: [B] 형태의 guidance 값. 값이 클수록 제약을 위반했음을 나타냅니다.
     """
     # 배치 크기, 에이전트 수(Pn+1), timesteps
-    B, Pp1, Tp1, _ = x.shape
+    B, Pp1, Tp1, _ = x.shape  # (1, 11, 81, 4)
 
     # reshape 및 gradient 적용 시점만 활성화
     x = x.reshape(B, Pp1, Tp1, 4)
@@ -29,73 +29,85 @@ def feasible_guidance_fn(x: torch.Tensor, t: torch.Tensor, cond, inputs: dict,
     x = torch.where(mask.view(B, 1, 1, 1), x, x.detach())
 
     # heading 벡터 정규화 (cos, sin 부분)
-    heading = x[..., 2:4]
+    heading = x[..., 2:4].detach()
     heading = heading / heading.norm(dim=-1, keepdim=True).detach()
-    x = torch.cat([x[..., :2], heading], dim=-1)  # [B, P+1, T+1, 4]
+    x = torch.cat([x[..., :2], heading], dim=-1)  # [B, 11, 81, 4]
 
-    # 예측 궤적 (첫 timestep 제외)에서 위치 정보만 추출
-    traj = x[:, :, :, :2]  # [B, P+1, T+1, 2]
-
-    # successive distance 계산
-    diffs = traj[:, :, 1:, :] - traj[:, :, :-1, :]  # [B, P+1, T, 2]
-    d = diffs.norm(dim=-1)  # [B, P+1, T]
+    neighbor_current_mask = inputs[
+        "neighbor_current_mask"]  # (B, 10) # 차량이 없는 경우 True
+    neighbor_traj = x[:, 1:, :, :2]  # neighbor_traj:(B, 10, 81, 2) # 궤적 좌표 (x,y)
+    # remove neighbor_current_mask 값이 True 에 해당하는 agent는 -> traj에서 제거해야 함
+    diffs_norm = []
+    for b in range(B):
+        keep_mask = ~neighbor_current_mask[b]  # (10,)  존재하는 에이전트만 True
+        traj_present = neighbor_traj[b][keep_mask]  # (N_b, 81, 2)
+        diff = traj_present[:, 1:, :] - traj_present[:, :-1, :]  # (N_b, 80, 2)
+        d = diff.norm(dim=-1)  # (N_b, 80)
+        diffs_norm.append(d)
+    # diffs_norm: (N_b_0 + N_b_1 + ... + N_b_B, 80)
+    diffs_norm = torch.cat(diffs_norm, dim=0)  # (N, 80)
+    # diffs_norm: (N, 80) -> (N * 80) 1차원으로 변경
+    diffs_norm = diffs_norm.view(-1)  # (N * 80)
 
     # 이동 한계 거리
-    # TODO: 도로 속도 제한에 따라, 바꾸기
-    r_max = (100 / 3.6) * 0.1  #inputs['r_max']                         # scalar
+    r_max = (30. / 3.6) * 0.1  #inputs['r_max']                         # scalar
 
     # 위반 정도 (sparsity)
-    violation = F.relu((d - r_max) / r_max)  # [B, P+1, T]
-    indicator = (d > r_max).float()  # [B, P+1, T]
+    violation = F.relu((diffs_norm - r_max) / r_max)  # (N * 80)
+    violation = torch.clamp(
+        violation,
+        min=torch.tensor(0.0, device=violation.device),
+        max=torch.tensor(3.0,
+                         device=violation.device))  # (N * 80)
+    indicator = (diffs_norm > r_max).float()  # (N * 80)
 
     # 에너지 계산: 위반 평균
-    energy = violation.sum(dim=(0, 1, 2)) / (indicator.sum(dim=(0, 1, 2)) + _EPS
-                                            )  # [1]
+    energy = violation.sum() / (indicator.sum() + _EPS)  # []
 
     # guidance 신호 (음의 지수 형태)
-    reward = -torch.exp(energy)  # [1]
+    reward = -energy.exp()  # []
 
     #############
     # 1) reward에 대한 x의 gradient 추출
-    grad_all = torch.autograd.grad(
+    x_aux = torch.autograd.grad(
         reward.sum(),  # 스칼라이므로 .sum()
         x,
         retain_graph=True,
-        allow_unused=True)[0]  # [B, P+1, T+1, 4]
+        allow_unused=True)[0] # [B, 11, 81, 4]
 
     # 2) 위치 성분(x,y)만 골라내기
-    x_aux = grad_all[:, 1:, :, :2]  # (1, 10, 81, 2)
+    x_aux = x_aux[:, 1:, 1:, :2]  # (1, 10, 80, 2)
+    reward = torch.sum(x_aux.detach() * x[:, 1:, 1:, :2], dim=(1, 2, 3))  # [1]
+    return 3.0 * reward  # 스케일 맞춰서 반환
 
-    # 3) 각 agent별 heading(cos,sin)으로 회전행렬 만들기
-    cos_n = x[:, 1:, :, 2]  # [B, Pn, T+1]
-    sin_n = x[:, 1:, :, 3]  # [B, Pn, T+1]
-    rot = torch.stack([cos_n, sin_n, -sin_n, cos_n], dim=-1)  # [B, Pn, T+1, 4]
-    B, Pp1, Tp1, _ = rot.shape
-    R = rot.view(B, Pp1, Tp1, 2, 2)  # [B, P+1, T+1, 2,2]
-
-    # 4) world frame으로 회전
-    world_grad = torch.einsum("bptij,bptj->bpti", R, x_aux)  # [B, P+1, T+1, 2]
-
-    # 5) lateral 성분만 Gaussian smoothing
-    lat = world_grad[..., 1].contiguous().view(-1, 1, Tp1)  # [B*(P+1),1,T+1]
-    lat = F.pad(lat, (10, 10), mode='replicate')
-    kernel = torch.exp(-torch.linspace(-2, 2, 21, device=x.device)**2 / 4).view(
-        1, 1, 21)
-    lat = F.conv1d(lat, kernel)  # [B*(P+1),1,T+1]
-    lat = lat.view(B, Pp1, Tp1)  # [B, P+1, T+1]
-
-    # 6) longitudinal 성분은 0으로, lateral만 재조합
-    grad_smooth = torch.stack([torch.zeros_like(lat), lat],
-                              dim=-1)  # [B, P+1, T+1, 2]
-
-    # 7) world→ego inverse 회전
-    ego_grad = torch.einsum("bptji,bptj->bpti", R,
-                            grad_smooth)  # [B, P+1, T+1, 2]
-
-    # 8) 최종 guidance: 궤적 좌표와 내적 → 각 agent별 점수, 평균 또는 원하는 방식으로 집계
-    #    여기서는 P+1개 agent을 모두 평균
-    guidance_per_agent = torch.sum(ego_grad.detach() * x[:, 1:, :, :2],
-                                   dim=(2, 3))  # [B, P+1]
-    guidance = guidance_per_agent.mean(dim=1)  # [B,]
-
-    return 3.0 * guidance  # 스케일 맞춰서 반환
+    # # 3) 각 agent별 heading(cos,sin)으로 회전행렬 만들기
+    # cos_n = x[:, 1:, :, 2]  # [B, Pn, T+1]
+    # sin_n = x[:, 1:, :, 3]  # [B, Pn, T+1]
+    # rot = torch.stack([cos_n, sin_n, -sin_n, cos_n], dim=-1)  # [B, Pn, T+1, 4]
+    # B, Pp1, Tp1, _ = rot.shape
+    # R = rot.view(B, Pp1, Tp1, 2, 2)  # [B, P+1, T+1, 2,2]
+    #
+    # # 4) world frame으로 회전
+    # world_grad = torch.einsum("bptij,bptj->bpti", R, x_aux)  # [B, P+1, T+1, 2]
+    #
+    # # 5) lateral 성분만 Gaussian smoothing
+    # lat = world_grad[..., 1].contiguous().view(-1, 1, Tp1)  # [B*(P+1),1,T+1]
+    # lat = F.pad(lat, (10, 10), mode='replicate')
+    # kernel = torch.exp(-torch.linspace(-2, 2, 21, device=x.device)**2 / 4).view(
+    #     1, 1, 21)
+    # lat = F.conv1d(lat, kernel)  # [B*(P+1),1,T+1]
+    # lat = lat.view(B, Pp1, Tp1)  # [B, P+1, T+1]
+    #
+    # # 6) longitudinal 성분은 0으로, lateral만 재조합
+    # grad_smooth = torch.stack([torch.zeros_like(lat), lat],
+    #                           dim=-1)  # [B, P+1, T+1, 2]
+    #
+    # # 7) world→ego inverse 회전
+    # ego_grad = torch.einsum("bptji,bptj->bpti", R,
+    #                         grad_smooth)  # [B, P+1, T+1, 2]
+    #
+    # # 8) 최종 guidance: 궤적 좌표와 내적 → 각 agent별 점수, 평균 또는 원하는 방식으로 집계
+    # #    여기서는 P+1개 agent을 모두 평균
+    # guidance_per_agent = torch.sum(ego_grad.detach() * x[:, 1:, :, :2],
+    #                                dim=(2, 3))  # [B, P+1]
+    # guidance = guidance_per_agent.mean(dim=1)  # [B,]

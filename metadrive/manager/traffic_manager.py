@@ -194,7 +194,6 @@ class HistoryBuffer:
         # 길이가 0이면 빈 리스트 반환
         if len(self.neighbor_agents_past_all) == 0:
             return []
-
         sampling_interval_steps = int(
             round(self.output_time_gap / self.time_gap_per_step))
         # leftover 계산으로 인덱스를 맞춤
@@ -691,7 +690,7 @@ class HistoricalBufferTrafficManager(PGTrafficManager):
         else:
             local_coords_agent_states = []
             padded_agent_states = _pad_agent_states(agent_history, reverse=True)
-            for agent_state in padded_agent_states:
+            for agent_state in padded_agent_states: # 길이 21 짜리 리스트
                 # agent_state: np (last_frame_num_agents, 8)
                 local_coords_agent_states.append(
                     convert_absolute_quantities_to_relative(
@@ -699,9 +698,9 @@ class HistoricalBufferTrafficManager(PGTrafficManager):
             # Calculate yaw rate
             # agents_array = (num_frames, last_Frame_num_agents, 8)
             agents_array = np.zeros(
-                (len(local_coords_agent_states),
-                 local_coords_agent_states[0].shape[0], agents_states_dim))
-
+                (len(local_coords_agent_states), # 21
+                 local_coords_agent_states[0].shape[0], agents_states_dim)) # (last_frame_num_agents, 8)
+            # agents_array: global 좌표계
             for frame_idx in range(len(local_coords_agent_states)):
                 agents_array[frame_idx, :, 0] = local_coords_agent_states[
                     frame_idx][:, AgentInternalIndex.x()].squeeze()
@@ -722,7 +721,8 @@ class HistoricalBufferTrafficManager(PGTrafficManager):
                 agents_array[frame_idx, :, 7] = local_coords_agent_states[
                     frame_idx][:, AgentInternalIndex.length()].squeeze()
         # Initialize the result array
-        # agents_array: (num_frames, last_Frame_num_agents, 8)
+        # agents_array = (num_frames=21, last_Frame_num_agents, 8)
+        # agents: (num_agents=32, num_frames=21, 11)
         agents = np.zeros((self.num_agents, agents_array.shape[0],
                            agents_array.shape[-1] + 3),
                           dtype=np.float32)  # (num_agents=32, num_frames, 11)

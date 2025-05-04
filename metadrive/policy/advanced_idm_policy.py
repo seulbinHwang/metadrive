@@ -353,7 +353,7 @@ class IDMPolicy(BasePolicy):
                 DEADZONE = 0.01
                 # Speed m/s in car's heading:
 
-                if speed_in_heading < DEADZONE:
+                if speed_in_heading < DEADZONE: #  속도가 음수면 감속 못해게.
                     acceleration_ = 0
                 else:
                     candidate_acc = normalized_acc * max_deceleration

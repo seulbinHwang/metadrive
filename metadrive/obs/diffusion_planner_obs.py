@@ -540,8 +540,6 @@ class DiffusionPlannerObservation(BaseObservation):
             # (b) 과거 21 스텝 모두 시각화 -------------------------------
             #     오래된 샘플일수록 투명·얇게 해서 겹침을 줄임
             for t_idx in range(agent_hist.shape[0]):  # 0 (과거) → 20 (현재)
-                if t_idx != agent_hist.shape[0] - 1:
-                    continue
                 x, y, c_h, s_h, *_tail = agent_hist[t_idx, :]
                 width, length = _tail[2], _tail[3]  # w, l 순서 주의
 
@@ -566,30 +564,29 @@ class DiffusionPlannerObservation(BaseObservation):
                     float(width),
                     color=(col[0], col[1], col[2], alpha),
                 )
-
             # (c) 현재 스텝(마지막 인덱스)만 속도 화살표 추가 --------------
-            x, y, c_h, s_h, vx, vy, width, length = agent_hist[-1, :8]
-            speed: float = math.hypot(vx, vy)
-            if speed < 1e-2:
-                continue
-            vx_w, vy_w = self._local_vec_to_world(float(vx), float(vy), ego_yaw)
-            norm: float = min(speed / vmax, 1.0)
-            arr_len: float = norm * arrow_scale * 10  # [m]
-
-            cx_w_arr, cy_w_arr = self._local_to_world_batch(
-                np.array([x]), np.array([y]), ego_x, ego_y, ego_yaw)
-            cx_w, cy_w = float(cx_w_arr[0]), float(cy_w_arr[0])
-
-            ux: float = vx_w / speed * arr_len
-            uy: float = vy_w / speed * arr_len
-
-            self._neighbor_np_list += self._draw_polyline(
-                engine,
-                [(cx_w, cy_w), (cx_w + ux, cy_w + uy)],
-                color=col,
-                dotted=False,
-                thickness=1,
-            )
+            # x, y, c_h, s_h, vx, vy, width, length = agent_hist[-1, :8]
+            # speed: float = math.hypot(vx, vy)
+            # if speed < 1e-2:
+            #     continue
+            # vx_w, vy_w = self._local_vec_to_world(float(vx), float(vy), ego_yaw)
+            # norm: float = min(speed / vmax, 1.0)
+            # arr_len: float = norm * arrow_scale * 10  # [m]
+            #
+            # cx_w_arr, cy_w_arr = self._local_to_world_batch(
+            #     np.array([x]), np.array([y]), ego_x, ego_y, ego_yaw)
+            # cx_w, cy_w = float(cx_w_arr[0]), float(cy_w_arr[0])
+            #
+            # ux: float = vx_w / speed * arr_len
+            # uy: float = vy_w / speed * arr_len
+            #
+            # self._neighbor_np_list += self._draw_polyline(
+            #     engine,
+            #     [(cx_w, cy_w), (cx_w + ux, cy_w + uy)],
+            #     color=col,
+            #     dotted=False,
+            #     thickness=1,
+            # )
 
     # -----------------------------------------------------------
     # ② 폴리라인(연속 선분) 그리기

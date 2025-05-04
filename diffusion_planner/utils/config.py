@@ -2,7 +2,7 @@ import json
 import torch
 from typing import Dict, Any
 from diffusion_planner.utils.normalizer import StateNormalizer, ObservationNormalizer
-from diffusion_planner.model.guidance.guidance_wrapper import GuidanceWrapper
+# from diffusion_planner.model.guidance.guidance_wrapper import GuidanceWrapper
 
 
 class Config:
@@ -21,7 +21,7 @@ class Config:
                 'std': torch.as_tensor(v['std'])
             } for k, v in self.observation_normalizer.items()
         })
-        self.guidance_fn = GuidanceWrapper()
+        self.guidance_fn = None #GuidanceWrapper()
 
     def to_dict(self) -> Dict[str, Any]:
         """

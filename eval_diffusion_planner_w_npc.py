@@ -28,7 +28,7 @@ def main():
         "traffic_density": 0.5,
         "map": 15,
         "random_traffic": True,
-        "use_render": False,  # <- 화면 창 활성화
+        "use_render": True,  # <- 화면 창 활성화
         "debug": False,
         "accident_prob": 0.,
     }
@@ -49,8 +49,8 @@ def main():
         obs: (n, 19)
         """
         action, _ = model.predict(obs, deterministic=True)
-        npc_predictions = model.get_npc_predictions(obs) # ( P-1, V_future = 80, 4)
-        env.set_external_npc_actions(npc_predictions)
+        npc_predictions, npc_predictions_not_used = model.get_npc_predictions(obs) # ( P-1, V_future = 80, 4)
+        env.set_external_npc_actions(npc_predictions, npc_predictions_not_used)
         """
         만약 VecEnv 였으면,
         env.env_method(method_name="set_external_npc_actions",

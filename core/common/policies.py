@@ -6,8 +6,8 @@ import copy
 import warnings
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any, Optional, TypeVar, Union, Dict
-
+from typing import Any, Optional, TypeVar, Union, Dict, Tuple
+from diffusion_planner.model.guidance.guidance_wrapper import GuidanceWrapper
 import numpy as np
 from gymnasium import spaces
 from torch import nn
@@ -205,6 +205,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             normalize_images=normalize_images,
         )
         self.npc_predictions = None
+        self.npc_predictions_not_used = None
         # Default network architecture, from stable-baselines
         self.activation_fn = activation_fn
         self.ortho_init = ortho_init
@@ -267,7 +268,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
 
         return vectorized
 
-    def get_npc_predictions(self, obs) -> np.ndarray:
+    def get_npc_predictions(self, obs) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         vectorized_env = self.is_vectorized_env(obs)
         npc_predictions = self.npc_predictions.copy()
         if not vectorized_env:
@@ -275,7 +276,13 @@ class DiffusionActorCriticPolicy(BasePolicy):
             npc_predictions = npc_predictions.squeeze(
                 axis=0)  # (P-1, V_future, 4)
         self.npc_predictions = None
-        return npc_predictions  # (B, P-1, V_future = 80, 4)
+        npc_predictions_not_used = self.npc_predictions_not_used.copy()
+        if not vectorized_env:
+            assert isinstance(npc_predictions_not_used, np.ndarray)
+            npc_predictions_not_used = npc_predictions_not_used.squeeze(
+                axis=0)
+        self.npc_predictions_not_used = None
+        return npc_predictions, npc_predictions_not_used  # (B, P-1, V_future = 80, 4)
 
     def _set_state_dict(self):
         """
@@ -364,8 +371,11 @@ class DiffusionActorCriticPolicy(BasePolicy):
         """
         self.diffusion_transformer = Decoder(self.diffusion_planner_config)
         if self.double_decoder:
-            self.diffusion_transformer_for_npc = Decoder(
+            diffusion_planner_config_copy = copy.deepcopy(
                 self.diffusion_planner_config)
+            diffusion_planner_config_copy.guidance_fn = GuidanceWrapper()
+            self.diffusion_transformer_for_npc = Decoder(
+                diffusion_planner_config_copy)
         self.critic_net = TransformerCritic(
             hidden_dim=self.diffusion_planner_config.hidden_dim)
         # Setup optimizer with initial learning rate
@@ -396,9 +406,9 @@ class DiffusionActorCriticPolicy(BasePolicy):
             features, observation)
         ego_predictions = decoder_outputs["ego_prediction"].detach(
         )  # (B, P, V_future, 4)
-        # self.npc_predictions = decoder_outputs[
-        #     "npc_prediction"].detach().cpu().numpy().astype(
-        #     np.float64)  # (B, P-1, 1+V_future, 4)
+        self.npc_predictions_not_used = decoder_outputs[
+            "npc_prediction"].detach().cpu().numpy().astype(
+            np.float64)  # (B, P-1, 1+V_future, 4)
         if self.double_decoder:
             decoder_outputs_for_npc: Dict[
                 str, torch.Tensor] = self.diffusion_transformer_for_npc(

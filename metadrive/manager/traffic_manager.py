@@ -15,6 +15,7 @@ from metadrive.manager.base_manager import BaseManager
 from metadrive.utils import merge_dicts
 from diffusion_planner.data_process.utils import convert_absolute_quantities_to_relative, TrackedObjectType, AgentInternalIndex, EgoInternalIndex
 from metadrive.policy.idm_policy import IDMPolicy
+
 BlockVehicles = namedtuple("block_vehicles", "trigger_road vehicles")
 
 
@@ -266,7 +267,6 @@ class PGTrafficManager(BaseManager):
             self.use_advanced_idm_policy = True
         else:
             self.use_advanced_idm_policy = False
-
 
     def reset(self):
         """
@@ -690,16 +690,17 @@ class HistoricalBufferTrafficManager(PGTrafficManager):
         else:
             local_coords_agent_states = []
             padded_agent_states = _pad_agent_states(agent_history, reverse=True)
-            for agent_state in padded_agent_states: # 길이 21 짜리 리스트
+            for agent_state in padded_agent_states:  # 길이 21 짜리 리스트
                 # agent_state: np (last_frame_num_agents, 8)
                 local_coords_agent_states.append(
                     convert_absolute_quantities_to_relative(
                         agent_state, ego_pose, 'agent'))
             # Calculate yaw rate
             # agents_array = (num_frames, last_Frame_num_agents, 8)
-            agents_array = np.zeros(
-                (len(local_coords_agent_states), # 21
-                 local_coords_agent_states[0].shape[0], agents_states_dim)) # (last_frame_num_agents, 8)
+            agents_array = np.zeros((
+                len(local_coords_agent_states),  # 21
+                local_coords_agent_states[0].shape[0],
+                agents_states_dim))  # (last_frame_num_agents, 8)
             # agents_array: global 좌표계
             for frame_idx in range(len(local_coords_agent_states)):
                 agents_array[frame_idx, :, 0] = local_coords_agent_states[
@@ -891,7 +892,6 @@ class MixedPGTrafficManager(PGTrafficManager):
             self.np_random.shuffle(potential_vehicle_configs)
             selected = potential_vehicle_configs[:min(
                 total_vehicles, len(potential_vehicle_configs))]
-
 
             from metadrive.policy.expert_policy import ExpertPolicy
             # print("===== We are initializing {} vehicles =====".format(len(selected)))

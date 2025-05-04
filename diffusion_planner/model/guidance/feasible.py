@@ -57,7 +57,7 @@ def feasible_guidance_fn(x: torch.Tensor, t: torch.Tensor, cond, inputs: dict,
     violation = torch.clamp(
         violation,
         min=torch.tensor(0.0, device=violation.device),
-        max=torch.tensor(3.0,
+        max=torch.tensor(50.0,
                          device=violation.device))  # (N * 80)
     indicator = (diffs_norm > r_max).float()  # (N * 80)
 
@@ -78,7 +78,7 @@ def feasible_guidance_fn(x: torch.Tensor, t: torch.Tensor, cond, inputs: dict,
     # 2) 위치 성분(x,y)만 골라내기
     x_aux = x_aux[:, 1:, 1:, :2]  # (1, 10, 80, 2)
     reward = torch.sum(x_aux.detach() * x[:, 1:, 1:, :2], dim=(1, 2, 3))  # [1]
-    return 3.0 * reward  # 스케일 맞춰서 반환
+    return 300.0 * reward  # 스케일 맞춰서 반환
 
     # # 3) 각 agent별 heading(cos,sin)으로 회전행렬 만들기
     # cos_n = x[:, 1:, :, 2]  # [B, Pn, T+1]

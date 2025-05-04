@@ -14,6 +14,7 @@ from metadrive.utils import merge_dicts
 from diffusion_planner.data_process.utils import convert_absolute_quantities_to_relative, TrackedObjectType, AgentInternalIndex, EgoInternalIndex
 import numpy as np
 from typing import List
+import colorsys
 
 from metadrive.policy.advanced_idm_policy import IDMPolicy
 from metadrive.policy.lqr_policy import LQRPolicy  # ← 이미 구현돼 있다고 가정
@@ -21,8 +22,6 @@ from metadrive.component.vehicle.base_vehicle import BaseVehicle
 from metadrive.constants import RENDER_MODE_NONE
 
 BlockVehicles = namedtuple("block_vehicles", "trigger_road vehicles")
-
-
 
 # ── new_mixed_traffic_manager.py ───────────────────────────────────────────────
 
@@ -123,14 +122,56 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
                 continue
             coords_g, yaws_g = ego_to_global(npc_traj, ego_pos, ego_yaw)
             # 4) 각 점을 월드에 짧은 선으로 찍기
-            for (x, y) in coords_g:
+            for idx in range(len(coords_g) - 1):
+                x1, y1 = coords_g[idx]
+                x2, y2 = coords_g[idx + 1]
                 np_node = engine._draw_line_3d(
-                    LVector3(x, y, 1.5),
-                    LVector3(x, y, 5.),
-                    color=(0, 1, 0, 1),  # 초록
-                    thickness=5)
+                    LVector3(x1, y1, 1.5),
+                    LVector3(x2, y2, 1.5),
+                    color=(0, 0, 1, 1),  # 파랑
+                    thickness=3)
                 np_node.reparentTo(engine.render)
                 self._traffic_traj_nodes.append(np_node)
+            # for (x, y) in coords_g:
+            #     np_node = engine._draw_line_3d(
+            #         LVector3(x, y, 1.5),
+            #         LVector3(x, y, 3.),
+            #         color=(0, 1, 0, 1),  # 초록
+            #         thickness=3)
+            #     np_node.repare    ntTo(engine.render)
+            #     self._traffic_traj_nodes.append(np_node)
+        external_npc_not_used = engine.external_npc_actions_not_used
+        if external_npc_not_used is None:
+            return
+
+        for idx, npc_traj_not_used in enumerate(external_npc_not_used):
+            # 만약 npc_traj 의 값이 전부 0이라면, skip
+            if np.all(npc_traj_not_used == 0.):
+                continue
+            coords_g, yaws_g = ego_to_global(npc_traj_not_used, ego_pos,
+                                             ego_yaw)
+            for idx in range(len(coords_g) - 1):
+                x1, y1 = coords_g[idx]
+                x2, y2 = coords_g[idx + 1]
+                np_node = engine._draw_line_3d(
+                    LVector3(x1, y1, 1.5),
+                    LVector3(x2, y2, 1.5),
+                    color=(0, 0, 0, 1),  # 검정
+                    thickness=1)
+                np_node.setMaterialOff(True)  # 재질(=Material) 완전히 제거
+                np_node.reparentTo(engine.render)
+                self._traffic_traj_nodes.append(np_node)
+
+            # # 4) 각 점을 월드에 짧은 선으로 찍기
+            # for (x, y) in coords_g:
+            #     np_node = engine._draw_line_3d(
+            #         LVector3(x, y, 1.5),
+            #         LVector3(x, y, 3.),
+            #         color=(1, 0, 0, 1),  # 빨강
+            #         thickness=3)
+            #     np_node.setMaterialOff(True)  # 재질(=Material) 완전히 제거
+            #     np_node.reparentTo(engine.render)
+            #     self._traffic_traj_nodes.append(np_node)
 
     # ────────────────────────────────────────────────────────────────────────
     # reset 단계 – 트래픽 차량을 만든 뒤 1회 초기 분배

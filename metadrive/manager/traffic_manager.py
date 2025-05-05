@@ -19,6 +19,16 @@ from metadrive.policy.idm_policy import IDMPolicy
 BlockVehicles = namedtuple("block_vehicles", "trigger_road vehicles")
 
 
+# ------------------- 1)  새 헬퍼 ----------------------------- #
+def _lane_longs_to_xy(self, lane: AbstractLane, longs: np.ndarray) -> np.ndarray:
+    """vectorized: lane, longs(m,)  → (m,2) (x,y) 월드좌표"""
+    # lane.position() 이 배열을 못 받을 경우 작은 python for 로 대체
+    xs, ys = [], []
+    for s in longs:
+        x, y, _ = lane.position(s, 0)
+        xs.append(x); ys.append(y)
+    return np.column_stack([xs, ys]).astype(np.float32)
+
 def _filter_agents_array(agents, reverse: bool = False):
     """
     Filter detections to keep only agents which appear in the first frame (or last frame if reverse=True)
@@ -246,7 +256,7 @@ class TrafficMode:
 
 class PGTrafficManager(BaseManager):
     VEHICLE_GAP = 10  # m
-
+    SAFE_SPAWN_DIST = 20.0  # ★ 추가: 스폰 시 최소 이격 거리 [m]
     def __init__(self):
         """
         Control the whole traffic flow
@@ -342,8 +352,16 @@ class PGTrafficManager(BaseManager):
             if self.mode == TrafficMode.Respawn or self.mode == TrafficMode.Hybrid:
                 lane = self.respawn_lanes[self.np_random.randint(
                     0, len(self.respawn_lanes))]
+                ego = next(iter(
+                    self.engine.agent_manager.episode_created_agents.values()))
+                existing_xy = [tuple(ego.position[:2])]
+
+
                 lane_idx = lane.index
                 long = self.np_random.rand() * lane.length / 2
+                #  충돌 검사
+                if not self._is_position_free(lane, long, existing_xy):
+                    continue
                 traffic_v_config = {
                     "spawn_lane_index": lane_idx,
                     "spawn_longitude": long,
@@ -456,7 +474,27 @@ class PGTrafficManager(BaseManager):
             potential_vehicle_configs.append(random_vehicle_config)
         return potential_vehicle_configs
 
+    def _is_position_free(
+        self,
+        lane: AbstractLane,
+        longitudinal: float,
+        existing_xy: list[tuple[float, float]],
+        min_dist: Optional[float] = None,
+    ) -> bool:
+        """
+        (lane, s) → (x,y) 로 변환한 뒤 이미 존재하는 (x,y) 들과 min_dist 이상 떨어져 있는지 검사
+        """
+        if min_dist is None:
+            min_dist = self.SAFE_SPAWN_DIST
+        x, y, = lane.position(longitudinal, 0)   # s→월드좌표
+        for px, py in existing_xy:
+            if math.hypot(px - x, py - y) < min_dist:
+                return False
+        return True
+
     def _create_respawn_vehicles(self, map: BaseMap, traffic_density: float):
+        ego = next(iter(self.engine.agent_manager.episode_created_agents.values()))
+        existing_xy = [tuple(ego.position[:2])]
         total_num = len(self.respawn_lanes)
         for lane in self.respawn_lanes:
             _traffic_vehicles = []
@@ -465,6 +503,9 @@ class PGTrafficManager(BaseManager):
             self.np_random.shuffle(vehicle_longs)
             for long in vehicle_longs[:int(
                     np.ceil(traffic_density * len(vehicle_longs)))]:
+                # ── 충돌 검사
+                if not self._is_position_free(lane, long, existing_xy):
+                    continue
                 # if self.np_random.rand() > traffic_density and abs(lane.length - InRampOnStraight.RAMP_LEN) > 0.1:
                 #     # Do special handling for ramp, and there must be vehicles created there
                 #     continue
@@ -493,6 +534,8 @@ class PGTrafficManager(BaseManager):
         :param traffic_density: it can be adjusted each episode
         :return: None
         """
+        ego = next(iter(self.engine.agent_manager.episode_created_agents.values()))
+        existing_xy = [tuple(ego.position[:2])]
         vehicle_num = 0
         for block in map.blocks[1:]:
 
@@ -531,6 +574,13 @@ class PGTrafficManager(BaseManager):
             # print("We have {} candidates! We are spawning {} vehicles!".format(total_vehicles, len(selected)))
 
             for v_config in selected:
+                lane_idx = v_config["spawn_lane_index"]
+                lane = map.road_network.get_lane(lane_idx)
+
+                # ── 충돌 검사
+                if not self._is_position_free(lane, v_config["spawn_longitude"], existing_xy):
+                    continue
+
                 vehicle_type = self.random_vehicle_type()
                 v_config.update(
                     self.engine.global_config["traffic_vehicle_config"])
@@ -671,7 +721,7 @@ class HistoricalBufferTrafficManager(PGTrafficManager):
             output_time_gap=self.output_time_gap)
 
     def get_neighbors_history(
-        self, ego_vehicle: BaseVehicle
+        self, ego_vehicle: BaseVehicle, observation_distance: float
     ) -> np.ndarray:  # shape (num_agents, num_frames, 11)
         ego_pose = np.array([
             ego_vehicle.rear_axle_xy[0], ego_vehicle.rear_axle_xy[1],
@@ -772,6 +822,9 @@ class HistoricalBufferTrafficManager(PGTrafficManager):
         ):  # selected_indices:  (shrinked_num_agents = 10)
             # agents # (num_agents=32, num_frames, 11)
             # agents_array # (num_frames, last_Frame_num_agents, 8)
+            # if distance is above 200, continue
+            if distance_to_ego[sorted_idx] > observation_distance:
+                continue
             agents[
                 i, :, :agents_array.
                 shape[-1]] = agents_array[:,

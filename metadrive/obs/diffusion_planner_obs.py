@@ -304,6 +304,7 @@ class DiffusionPlannerObservation(BaseObservation):
         self.max_route_num = self.config.get("max_route_num", 25)
         self.lane_len = self.config.get("lane_len", 20)
         self.max_obj = self.config.get("max_obj", 5)
+        self.observation_distance = self.config.get("observation_distance", 100.0)
 
         # lanes shape: (max_lane_num, lane_len, 12)
         # route_lanes shape: (max_route_num, lane_len, 12)
@@ -745,7 +746,8 @@ class DiffusionPlannerObservation(BaseObservation):
 
     def _get_neighbors(self, vehicle: BaseVehicle) -> np.ndarray:
         traffic_manager = vehicle.engine.managers["traffic_manager"]
-        return traffic_manager.get_neighbors_history(vehicle)  # (32, 21, 10)
+        return traffic_manager.get_neighbors_history(vehicle,
+                                                     self.observation_distance)  # (32, 21, 10)
 
     def observe(self,
                 vehicle: BaseVehicle = None,

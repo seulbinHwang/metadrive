@@ -256,7 +256,7 @@ class TrafficMode:
 
 class PGTrafficManager(BaseManager):
     VEHICLE_GAP = 10  # m
-    SAFE_SPAWN_DIST = 20.0  # ★ 추가: 스폰 시 최소 이격 거리 [m]
+    MAX_VEHICLE_SIZE = 20.0  # ★ 추가: 스폰 시 최소 이격 거리 [m]
     def __init__(self):
         """
         Control the whole traffic flow
@@ -354,13 +354,12 @@ class PGTrafficManager(BaseManager):
                     0, len(self.respawn_lanes))]
                 ego = next(iter(
                     self.engine.agent_manager.episode_created_agents.values()))
-                existing_xy = [tuple(ego.position[:2])]
-
+                ego_xy = tuple(ego.position[:2])
 
                 lane_idx = lane.index
                 long = self.np_random.rand() * lane.length / 2
                 #  충돌 검사
-                if not self._is_position_free(lane, long, existing_xy):
+                if not self._is_position_free(lane, long, ego_xy, ego.speed, self.engine.global_config["observation_distance"]):
                     continue
                 traffic_v_config = {
                     "spawn_lane_index": lane_idx,
@@ -478,23 +477,28 @@ class PGTrafficManager(BaseManager):
         self,
         lane: AbstractLane,
         longitudinal: float,
-        existing_xy: list[tuple[float, float]],
-        min_dist: Optional[float] = None,
+        ego_xy: tuple[float, float],
+        ego_speed: float,
+            observation_distance: Optional[float] = None,
     ) -> bool:
         """
         (lane, s) → (x,y) 로 변환한 뒤 이미 존재하는 (x,y) 들과 min_dist 이상 떨어져 있는지 검사
         """
-        if min_dist is None:
-            min_dist = self.SAFE_SPAWN_DIST
         x, y, = lane.position(longitudinal, 0)   # s→월드좌표
-        for px, py in existing_xy:
-            if math.hypot(px - x, py - y) < min_dist:
-                return False
+        if observation_distance is not None:
+            compare_distance = observation_distance
+        else:
+            comfortable_deceleration = 1.
+            stop_distance = (ego_speed) ** 2 / (2 * comfortable_deceleration)
+            compare_distance = stop_distance + self.MAX_VEHICLE_SIZE
+
+        if math.hypot(ego_xy[0] - x, ego_xy[1] - y) < compare_distance:
+            return False
         return True
 
     def _create_respawn_vehicles(self, map: BaseMap, traffic_density: float):
         ego = next(iter(self.engine.agent_manager.episode_created_agents.values()))
-        existing_xy = [tuple(ego.position[:2])]
+        ego_xy = tuple(ego.position[:2])
         total_num = len(self.respawn_lanes)
         for lane in self.respawn_lanes:
             _traffic_vehicles = []
@@ -504,7 +508,7 @@ class PGTrafficManager(BaseManager):
             for long in vehicle_longs[:int(
                     np.ceil(traffic_density * len(vehicle_longs)))]:
                 # ── 충돌 검사
-                if not self._is_position_free(lane, long, existing_xy):
+                if not self._is_position_free(lane, long, ego_xy, ego.speed):
                     continue
                 # if self.np_random.rand() > traffic_density and abs(lane.length - InRampOnStraight.RAMP_LEN) > 0.1:
                 #     # Do special handling for ramp, and there must be vehicles created there
@@ -535,7 +539,7 @@ class PGTrafficManager(BaseManager):
         :return: None
         """
         ego = next(iter(self.engine.agent_manager.episode_created_agents.values()))
-        existing_xy = [tuple(ego.position[:2])]
+        ego_xy = tuple(ego.position[:2])
         vehicle_num = 0
         for block in map.blocks[1:]:
 
@@ -578,7 +582,7 @@ class PGTrafficManager(BaseManager):
                 lane = map.road_network.get_lane(lane_idx)
 
                 # ── 충돌 검사
-                if not self._is_position_free(lane, v_config["spawn_longitude"], existing_xy):
+                if not self._is_position_free(lane, v_config["spawn_longitude"], ego_xy, ego.speed):
                     continue
 
                 vehicle_type = self.random_vehicle_type()

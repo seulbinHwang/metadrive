@@ -59,6 +59,7 @@ DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
     random_lane_num=True,
     agent_observation=DiffusionPlannerObservation,
     accident_prob=1.0,
+    observation_distance = 100.,
     traffic_mode=TrafficMode.Respawn,
     traffic_density=0.,
     random_spawn_lane_index=False,

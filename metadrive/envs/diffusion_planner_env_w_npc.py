@@ -74,7 +74,7 @@ DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
     vehicle_config=dict(vehicle_model="bicycle_history_default",),
     traffic_vehicle_config=dict(
         max_acceleration_range=(2., 3.5),
-        max_deceleration_range=(8.9, 9.),
+        max_deceleration_range=(1.5, 2.5),
     ))
 diffusion_planner_config = DiffusionPlannerConfig(
     args_file=str(args_path)).to_dict()

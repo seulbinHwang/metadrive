@@ -20,28 +20,32 @@ def feasible_guidance_fn(x: torch.Tensor, t: torch.Tensor, cond, inputs: dict,
     Returns:
         torch.Tensor: [B] 형태의 guidance 값. 값이 클수록 제약을 위반했음을 나타냅니다.
     """
-    # 배치 크기, 에이전트 수(Pn+1), timesteps
-    B, Pp1, Tp1, _ = x.shape  # (1, 11, 81, 4)
+    B, P, T, _ = x.shape  # (B, 11, 81, 4)
 
-    # reshape 및 gradient 적용 시점만 활성화
-    x = x.reshape(B, Pp1, Tp1, 4)
-    mask = (t < 0.1) & (t > 0.005)
-    x = torch.where(mask.view(B, 1, 1, 1), x, x.detach())
+    x: torch.Tensor = x.reshape(B, P, -1, 4)
+    mask_diffusion_time = (t < 0.1 and t > 0.005)
+    x = torch.where(mask_diffusion_time, x, x.detach())
 
-    # heading 벡터 정규화 (cos, sin 부분)
-    heading = x[..., 2:4].detach()
-    heading = heading / heading.norm(dim=-1, keepdim=True).detach()
-    x = torch.cat([x[..., :2], heading], dim=-1)  # [B, 11, 81, 4]
 
-    neighbor_current_mask = inputs[
-        "neighbor_current_mask"]  # (B, 10) # 차량이 없는 경우 True
+
+    # heading: (B, 11, 81, 2)
+    heading = x[:, :, :, 2:].detach() / torch.norm(
+        x[:, :, :, 2:].detach(), dim=-1, keepdim=True)
+    x = torch.cat([x[:, :, :, :2], heading], dim=-1)  # (B, 11, 81, 4)
+
     neighbor_traj = x[:, 1:, :, :2]  # neighbor_traj:(B, 10, 81, 2) # 궤적 좌표 (x,y)
     # remove neighbor_current_mask 값이 True 에 해당하는 agent는 -> traj에서 제거해야 함
     diffs_norm = []
+
+    neighbor_current_mask = inputs[
+        "neighbor_current_mask"]  # (B, 10) # 차량이 없는 경우 True
+    if ~neighbor_current_mask.sum() == 0:                         # 이웃이 없다면 skip
+        # guidance 불필요 — 그래프 유지용 dummy 값 반환
+        return (x[..., 0] * 0).sum()
     for b in range(B):
         keep_mask = ~neighbor_current_mask[b]  # (10,)  존재하는 에이전트만 True
         traj_present = neighbor_traj[b][keep_mask]  # (N_b, 81, 2)
-        diff = traj_present[:, 1:, :] - traj_present[:, :-1, :]  # (N_b, 80, 2)
+        diff = traj_present[:, 1:2, :] - traj_present[:, 0:1, :]  # (N_b, 80, 2)
         d = diff.norm(dim=-1)  # (N_b, 80)
         diffs_norm.append(d)
     # diffs_norm: (N_b_0 + N_b_1 + ... + N_b_B, 80)
@@ -54,12 +58,10 @@ def feasible_guidance_fn(x: torch.Tensor, t: torch.Tensor, cond, inputs: dict,
 
     # 위반 정도 (sparsity)
     violation = F.relu((diffs_norm - r_max) / r_max)  # (N * 80)
-    violation = torch.clamp(
-        violation,
-        min=torch.tensor(0.0, device=violation.device),
-        max=torch.tensor(10.0,
-                         device=violation.device))  # (N * 80)
+    violation = torch.minimum(violation, torch.tensor(10.0,
+                         device=violation.device))
     indicator = (diffs_norm > r_max).float()  # (N * 80)
+
 
     # 에너지 계산: 위반 평균
     energy = violation.sum() / (indicator.sum() + _EPS)  # []
@@ -76,9 +78,9 @@ def feasible_guidance_fn(x: torch.Tensor, t: torch.Tensor, cond, inputs: dict,
         allow_unused=True)[0] # [B, 11, 81, 4]
 
     # 2) 위치 성분(x,y)만 골라내기
-    x_aux = x_aux[:, 1:, 1:, :2]  # (1, 10, 80, 2)
-    reward = torch.sum(x_aux.detach() * x[:, 1:, 1:, :2], dim=(1, 2, 3))  # [1]
-    return 30.0 * reward  # 스케일 맞춰서 반환
+    x_aux = x_aux[:, 1:, 1:2, :2]  # (B, 10, 80, 2)
+    reward = torch.sum(x_aux.detach() * x[:, 1:, 1:2, :2], dim=(1, 2, 3))  # [B]
+    return 3.0 * reward  # 스케일 맞춰서 반환
 
     # # 3) 각 agent별 heading(cos,sin)으로 회전행렬 만들기
     # cos_n = x[:, 1:, :, 2]  # [B, Pn, T+1]

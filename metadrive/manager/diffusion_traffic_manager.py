@@ -113,7 +113,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         ego_yaw = ego.heading_theta
 
         # 외부 NPC들이 예측해온 궤적
-        external_npc = engine.external_npc_actions  # [:, :1, :]  # (N, T, 4)
+        external_npc = engine.external_npc_actions[:, 1:]  # [:, :1, :]  # (N, T, 4)
         # 각 traffic 차량의 글로벌 궤적 좌표 구하기
         # 3) 차량별로 한 궤적씩 변환 → world coords (T,2)
         for idx, npc_traj in enumerate(external_npc):  # npc_traj.shape == (T,4)
@@ -129,7 +129,8 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
                     LVector3(x1, y1, 1.5),
                     LVector3(x2, y2, 1.5),
                     color=(0, 0, 1, 1),  # 파랑
-                    thickness=3)
+                    thickness=1)
+                np_node.setMaterialOff(True)  # 재질(=Material) 완전히 제거
                 np_node.reparentTo(engine.render)
                 self._traffic_traj_nodes.append(np_node)
             # for (x, y) in coords_g:
@@ -143,7 +144,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         external_npc_not_used = engine.external_npc_actions_not_used
         if external_npc_not_used is None:
             return
-
+        external_npc_not_used = external_npc_not_used[:, 1:]
         for idx, npc_traj_not_used in enumerate(external_npc_not_used):
             # 만약 npc_traj 의 값이 전부 0이라면, skip
             if np.all(npc_traj_not_used == 0.):
@@ -157,8 +158,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
                     LVector3(x1, y1, 1.5),
                     LVector3(x2, y2, 1.5),
                     color=(0, 0, 0, 1),  # 검정
-                    thickness=1)
-                np_node.setMaterialOff(True)  # 재질(=Material) 완전히 제거
+                    thickness=3)
                 np_node.reparentTo(engine.render)
                 self._traffic_traj_nodes.append(np_node)
 

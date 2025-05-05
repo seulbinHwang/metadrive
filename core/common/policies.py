@@ -407,16 +407,17 @@ class DiffusionActorCriticPolicy(BasePolicy):
         ego_predictions = decoder_outputs["ego_prediction"].detach(
         )  # (B, P, V_future, 4)
         self.npc_predictions_not_used = decoder_outputs[
-            "npc_prediction"].detach().cpu().numpy().astype(
+            "ego_prediction"][:, None, ...].detach().cpu().numpy().astype(
             np.float64)  # (B, P-1, 1+V_future, 4)
         if self.double_decoder:
             decoder_outputs_for_npc: Dict[
                 str, torch.Tensor] = self.diffusion_transformer_for_npc(
                     features, observation)
+            ego_predictions_2 = decoder_outputs_for_npc["ego_prediction"].detach()
             self.npc_predictions = decoder_outputs_for_npc[
-                "npc_prediction"].detach().cpu().numpy().astype(
+                "ego_prediction"][:, None, ...].detach().cpu().numpy().astype(
                     np.float64)  # (B, P-1, 1+V_future, 4)
-        return ego_predictions
+        return ego_predictions_2
 
     def forward(
         self,

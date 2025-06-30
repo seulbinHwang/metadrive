@@ -161,7 +161,7 @@ class EngineCore(ShowBase.ShowBase):
         else:
             self.global_config["show_coordinates"] = False
             if self.global_config["image_observation"]:
-                assert self.mode == RENDER_MODE_OFFSCREEN, "Render mode error"
+                assert self.mode == RENDER_MODE_OFFSCREEN, f"Render mode error: {self.mode}"
                 if self.global_config[
                         "multi_thread_render"] and not self.use_render_pipeline:
                     # render-pipeline can not work with multi-thread rendering

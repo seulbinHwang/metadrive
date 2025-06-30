@@ -8,7 +8,10 @@ import imageio
 import wandb
 from metadrive.component.sensors.rgb_camera import RGBCamera
 from metadrive.engine.engine_utils import initialize_engine, close_engine
-from metadrive.constants import RENDER_MODE_OFFSCREEN
+from metadrive.constants import RENDER_MODE_OFFSCREEN, RENDER_MODE_ONSCREEN
+
+from pathlib import Path
+import imageio.v3 as iio
 
 RED = (1, 0, 0, 1)          # RGBA
 FPS = 10
@@ -16,6 +19,8 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 FRAME_SIZE = (SCREEN_WIDTH, SCREEN_HEIGHT)
 os.environ["SDL_VIDEODRIVER"] = "dummy"
+
+
 
 def download_wandb_model(args):
     if args.entity is None or args.project is None:
@@ -117,7 +122,7 @@ def main():
         "traffic_density": 0.4,
         "map": 15,
         "random_traffic": True,
-        "use_render": False,  # <- 화면 창 활성화
+        "use_render": True,  # <- 화면 창 활성화
         "debug": False,
         "accident_prob": 0.,
 
@@ -129,10 +134,10 @@ def main():
         # "stack_size": 1,
         "norm_pixel": False,
         # "render_mode": RENDER_MODE_OFFSCREEN,
-        "_render_mode": RENDER_MODE_OFFSCREEN,
+        "_render_mode": RENDER_MODE_ONSCREEN,
         # "image_on_ram" : True,
 
-        "horizon" : 50,
+        "horizon" : 50, #200, # step 수, 1 step에 0.1초
         "truncate_as_terminate" : True,
         "allow_respawn": False,
         "is_multi_agent": False,  # 완전 단일 에이전트 환경
@@ -142,8 +147,19 @@ def main():
     }
     # 초기화
 
+
     policy_kwargs = {"pth_path": out_pth_dir}
     env = DiffusionPlannerEnv(config)
+
+    out_dir = Path("videos")
+    out_dir.mkdir(exist_ok=True)
+    writer = None
+    fps = int(1 /0.02 / 5)  # 예: 60/5 = 12fps
+
+    def _grab():
+        # BaseEngine._get_window_image() 는 BGRA → BGR → flipY 까지 수행
+        return env.engine._get_window_image()  # (H,W,3) np.uint8
+
     model = DiffusionPPO(
         policy=DiffusionActorCriticPolicy,
         env=env,
@@ -153,16 +169,19 @@ def main():
     )
 
     N_EPISODES = 5
+
     obs, _ = env.reset()
-    env.render(
-        mode="topdown",
-        window=False,
-        screen_record=True,
-        screen_size=(640, 480),
-    )
+    env.switch_to_top_down_view()
+
+
     episode_num = 0
     step_count = 0
-    frames = []
+    video_path = f"episode_{episode_num + 1}.mp4"
+    writer = imageio.get_writer(video_path, fps=fps, codec='libx264')
+
+    env.engine.graphicsEngine.renderFrame()
+    writer.append_data(env.engine._get_window_image())
+
     while episode_num < N_EPISODES:
         """
         obs: (n, 19)
@@ -176,7 +195,10 @@ def main():
                            npc_actions=npc_predictions)
         """
         obs, reward, terminated, truncated, info = env.step(action)
-        env.render(mode="topdown")
+        # 보장된 최신 프레임을 얻기 위해
+        env.engine.graphicsEngine.renderFrame()
+        frame = env.engine._get_window_image()
+        writer.append_data(frame)
 
         # frame = env.render(
         #     mode="topdown",
@@ -192,23 +214,24 @@ def main():
         # frames.append(frame.astype("uint8"))
         # done 이 된 환경만 기록-저장
         if terminated or truncated:
-            # video_path = f"episode_{episode_num + 1}.mp4"
+            video_path = f"episode_{episode_num + 1}.mp4"
             # imageio.mimsave(video_path, frames,
             #                 fps=30)  # 모은 프레임을 MP4 파일로 저장:contentReference[oaicite:20]{index=20}
             # print(f"Episode {episode_num + 1} saved to {video_path}")
-
+            writer.close()
             episode_num += 1
-            gif_path = f"scenario_{episode_num}.gif"
-            env.top_down_renderer.generate_gif(gif_path, duration=30)
-            print(f"▶️ Saved {gif_path}")
             obs, _ = env.reset()
-            env.render(
-                mode="topdown",
-                window=False,
-                screen_record=True,
-                screen_size=FRAME_SIZE,
-            )
-            frames = []
+            writer = imageio.get_writer(video_path, fps=fps, codec='libx264')
+
+            env.engine.graphicsEngine.renderFrame()
+            writer.append_data(env.engine._get_window_image())
+
+            # env.render(
+            #     mode="topdown",
+            #     window=False,
+            #     screen_record=True,
+            #     screen_size=FRAME_SIZE,
+            # )
             step_count = 0
 
     env.close()

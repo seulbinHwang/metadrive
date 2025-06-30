@@ -202,7 +202,7 @@ class TopDownRenderer:
         camera_position=None,
         target_agent_heading_up=False,
         target_vehicle_heading_up=None,
-        draw_target_vehicle_trajectory=False,
+        draw_target_vehicle_trajectory=True,
         semantic_map=False,
         draw_center_line=False,
         semantic_broken_line=True,

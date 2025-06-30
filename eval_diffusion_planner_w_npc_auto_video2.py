@@ -137,7 +137,7 @@ def main():
         "_render_mode": RENDER_MODE_ONSCREEN,
         # "image_on_ram" : True,
 
-        "horizon" : 50, #200, # step 수, 1 step에 0.1초
+        "horizon" : 250, #200, # step 수, 1 step에 0.1초
         "truncate_as_terminate" : True,
         "allow_respawn": False,
         "is_multi_agent": False,  # 완전 단일 에이전트 환경
@@ -185,10 +185,11 @@ def main():
     while episode_num < N_EPISODES:
         """
         obs: (n, 19)
+        action: (80, 4)
         """
         action, _ = model.predict(obs, deterministic=True)
-        npc_predictions, npc_predictions_not_used = model.get_npc_predictions(obs) # ( P-1, V_future = 80, 4)
-        env.set_external_npc_actions(npc_predictions, npc_predictions_not_used)
+        npc_predictions, guided_npc_predictions = model.get_npc_predictions(obs) # ( P-1, V_future = 80, 4)
+        env.set_external_npc_actions(npc_predictions, guided_npc_predictions)
         """
         만약 VecEnv 였으면,
         env.env_method(method_name="set_external_npc_actions",

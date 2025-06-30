@@ -182,7 +182,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             optimizer_class: type[torch.optim.Optimizer] = torch.optim.Adam,
             optimizer_kwargs: Optional[dict[str, Any]] = None,
             fine_tuning: bool = True,
-            double_decoder: bool = True,
+            double_decoder: bool = False,
             pth_path: Optional[str] = None):
         if optimizer_kwargs is None:
             optimizer_kwargs = {}
@@ -205,8 +205,8 @@ class DiffusionActorCriticPolicy(BasePolicy):
             squash_output=squash_output,
             normalize_images=normalize_images,
         )
+        self.guided_npc_predictions = None
         self.npc_predictions = None
-        self.npc_predictions_not_used = None
         # Default network architecture, from stable-baselines
         self.activation_fn = activation_fn
         self.ortho_init = ortho_init
@@ -271,19 +271,25 @@ class DiffusionActorCriticPolicy(BasePolicy):
 
     def get_npc_predictions(self, obs) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         vectorized_env = self.is_vectorized_env(obs)
+
         npc_predictions = self.npc_predictions.copy()
         if not vectorized_env:
             assert isinstance(npc_predictions, np.ndarray)
             npc_predictions = npc_predictions.squeeze(
-                axis=0)  # (P-1, V_future, 4)
+                axis=0) # (1, 10, 81, 4)
         self.npc_predictions = None
-        npc_predictions_not_used = self.npc_predictions_not_used.copy()
-        if not vectorized_env:
-            assert isinstance(npc_predictions_not_used, np.ndarray)
-            npc_predictions_not_used = npc_predictions_not_used.squeeze(
-                axis=0)
-        self.npc_predictions_not_used = None
-        return npc_predictions, npc_predictions_not_used  # (B, P-1, V_future = 80, 4)
+
+        if self.guided_npc_predictions is None:
+            guided_npc_predictions = None
+        else:
+            guided_npc_predictions = self.guided_npc_predictions.copy()
+            if not vectorized_env:
+                assert isinstance(guided_npc_predictions, np.ndarray)
+                guided_npc_predictions = guided_npc_predictions.squeeze(
+                    axis=0)  # (P-1, V_future, 4) # (1, 10, 81, 4)
+            self.guided_npc_predictions = None
+
+        return npc_predictions, guided_npc_predictions  # (B, P-1, V_future = 80, 4)
 
     def _set_state_dict(self):
         """
@@ -300,7 +306,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
                                                               strict=True)
 
         if self.double_decoder:
-            self.diffusion_transformer_for_npc.dit.load_state_dict(
+            self.diffusion_transformer_for_guidance.dit.load_state_dict(
                 self.dec_dict, strict=True)
         if not self.share_features_extractor:
             self.vf_features_extractor.encoder.load_state_dict(self.enc_dict,
@@ -377,7 +383,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
             diffusion_planner_config_copy = copy.deepcopy(
                 self.diffusion_planner_config)
             diffusion_planner_config_copy.guidance_fn = GuidanceWrapper()
-            self.diffusion_transformer_for_npc = Decoder(
+            self.diffusion_transformer_for_guidance = Decoder(
                 diffusion_planner_config_copy)
         self.critic_net = TransformerCritic(
             hidden_dim=self.diffusion_planner_config.hidden_dim)
@@ -408,19 +414,20 @@ class DiffusionActorCriticPolicy(BasePolicy):
         decoder_outputs: Dict[str, torch.Tensor] = self.diffusion_transformer(
             features, observation)
         ego_predictions = decoder_outputs["ego_prediction"].detach(
-        )  # (B, P, V_future, 4)
-        self.npc_predictions_not_used = decoder_outputs[
-            "ego_prediction"][:, None, ...].detach().cpu().numpy().astype(
-            np.float64)  # (B, P-1, 1+V_future, 4)
+        )  # (B, P, V_future, 4) # (1, 80, 4)
+        self.npc_predictions = decoder_outputs[
+            "npc_prediction"].detach().cpu().numpy().astype(
+            np.float64)  # (1, 10, 81, 4)
+
         if self.double_decoder:
-            decoder_outputs_for_npc: Dict[
-                str, torch.Tensor] = self.diffusion_transformer_for_npc(
+            decoder_outputs_for_guidance: Dict[
+                str, torch.Tensor] = self.diffusion_transformer_for_guidance(
                     features, observation)
-            ego_predictions_2 = decoder_outputs_for_npc["ego_prediction"].detach()
-            self.npc_predictions = decoder_outputs_for_npc[
-                "ego_prediction"][:, None, ...].detach().cpu().numpy().astype(
+            ego_predictions_for_guidance = decoder_outputs_for_guidance["ego_prediction"].detach()
+            self.guided_npc_predictions = decoder_outputs_for_guidance[
+                "npc_prediction"].detach().cpu().numpy().astype(
                     np.float64)  # (B, P-1, 1+V_future, 4)
-        return ego_predictions_2
+        return ego_predictions
 
     def forward(
         self,
@@ -450,11 +457,11 @@ class DiffusionActorCriticPolicy(BasePolicy):
             ego_predictions = predictions[:, 0].detach().cpu().numpy().astype(
                 np.float64)  # (B, 80, 4)
             if self.double_decoder:
-                decoder_outputs_for_npc: Dict[
-                    str, torch.Tensor] = self.diffusion_transformer_for_npc(
+                decoder_outputs_for_guidance: Dict[
+                    str, torch.Tensor] = self.diffusion_transformer_for_guidance(
                         features, obs)
                 # TODO
-                self.npc_predictions = decoder_outputs_for_npc[
+                self.guided_npc_predictions = decoder_outputs_for_guidance[
                     "ego_prediction"][:, 1:].detach().cpu().numpy().astype(
                         np.float64)
             values = self.critic_net(features['encoding'],
@@ -465,11 +472,11 @@ class DiffusionActorCriticPolicy(BasePolicy):
                                   torch.Tensor] = self.diffusion_transformer(
                                       pi_features, obs)
             if self.double_decoder:
-                decoder_outputs_for_npc: Dict[
-                    str, torch.Tensor] = self.diffusion_transformer_for_npc(
+                decoder_outputs_for_guidance: Dict[
+                    str, torch.Tensor] = self.diffusion_transformer_for_guidance(
                         pi_features, obs)
                 # TODO
-                self.npc_predictions = decoder_outputs_for_npc[
+                self.guided_npc_predictions = decoder_outputs_for_guidance[
                     "ego_prediction"][:, 1:].detach().cpu().numpy().astype(
                         np.float64)
             predictions = decoder_outputs["ego_prediction"]

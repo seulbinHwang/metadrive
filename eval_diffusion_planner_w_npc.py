@@ -49,8 +49,8 @@ def main():
         obs: (n, 19)
         """
         action, _ = model.predict(obs, deterministic=True)
-        npc_predictions, npc_predictions_not_used = model.get_npc_predictions(obs) # ( P-1, V_future = 80, 4)
-        env.set_external_npc_actions(npc_predictions, npc_predictions_not_used)
+        npc_predictions, guided_npc_predictions = model.get_npc_predictions(obs) # ( P-1, V_future = 80, 4)
+        env.set_external_npc_actions(npc_predictions, guided_npc_predictions)
         """
         만약 VecEnv 였으면,
         env.env_method(method_name="set_external_npc_actions",

@@ -119,21 +119,20 @@ class DiffusionPlannerEnv(MetaDriveEnv):
                                          TrafficObjectManager())
 
     def set_external_npc_actions(self, npc_actions: np.ndarray,
-                                 npc_predictions_not_used: Optional[np.ndarray] = None
+                                 guided_npc_predictions: Optional[np.ndarray] = None
                                  ):
         """
-        npc_actions: (P-1, V_future, 4)
+        npc_actions: (P-1, V_future, 4) # (10, 81, 4)
 
         """
-
         # mask[i] == True if npc_actions[i] is NOT all zeros
         valid_mask = ~np.all(npc_actions == 0, axis=(1, 2))
         filtered_actions = npc_actions[valid_mask]
         self.engine.external_npc_actions = filtered_actions
 
-        if npc_predictions_not_used is None:
-            self.engine.external_npc_actions_not_used = None
+        if guided_npc_predictions is None:
+            self.engine.external_guided_npc_actions = None
             return
-        valid_mask_not_used = ~np.all(npc_predictions_not_used == 0, axis=(1, 2))
-        filtered_predictions_not_used = npc_predictions_not_used[valid_mask_not_used]
-        self.engine.external_npc_actions_not_used = filtered_predictions_not_used
+        valid_mask_not_used = ~np.all(guided_npc_predictions == 0, axis=(1, 2))
+        filtered_guided_predictions = guided_npc_predictions[valid_mask_not_used]
+        self.engine.external_guided_npc_actions = filtered_guided_predictions

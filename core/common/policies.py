@@ -182,7 +182,8 @@ class DiffusionActorCriticPolicy(BasePolicy):
             optimizer_class: type[torch.optim.Optimizer] = torch.optim.Adam,
             optimizer_kwargs: Optional[dict[str, Any]] = None,
             fine_tuning: bool = True,
-            double_decoder: bool = True):
+            double_decoder: bool = True,
+            pth_path: Optional[str] = None):
         if optimizer_kwargs is None:
             optimizer_kwargs = {}
             # Small values to avoid NaN in Adam optimizer
@@ -232,7 +233,7 @@ class DiffusionActorCriticPolicy(BasePolicy):
         self._build(lr_schedule)
         if fine_tuning:
             (self.enc_dict, self.dec_dict,
-             self.route_dict) = self._load_state_dict()
+             self.route_dict) = self._load_state_dict(pth_path)
             self._set_state_dict()
 
     def is_vectorized_env(
@@ -307,8 +308,10 @@ class DiffusionActorCriticPolicy(BasePolicy):
             self.vf_features_extractor.route_encoder.load_state_dict(
                 self.route_dict, strict=True)
 
-    def _load_state_dict(self) -> tuple[dict, dict, dict]:
-        pth_path = os.path.join("checkpoints", "model.pth")
+    def _load_state_dict(self, pth_path: Optional[str] = None) -> tuple[dict, dict, dict]:
+        if pth_path is None:
+            print("pth_path is None!!!!!!!!!")
+            pth_path = os.path.join("checkpoints", "model.pth")
         raw = torch.load(pth_path, map_location=self.device)
         state_dict = raw['ema_state_dict']
         # DDP로 저장된 키 제거

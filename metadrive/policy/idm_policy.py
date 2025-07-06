@@ -264,7 +264,7 @@ class IDMPolicy(BasePolicy):
         self.available_routing_index_range = None
         self.overtake_timer = self.np_random.randint(0, self.LANE_CHANGE_FREQ)
         self.enable_lane_change = self.engine.global_config.get(
-            "enable_idm_lane_change", True)
+            "enable_idm_lane_change", False)
         self.disable_idm_deceleration = self.engine.global_config.get(
             "disable_idm_deceleration", False)
         self.heading_pid = PIDController(1.7, 0.01, 3.5)
@@ -527,7 +527,7 @@ class KinematicIDMPolicy(BasePolicy):
     DEACC_FACTOR = -5
 
     def __init__(self, control_object, random_seed):
-        super(IDMPolicy, self).__init__(control_object=control_object,
+        super(KinematicIDMPolicy, self).__init__(control_object=control_object,
                                         random_seed=random_seed)
         self.target_speed = self.NORMAL_SPEED
         self.routing_target_lane = None

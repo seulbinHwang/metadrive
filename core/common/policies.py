@@ -269,6 +269,53 @@ class DiffusionActorCriticPolicy(BasePolicy):
 
         return vectorized
 
+    def predict(
+            self,
+            observation: Union[np.ndarray, dict[str, np.ndarray]],
+            state: Optional[tuple[np.ndarray, ...]] = None,
+            episode_start: Optional[np.ndarray] = None,
+            deterministic: bool = False,
+    ) -> tuple[np.ndarray, Optional[tuple[np.ndarray, ...]]]:
+        """
+        Get the policy action from an observation (and optional hidden state).
+        Includes sugar-coating to handle different observations (e.g. normalizing images).
+
+        :param observation: the input observation
+        :param state: The last hidden states (can be None, used in recurrent policies)
+        :param episode_start: The last masks (can be None, used in recurrent policies)
+            this correspond to beginning of episodes,
+            where the hidden states of the RNN must be reset.
+        :param deterministic: Whether or not to return deterministic actions.
+        :return: the model's action and the next hidden state
+            (used in recurrent policies)
+        """
+        # Switch to eval mode (this affects batch norm / dropout)
+        self.set_training_mode(False)
+
+        # Check for common mistake that the user does not mix Gym/VecEnv API
+        # Tuple obs are not supported by SB3, so we can safely do that check
+        if isinstance(observation, tuple) and len(
+                observation) == 2 and isinstance(observation[1], dict):
+            raise ValueError(
+                "You have passed a tuple to the predict() function instead of a Numpy array or a Dict. "
+                "You are probably mixing Gym API with SB3 VecEnv API: `obs, info = env.reset()` (Gym) "
+                "vs `obs = vec_env.reset()` (SB3 VecEnv). "
+                "See related issue https://github.com/DLR-RM/stable-baselines3/issues/1694 "
+                "and documentation for more information: https://stable-baselines3.readthedocs.io/en/master/guide/vec_envs.html#vecenv-api-vs-gym-api"
+            )
+        """
+        아래의 경우는 n=1일 때도 똑같이 적용됩니다.
+            observation: (n, 19)
+            obs_tensor: (n, 19)
+            vectorized_env = True
+        """
+
+        obs_tensor, vectorized_env = self.obs_to_tensor(observation)
+
+        with torch.no_grad():
+            actions = self._predict(obs_tensor, deterministic=deterministic)
+        return actions, state  # type: ignore[return-value]
+
     def get_npc_predictions(self, obs) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         vectorized_env = self.is_vectorized_env(obs)
 

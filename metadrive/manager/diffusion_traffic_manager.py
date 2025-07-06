@@ -192,7 +192,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
                                                                 1:]  # (P-1, 80, 4)
         diffusion_vehicle_num = external_npc_actions.shape[0]
         # ── 2.  이제 리스트가 확정됐으므로 policy 재배치
-        closest_idx = self._update_control_policies(diffusion_vehicle_num)
+        closest_idx = self._update_control_policies(0)
         # (2) Ego 정보 한 번만 꺼내두기
         ego = next(iter(self.engine.agent_manager.active_agents.values()))
         ego_pos = np.array(ego.position[:2], dtype=np.float32)

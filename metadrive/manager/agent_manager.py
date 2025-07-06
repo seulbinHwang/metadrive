@@ -5,7 +5,8 @@ from metadrive.policy.AI_protect_policy import AIProtectPolicy
 from metadrive.policy.idm_policy import TrajectoryIDMPolicy
 from metadrive.policy.manual_control_policy import ManualControlPolicy, TakeoverPolicy, TakeoverPolicyWithoutBrake
 from metadrive.policy.replay_policy import ReplayTrafficParticipantPolicy
-
+from metadrive.policy.idm_policy import IDMPolicy
+from metadrive.component.vehicle.vehicle_type import KinematicBicycleHistoryVehicle
 logger = get_logger()
 
 

@@ -6,22 +6,14 @@ from metadrive.policy.base_policy import BasePolicy
 from metadrive.policy.manual_control_policy import ManualControlPolicy
 from metadrive.utils.math import not_zero, wrap_to_pi, norm
 import logging
-import math
-
 
 class FrontBackObjects:
 
-    def __init__(self,
-                 front_ret,
-                 back_ret,
-                 front_dist,
-                 back_dist,
-                 is_crossing=False):
+    def __init__(self, front_ret, back_ret, front_dist, back_dist):
         self.front_objs = front_ret
         self.back_objs = back_ret
         self.front_dist = front_dist
         self.back_dist = back_dist
-        self.is_crossing = is_crossing
 
     def left_lane_exist(self):
         return True if self.front_dist[0] is not None else False
@@ -107,6 +99,7 @@ class FrontBackObjects:
             idx +
             1] if ref_lanes is not None and idx + 1 < len(ref_lanes) else None
         lanes = [left_lane, lane, right_lane]
+
         min_front_long = [
             max_distance if lane is not None else None for lane in lanes
         ]
@@ -128,6 +121,7 @@ class FrontBackObjects:
             lane.length - current_long[idx] if lane is not None else None
             for idx, lane in enumerate(lanes)
         ]
+
         for i, lane in enumerate(lanes):
             if lane is None:
                 continue
@@ -249,7 +243,7 @@ class IDMPolicy(BasePolicy):
     LANE_CHANGE_FREQ = 50  # [step]
     LANE_CHANGE_SPEED_INCREASE = 10
     SAFE_LANE_CHANGE_DISTANCE = 15
-    MAX_LONG_DIST = 200
+    MAX_LONG_DIST = 30
     MAX_SPEED = 100  # km/h
 
     # Normal speed
@@ -262,36 +256,21 @@ class IDMPolicy(BasePolicy):
     ACC_FACTOR = 1.0
     DEACC_FACTOR = -5
 
-    L0 = 0.5  # [m]  저속 오프셋
-    L_max = 8.0  # [m]  상한
-    kv = (1. - L0) / (30 / 3.6)  # [s]  프리뷰 계수
-
     def __init__(self, control_object, random_seed):
         super(IDMPolicy, self).__init__(control_object=control_object,
                                         random_seed=random_seed)
-        ##################
-        self.MAX_SPEED = control_object.max_speed_km_h
-        target_speed_coefficient = self.np_random.uniform(
-            0.7, 1.0)  # TODO: remove hard code
-        self.NORMAL_SPEED = target_speed_coefficient * self.MAX_SPEED
-        self.target_speed = self.NORMAL_SPEED
-        self.speed_limit_coefficient = self.np_random.uniform(1., 1.2)
-        ##################
         self.target_speed = self.NORMAL_SPEED
         self.routing_target_lane = None
         self.available_routing_index_range = None
         self.overtake_timer = self.np_random.randint(0, self.LANE_CHANGE_FREQ)
         self.enable_lane_change = self.engine.global_config.get(
-            "enable_idm_lane_change", False)
+            "enable_idm_lane_change", True)
         self.disable_idm_deceleration = self.engine.global_config.get(
             "disable_idm_deceleration", False)
         self.heading_pid = PIDController(1.7, 0.01, 3.5)
         self.lateral_pid = PIDController(0.3, .002, 0.05)
 
-        # Customize
-        self._prev_steer_angle_rad = control_object.steering * control_object.max_steering
-
-    def act(self, is_kinematic=False, *args, **kwargs):
+    def act(self, *args, **kwargs):
         # concat lane
         success = self.move_to_next_road()
         all_objects = self.control_object.lidar.get_surrounding_objects(
@@ -302,6 +281,7 @@ class IDMPolicy(BasePolicy):
                 acc_front_obj, acc_front_dist, steering_target_lane = self.lane_change_policy(
                     all_objects)
             else:
+                # can not find routing target lane
                 surrounding_objects = FrontBackObjects.get_find_front_back_objs(
                     all_objects,
                     self.routing_target_lane,
@@ -320,63 +300,10 @@ class IDMPolicy(BasePolicy):
 
         # control by PID and IDM
         steering = self.steering_control(steering_target_lane)
-        acc = self.acceleration(acc_front_obj, acc_front_dist)  # -1 ~ + 1
-        if is_kinematic:
-            steer_rate = self._get_steering_rate(steering)
-            acceleration_ = self._get_acceleration(acc)
-            action = [acceleration_, steer_rate]
-        else:
-            action = [steering, acc]
+        acc = self.acceleration(acc_front_obj, acc_front_dist)
+        action = [steering, acc]
         self.action_info["action"] = action
         return action
-
-    def _get_acceleration(self, normalized_acc):
-        heading = self.control_object.heading
-        velocity = self.control_object.velocity
-        speed_in_heading = velocity[0] * heading[0] + velocity[1] * heading[1]
-        max_acceleration = self.control_object.max_acceleration
-        max_deceleration = self.control_object.max_deceleration
-        if normalized_acc >= 0:
-            # if speed_in_heading * 3.6 > (self.speed_limit_coefficient *
-            #                                      self.MAX_SPEED):
-            if speed_in_heading * 3.6 > self.control_object.max_speed_km_h:
-
-                acceleration_ = 0
-            else:
-                acceleration_ = max_acceleration * normalized_acc
-        else:
-            if self.control_object.enable_reverse:
-                acceleration_ = max_acceleration * normalized_acc
-            else:
-                DEADZONE = 0.01
-                # Speed m/s in car's heading:
-
-                if speed_in_heading < DEADZONE:  #  속도가 음수면 감속 못해게.
-                    acceleration_ = 0
-                else:
-                    candidate_acc = normalized_acc * max_deceleration
-                    # 시뮬 dt 계산
-                    dt = (self.engine.global_config["physics_world_step_size"] *
-                          self.engine.global_config["decision_repeat"])
-                    # 후보 감속량
-                    # dt 후 속도가 음수가 되지 않도록 보정
-                    if speed_in_heading + candidate_acc * dt < 0:
-                        acceleration_ = -speed_in_heading / dt
-                    else:
-                        acceleration_ = candidate_acc
-        return acceleration_
-
-    def _get_steering_rate(self, steering):
-        max_steer_rad = self.control_object.max_steering * np.pi / 180.0
-        desired_angle_rad = np.clip(steering, -1, 1) * max_steer_rad
-        # Δt (= 엔진 1-step 시간)  -------------------------------------------------
-        dt = (self.engine.global_config["physics_world_step_size"] *
-              self.engine.global_config["decision_repeat"])
-        # ── (3) steering **rate**  [rad/s]  --------------------------------------
-        steer_rate = (desired_angle_rad - self._prev_steer_angle_rad) / max(
-            dt, 1e-6)
-        self._prev_steer_angle_rad = desired_angle_rad
-        return steer_rate
 
     def move_to_next_road(self):
         # routing target lane is in current ref lanes
@@ -407,13 +334,7 @@ class IDMPolicy(BasePolicy):
         # heading control following a lateral distance control
         ego_vehicle = self.control_object
         long, lat = target_lane.local_coordinates(ego_vehicle.position)
-        heading = self.control_object.heading
-        velocity = self.control_object.velocity
-        speed_in_heading = velocity[0] * heading[0] + velocity[1] * heading[1]
-        look_ahead = np.clip(self.L0 + self.kv * speed_in_heading, self.L0,
-                             self.L_max)  # [m]
-
-        lane_heading = target_lane.heading_theta_at(long + 1)  #look_ahead)
+        lane_heading = target_lane.heading_theta_at(long + 1)
         v_heading = ego_vehicle.heading_theta
         steering = self.heading_pid.get_result(-wrap_to_pi(lane_heading -
                                                            v_heading))
@@ -438,7 +359,6 @@ class IDMPolicy(BasePolicy):
         d0 = self.DISTANCE_WANTED
         tau = self.TIME_WANTED
         ab = -self.ACC_FACTOR * self.DEACC_FACTOR
-        # TODO
         dv = np.dot(ego_vehicle.velocity_km_h - front_obj.velocity_km_h, ego_vehicle.heading) if projected \
             else ego_vehicle.speed_km_h - front_obj.speed_km_h
         d_star = d0 + ego_vehicle.speed_km_h * tau + ego_vehicle.speed_km_h * dv / (
@@ -448,16 +368,7 @@ class IDMPolicy(BasePolicy):
     def reset(self):
         self.heading_pid.reset()
         self.lateral_pid.reset()
-        ##################
-        self.MAX_SPEED = self.control_object.max_speed_km_h
-        target_speed_coefficient = self.np_random.uniform(
-            0.7, 1.0)  # TODO: remove hard code
-        self.NORMAL_SPEED = target_speed_coefficient * self.MAX_SPEED
         self.target_speed = self.NORMAL_SPEED
-        self.speed_limit_coefficient = self.np_random.uniform(1., 1.2)
-        ##################
-        self.target_speed = self.NORMAL_SPEED
-
         self.routing_target_lane = None
         self.available_routing_index_range = None
         self.overtake_timer = self.np_random.randint(0, self.LANE_CHANGE_FREQ)
@@ -583,3 +494,86 @@ class ManualControllableIDMPolicy(IDMPolicy):
         else:
             self.action_info["manual_control"] = False
             return super(ManualControllableIDMPolicy, self).act(agent_id)
+
+
+class TrajectoryIDMPolicy(IDMPolicy):
+    """This policy is customized for the traffic car in Waymo environment. (Ego car is not included!)"""
+    NORMAL_SPEED = 40
+    IDM_MAX_DIST = 20
+    DEST_REGION_RADIUS = 2  # m
+
+    def __init__(self,
+                 control_object,
+                 random_seed,
+                 traj_to_follow,
+                 policy_index=None):
+        super(TrajectoryIDMPolicy, self).__init__(control_object=control_object,
+                                                  random_seed=random_seed)
+        self.policy_index = policy_index
+        assert isinstance(
+            traj_to_follow,
+            PointLane), "Trajectory of IDM policy should be in PointLane Class"
+        self.traj_to_follow = traj_to_follow
+        self.target_speed = self.NORMAL_SPEED
+        self.routing_target_lane = self.traj_to_follow
+        self.destination = np.asarray(self.traj_to_follow.end)
+        self.available_routing_index_range = None
+        self.overtake_timer = self.np_random.randint(0, self.LANE_CHANGE_FREQ)
+        self.enable_lane_change = False
+
+        self.heading_pid = PIDController(1.2, 0.1, 3.5)
+        self.lateral_pid = PIDController(0.3, .0, 0.0)
+
+        self.last_action = [0, 0]
+
+    @property
+    def arrive_destination(self):
+        return norm(self.control_object.position[0] - self.destination[0],
+                    self.control_object.position[1] -
+                    self.destination[1]) < self.DEST_REGION_RADIUS
+
+    def steering_control(self, target_lane) -> float:
+        # heading control following a lateral distance control
+        ego_vehicle = self.control_object
+        long, lat = target_lane.local_coordinates(ego_vehicle.position)
+        lane_heading = target_lane.heading_theta_at(long + 1)
+        v_heading = ego_vehicle.heading_theta
+        steering = self.heading_pid.get_result(-wrap_to_pi(lane_heading -
+                                                           v_heading))
+        steering += self.lateral_pid.get_result(-lat)
+        return float(steering)
+
+    def act(self, do_speed_control, *args, **kwargs):
+        # concat lane
+        try:
+            if do_speed_control:
+                all_objects = self.control_object.lidar.get_surrounding_objects(
+                    self.control_object)
+                # can not find routing target lane
+                surrounding_objects = FrontBackObjects.get_find_front_back_objs_single_lane(
+                    all_objects,
+                    self.routing_target_lane,
+                    self.control_object.position,
+                    max_distance=self.IDM_MAX_DIST)
+                acc_front_obj = surrounding_objects.front_object()
+                acc_front_dist = surrounding_objects.front_min_distance()
+
+                acc = self.acceleration(acc_front_obj, acc_front_dist)
+            else:
+                acc = self.last_action[-1]
+        except:
+            acc = 0
+            print(
+                "TrajectoryIDM Policy longitudinal planning failed, acceleration fall back to 0"
+            )
+
+        # if self.policy_index % 2 == 0:
+        steering_target_lane = self.routing_target_lane
+        # control by PID and IDM
+        steering = self.steering_control(steering_target_lane)
+        # else:
+        #     steering = self.last_action[0]
+        self.last_action = [steering, acc]
+        action = [steering, acc]
+        self.action_info["action"] = action
+        return action

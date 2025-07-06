@@ -148,7 +148,6 @@ def main():
     # 초기화
 
 
-    policy_kwargs = {"pth_path": out_pth_dir}
     env = DiffusionPlannerEnv(config)
 
     out_dir = Path("videos")
@@ -159,15 +158,22 @@ def main():
     def _grab():
         # BaseEngine._get_window_image() 는 BGRA → BGR → flipY 까지 수행
         return env.engine._get_window_image()  # (H,W,3) np.uint8
+    policy_kwargs = {"pth_path": out_pth_dir}
 
-    model = DiffusionPPO(
+    ego_model = DiffusionPPO(
         policy=DiffusionActorCriticPolicy,
         env=env,
         verbose=1,  # 학습 과정 콘솔 출력 (0:출력없음, 1:정보, 2:상세)
         tensorboard_log="./ppo_metadrive_tensorboard",  # TensorBoard 로그 디렉토리
         policy_kwargs=policy_kwargs
     )
-
+    # npc_model = DiffusionPPO(
+    #     policy=DiffusionActorCriticPolicy,
+    #     env=env,
+    #     verbose=1,  # 학습 과정 콘솔 출력 (0:출력없음, 1:정보, 2:상세)
+    #     tensorboard_log="./ppo_npc_metadrive_tensorboard",  # TensorBoard 로그 디렉토리
+    #     policy_kwargs=policy_kwargs
+    # )
     N_EPISODES = 5
 
     obs, _ = env.reset()
@@ -187,8 +193,9 @@ def main():
         obs: (n, 19)
         action: (80, 4)
         """
-        action, _ = model.predict(obs, deterministic=True)
-        npc_predictions, guided_npc_predictions = model.get_npc_predictions(obs) # ( P-1, V_future = 80, 4)
+        action, _ = ego_model.predict(obs, deterministic=True)
+        # _, _ = npc_model.predict(obs, deterministic=True)
+        npc_predictions, guided_npc_predictions = ego_model.get_npc_predictions(obs) # ( P-1, V_future = 80, 4)
         env.set_external_npc_actions(npc_predictions, guided_npc_predictions)
         """
         만약 VecEnv 였으면,

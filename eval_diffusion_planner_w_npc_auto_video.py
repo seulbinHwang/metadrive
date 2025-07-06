@@ -132,7 +132,7 @@ def main():
         "_render_mode": RENDER_MODE_OFFSCREEN,
         # "image_on_ram" : True,
 
-        "horizon" : 50,
+        "horizon" : 150,
         "truncate_as_terminate" : True,
         "allow_respawn": False,
         "is_multi_agent": False,  # 완전 단일 에이전트 환경

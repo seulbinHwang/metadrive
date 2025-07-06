@@ -21,6 +21,7 @@ from metadrive.manager.speed_limit_pg_map_manager import SpeedLimitPGMapManager
 from metadrive.manager.object_manager import TrafficObjectManager
 from metadrive.obs.diffusion_planner_obs import DiffusionPlannerObservation
 from pathlib import Path
+from metadrive.policy.idm_policy import KinematicIDMPolicy
 
 args_path = Path(
     '~/PycharmProjects/metadrive/checkpoints/args.json').expanduser()
@@ -63,7 +64,7 @@ DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
     traffic_mode=TrafficMode.Respawn,
     traffic_density=0.,
     random_spawn_lane_index=False,
-    agent_policy=LQRPolicy,
+    agent_policy=KinematicIDMPolicy, #IDMPolicy,#LQRPolicy,
     agent_configs={
         DEFAULT_AGENT:
             dict(

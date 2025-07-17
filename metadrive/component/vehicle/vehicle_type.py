@@ -447,22 +447,9 @@ class KinematicBicycleHistoryVehicle(HistoryDefaultVehicle):
             sampling_time=sampling_time)
         self.ego_result_state = current_state
         ##############
-        max_steering_rad = self.max_steering * np.pi / 180.0
-        steering_rad = current_state.tire_steering_angle  # rad
-        # steering_rad = clip(current_state.tire_steering_angle,
-        #                     -max_steering_rad,
-        #                     max_steering_rad) # rad
-        normalized_steering = steering_rad * (1 / max_steering_rad)
-        self._set_action([normalized_steering, 0.0])
+
         ##############
-        self.set_position(current_state.center.point.array)
-        self.set_heading_theta(current_state.center.heading)
-        heading = current_state.center.heading
-        v_body = current_state.dynamic_car_state.center_velocity_2d.array  # (vx, vy)
-        self.current_velocity = body_to_world_vel(v_body, heading)
-        self.set_velocity(self.current_velocity)
-        self.current_angular_velocity = current_state.dynamic_car_state.angular_velocity
-        self.set_angular_velocity(self.current_angular_velocity)
+
         # self._body.setLinearVelocity(
         #     LVector3(0.0, 0.0, 0.0))
         # self._body.setAngularVelocity(LVector3(0, 0, 0))
@@ -471,6 +458,21 @@ class KinematicBicycleHistoryVehicle(HistoryDefaultVehicle):
         return step_info
 
     def after_step(self):
+        # TODO: VehicleAgentManager가 항상 우선순위어야 하는 불편함이 생겼음
+        if self.ego_result_state is not None:
+            max_steering_rad = self.max_steering * np.pi / 180.0
+            steering_rad = self.ego_result_state.tire_steering_angle  # rad
+            normalized_steering = steering_rad * (1 / max_steering_rad)
+            self._set_action([normalized_steering, 0.0])
+            self.set_position(self.ego_result_state.center.point.array)
+            heading = self.ego_result_state.center.heading
+            self.set_heading_theta(heading)
+            v_body = self.ego_result_state.dynamic_car_state.center_velocity_2d.array  # (vx, vy)
+            self.current_velocity = body_to_world_vel(v_body, heading)
+            self.set_velocity(self.current_velocity)
+            self.current_angular_velocity = self.ego_result_state.dynamic_car_state.angular_velocity
+            self.set_angular_velocity(self.current_angular_velocity)
+        ##############
         self.set_velocity(self.current_velocity)
         self.set_angular_velocity(self.current_angular_velocity)
         step_info = super().after_step()

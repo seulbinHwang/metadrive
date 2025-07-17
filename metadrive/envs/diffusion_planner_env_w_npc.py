@@ -64,7 +64,7 @@ DIFFUSION_PLANNER_DEFAULT_CONFIG = dict(
     traffic_mode=TrafficMode.Respawn,
     traffic_density=0.,
     random_spawn_lane_index=False,
-    agent_policy=KinematicIDMPolicy, #IDMPolicy,#LQRPolicy,
+    agent_policy=KinematicIDMPolicy, #KinematicIDMPolicy, #IDMPolicy,#LQRPolicy,
     agent_configs={
         DEFAULT_AGENT:
             dict(
@@ -110,8 +110,8 @@ class DiffusionPlannerEnv(MetaDriveEnv):
         self.engine.accept("]", self.next_seed_reset)
         self.engine.accept("[", self.last_seed_reset)
         self.engine.register_manager("agent_manager", self.agent_manager)
-        self.engine.register_manager("record_manager", RecordManager())
-        self.engine.register_manager("replay_manager", ReplayManager())
+        # self.engine.register_manager("record_manager", RecordManager())
+        # self.engine.register_manager("replay_manager", ReplayManager())
         self.engine.register_manager("map_manager", SpeedLimitPGMapManager())
         self.engine.register_manager("traffic_manager",
                                      DiffusionTrafficManager())

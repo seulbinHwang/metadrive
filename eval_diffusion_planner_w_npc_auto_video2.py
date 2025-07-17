@@ -9,7 +9,7 @@ import wandb
 from metadrive.component.sensors.rgb_camera import RGBCamera
 from metadrive.engine.engine_utils import initialize_engine, close_engine
 from metadrive.constants import RENDER_MODE_OFFSCREEN, RENDER_MODE_ONSCREEN
-
+from metadrive.policy.lqr_policy import LQRPolicy
 from pathlib import Path
 import imageio.v3 as iio
 
@@ -137,7 +137,7 @@ def main():
         "_render_mode": RENDER_MODE_ONSCREEN,
         # "image_on_ram" : True,
 
-        "horizon" : 250, #200, # step 수, 1 step에 0.1초
+        "horizon" : 2500, #200, # step 수, 1 step에 0.1초
         "truncate_as_terminate" : True,
         "allow_respawn": False,
         "is_multi_agent": False,  # 완전 단일 에이전트 환경
@@ -193,7 +193,11 @@ def main():
         obs: (n, 19)
         action: (80, 4)
         """
-        action, _ = ego_model.predict(obs, deterministic=True)
+        if env.config.agent_policy == LQRPolicy:
+            use_action = True
+        else:
+            use_action = False
+        action, _ = ego_model.predict(obs, deterministic=True, use_action=use_action)
         # _, _ = npc_model.predict(obs, deterministic=True)
         npc_predictions, guided_npc_predictions = ego_model.get_npc_predictions(obs) # ( P-1, V_future = 80, 4)
         env.set_external_npc_actions(npc_predictions, guided_npc_predictions)

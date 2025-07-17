@@ -145,11 +145,11 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         if external_guided_npc_actions is None:
             return
         external_guided_npc_actions = external_guided_npc_actions[:, 1:]
-        for idx, npc_traj_not_used in enumerate(external_guided_npc_actions):
+        for idx, a_guided_npc_actions in enumerate(external_guided_npc_actions):
             # 만약 npc_traj 의 값이 전부 0이라면, skip
-            if np.all(npc_traj_not_used == 0.):
+            if np.all(a_guided_npc_actions == 0.):
                 continue
-            coords_g, yaws_g = ego_to_global(npc_traj_not_used, ego_pos,
+            coords_g, yaws_g = ego_to_global(a_guided_npc_actions, ego_pos,
                                              ego_yaw)
             for idx in range(len(coords_g) - 1):
                 x1, y1 = coords_g[idx]
@@ -192,7 +192,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
                                                                 1:]  # (P-1, 80, 4)
         diffusion_vehicle_num = external_npc_actions.shape[0]
         # ── 2.  이제 리스트가 확정됐으므로 policy 재배치
-        closest_idx = self._update_control_policies(0)
+        closest_idx = self._update_control_policies(diffusion_vehicle_num)
         # (2) Ego 정보 한 번만 꺼내두기
         ego = next(iter(self.engine.agent_manager.active_agents.values()))
         ego_pos = np.array(ego.position[:2], dtype=np.float32)

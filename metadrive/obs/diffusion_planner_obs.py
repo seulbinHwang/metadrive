@@ -204,7 +204,7 @@ def extract_local_lanes_in_square_bbox(
     lanes_has_speed_limit = np.zeros((max_lane_num, 1), dtype=np.bool_)
 
     route_lanes = np.zeros((max_route_num, lane_len, 12), dtype=np.float32)
-    nav_idx = 0
+    near_lanes_node_set = set()
     for idx, (ln,
               ln_idx_tuple) in enumerate(zip(selected_lanes, selected_indices)):
         ln_len = ln.length
@@ -280,10 +280,32 @@ def extract_local_lanes_in_square_bbox(
         lanes[idx, :, 8] = 1.0  # [1,0,0,0]
         start_node_str = ln_idx_tuple[0]
         end_node_str = ln_idx_tuple[1]
+        near_lanes_node_set.add(start_node_str)
+        near_lanes_node_set.add(end_node_str)
+        # if nav_idx < max_route_num:
+        #     if (start_node_str
+        #             in checkpoint_node_ids) and (end_node_str
+        #                                          in checkpoint_node_ids):
+        #         route_lanes[nav_idx] = lanes[idx]
+        #         nav_idx += 1
+    connected_checkpoint_node_ids = []
+    is_recording = False
+    for node_id in checkpoint_node_ids:
+        if node_id in near_lanes_node_set:
+            connected_checkpoint_node_ids.append(node_id)
+            is_recording = True
+        elif is_recording:
+            break
+
+    nav_idx = 0
+    for idx, (ln,
+              ln_idx_tuple) in enumerate(zip(selected_lanes, selected_indices)):
+        start_node_str = ln_idx_tuple[0]
+        end_node_str = ln_idx_tuple[1]
         if nav_idx < max_route_num:
             if (start_node_str
-                    in checkpoint_node_ids) and (end_node_str
-                                                 in checkpoint_node_ids):
+                    in connected_checkpoint_node_ids) and (end_node_str
+                                                 in connected_checkpoint_node_ids):
                 route_lanes[nav_idx] = lanes[idx]
                 nav_idx += 1
     return lanes, lanes_speed_limit, lanes_has_speed_limit, route_lanes
@@ -617,8 +639,9 @@ class DiffusionPlannerObservation(BaseObservation):
             )
 
             # ★★ 핵심 3 줄 ― 조명·재질 끄고, 순수 VertexColor 사용 ★★
-            np_node.setMaterialOff(True)  # 재질(=Material) 완전히 제거
-            np_node.setLightOff(True)  # 조명 영향 제거
+            np_node.setMaterialOff(0)  # 재질(=Material) 완전히 제거
+            np_node.setLightOff(1)  # 조명 영향 제거
+            np_node.setShaderOff(1)
             np_node.setColor(r, g, b, a, 1)  # 우선순위 1 ⇒ 무조건 적용
             # ----------------------------------------------------------------
 
@@ -665,13 +688,13 @@ class DiffusionPlannerObservation(BaseObservation):
                 rx_w, ry_w = self._local_to_world_batch(cx + rx_off,
                                                         cy + ry_off, ego_x,
                                                         ego_y, ego_yaw)
-
+                black = (0.0, 0.0, 0.0, 1.0)
                 self._lane_np_list += self._draw_polyline(
-                    engine, list(zip(cx_w, cy_w)), (1, 1, 1, 1), True, 40)
+                    engine, list(zip(cx_w, cy_w)), black, True, 40)
                 self._lane_np_list += self._draw_polyline(
-                    engine, list(zip(lx_w, ly_w)), (1, 1, 0, 1), False, 50)
+                    engine, list(zip(lx_w, ly_w)), black, False, 50)
                 self._lane_np_list += self._draw_polyline(
-                    engine, list(zip(rx_w, ry_w)), (0.7, 0.7, 0.7, 1), False,
+                    engine, list(zip(rx_w, ry_w)), black, False,
                     50)
 
         # ── D. 경로 차선 --------------------------------------------
@@ -696,10 +719,11 @@ class DiffusionPlannerObservation(BaseObservation):
                                                         ego_y, ego_yaw)
 
                 # ① 중앙선 ― 빨간 점선  (step=2 자동 적용)
+                orange = (1.0, 0.55, 0.0, 1.0)
                 self._route_np_list += self._draw_polyline(
                     engine,
                     list(zip(cx_w, cy_w)),
-                    color=(1, 0, 0, 1),  # 빨강
+                    color=orange,  # 빨강
                     dotted=True,  # ← 점선
                     thickness=90,
                 )
@@ -707,7 +731,7 @@ class DiffusionPlannerObservation(BaseObservation):
                 self._route_np_list += self._draw_polyline(
                     engine,
                     list(zip(lx_w, ly_w)),
-                    color=(1, 0, 0, 1),
+                    color=orange,
                     dotted=False,  # 실선
                     thickness=90,
                 )
@@ -715,7 +739,7 @@ class DiffusionPlannerObservation(BaseObservation):
                 self._route_np_list += self._draw_polyline(
                     engine,
                     list(zip(rx_w, ry_w)),
-                    color=(1, 0, 0, 1),
+                    color=orange,
                     dotted=False,
                     thickness=90,
                 )

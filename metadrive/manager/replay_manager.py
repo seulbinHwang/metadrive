@@ -116,6 +116,7 @@ class ReplayManager(BaseManager):
                 assert obj.id == obj_name
 
     def restore_manager_states(self, states):
+        # 중요
         current_managers = [
             manager.class_name for manager in self.engine.managers.values()
         ]

@@ -268,13 +268,13 @@ class DiffusionActorCriticPolicy(BasePolicy):
             vectorized = is_vectorized_observation(arr, obs_space)
 
         return vectorized
-
     def predict(
             self,
             observation: Union[np.ndarray, dict[str, np.ndarray]],
             state: Optional[tuple[np.ndarray, ...]] = None,
             episode_start: Optional[np.ndarray] = None,
             deterministic: bool = False,
+            use_action: bool = True,
     ) -> tuple[np.ndarray, Optional[tuple[np.ndarray, ...]]]:
         """
         Get the policy action from an observation (and optional hidden state).
@@ -289,6 +289,8 @@ class DiffusionActorCriticPolicy(BasePolicy):
         :return: the model's action and the next hidden state
             (used in recurrent policies)
         """
+        if use_action:
+            return super().predict(observation, state, episode_start, deterministic)
         # Switch to eval mode (this affects batch norm / dropout)
         self.set_training_mode(False)
 

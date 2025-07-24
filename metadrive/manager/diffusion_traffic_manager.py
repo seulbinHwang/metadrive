@@ -133,9 +133,9 @@ def convert_multiple_npc_center_to_rear_axle(
     return converted_actions
 
 
-def apply_center_to_rear_axle_conversion(external_npc_actions: np.ndarray,
-                                       traffic_vehicles: List,
-                                       valid_predicted_closest_idx: List) -> np.ndarray:
+def apply_center_to_rear_axle_conversion(
+        external_npc_actions: np.ndarray, traffic_vehicles: List,
+        valid_predicted_closest_idx: List) -> np.ndarray:
     """
     가장 가까운 차량들의 중심 좌표를 뒷축 좌표로 변환
 
@@ -147,7 +147,8 @@ def apply_center_to_rear_axle_conversion(external_npc_actions: np.ndarray,
     Returns:
         external_npc_actions: Modified array with rear axle coordinates
     """
-    if valid_predicted_closest_idx is not None and len(valid_predicted_closest_idx) > 0:
+    if valid_predicted_closest_idx is not None and len(
+            valid_predicted_closest_idx) > 0:
         # 가장 가까운 순서대로 정렬된 차량들
         valid_predicted_vehs = [
             traffic_vehicles[i] for i in valid_predicted_closest_idx
@@ -158,9 +159,9 @@ def apply_center_to_rear_axle_conversion(external_npc_actions: np.ndarray,
         actions_to_convert = external_npc_actions[:valid_predicted_num]
 
         # 변환된 결과를 external_npc_actions에 다시 할당
-        external_npc_actions[:valid_predicted_num] = convert_multiple_npc_center_to_rear_axle(
-            actions_to_convert, valid_predicted_vehs
-        )
+        external_npc_actions[:
+                             valid_predicted_num] = convert_multiple_npc_center_to_rear_axle(
+                                 actions_to_convert, valid_predicted_vehs)
 
     return external_npc_actions
 
@@ -227,7 +228,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
             #         LVector3(x, y, 3.),
             #         color=(0, 1, 0, 1),  # 초록
             #         thickness=3)
-            #     np_node.repare    ntTo(engine.render)
+            #     np_node.reparentTo(engine.render)
             #     self._traffic_traj_nodes.append(np_node)
         external_guided_npc_actions = engine.external_guided_npc_actions
         if external_guided_npc_actions is None:
@@ -285,11 +286,34 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         valid_predicted_closest_idx = self._update_control_policies(
             predicted_agent_num)
 
+        # 변환 전 데이터 백업 (시각화용)
+        external_npc_actions_before = external_npc_actions.copy()
+
         # NPC 차량 중심 좌표를 뒷축 좌표로 변환
         # external_npc_actions의 순서와 가장 가까운 차량들의 순서를 맞춰서 변환
         external_npc_actions = apply_center_to_rear_axle_conversion(
-            external_npc_actions, self._traffic_vehicles, valid_predicted_closest_idx
-        )
+            external_npc_actions, self._traffic_vehicles,
+            valid_predicted_closest_idx)
+
+        # 변환 전후 비교 시각화 (선택적으로 활성화)
+        if hasattr(
+                self.engine,
+                'save_conversion_plots') and self.engine.save_conversion_plots:
+            if valid_predicted_closest_idx is not None and len(
+                    valid_predicted_closest_idx) > 0:
+                try:
+                    # 시각화 저장만 실행
+                    plot_path = visualize_center_to_rear_axle_conversion(
+                        external_npc_actions_before,
+                        external_npc_actions,
+                        self._traffic_vehicles,
+                        valid_predicted_closest_idx,
+                        save_dir=getattr(self.engine, 'conversion_plot_dir',
+                                         './conversion_plots'))
+                except Exception as e:
+                    print(
+                        f"Warning: Failed to save conversion visualization: {e}"
+                    )
 
         # (2) Ego 정보 한 번만 꺼내두기
         ego = next(iter(self.engine.agent_manager.active_agents.values()))
@@ -386,3 +410,153 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
                                            p=[0.2, 0.3, 0.3, 0.2, 0.0],
                                            vehicle_type="bicycle_history")
         return vehicle_type
+
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from datetime import datetime
+import os
+
+
+def visualize_center_to_rear_axle_conversion(
+        external_npc_actions_before: np.ndarray,
+        external_npc_actions_after: np.ndarray,
+        traffic_vehicles: List,
+        valid_predicted_closest_idx: List,
+        save_dir: str = "./conversion_plots") -> str:
+    """
+    중심 좌표 → 뒷축 좌표 변환 전후를 시각적으로 비교하여 파일로 저장
+
+    Args:
+        external_npc_actions_before: (P, T, 4) 변환 전 궤적
+        external_npc_actions_after: (P, T, 4) 변환 후 궤적
+        traffic_vehicles: List of traffic vehicle objects
+        valid_predicted_closest_idx: List of indices for closest vehicles
+        save_dir: 저장할 디렉토리 경로 (사용하지 않음)
+
+    Returns:
+        str: 저장된 파일 경로
+    """
+    # 현재 레포지토리의 가장 상위 경로에 test.png로 저장
+    filepath = "/home/hsb/PycharmProjects/metadrive/test.png"
+
+    num_vehicles = min(len(valid_predicted_closest_idx),
+                       external_npc_actions_before.shape[0])
+
+    # 서브플롯 생성 (차량별로 비교)
+    fig, axes = plt.subplots(2, (num_vehicles + 1) // 2, figsize=(15, 10))
+    if num_vehicles == 1:
+        axes = np.array([axes]).flatten()
+    elif num_vehicles <= 2:
+        axes = axes.flatten()
+    else:
+        axes = axes.flatten()
+
+    for i in range(num_vehicles):
+        ax = axes[i]
+
+        # 변환 전 궤적 (파란색)
+        traj_before = external_npc_actions_before[i]  # (T, 4)
+        x_before = traj_before[:, 0]
+        y_before = traj_before[:, 1]
+
+        # 변환 후 궤적 (빨간색)
+        traj_after = external_npc_actions_after[i]  # (T, 4)
+        x_after = traj_after[:, 0]
+        y_after = traj_after[:, 1]
+
+        # 궤적 그리기
+        ax.plot(x_before,
+                y_before,
+                'b-o',
+                markersize=3,
+                linewidth=2,
+                label='Center (Before)',
+                alpha=0.7)
+        ax.plot(x_after,
+                y_after,
+                'r-s',
+                markersize=3,
+                linewidth=2,
+                label='Rear Axle (After)',
+                alpha=0.7)
+
+        # 시작점 강조
+        ax.plot(x_before[0],
+                y_before[0],
+                'bo',
+                markersize=8,
+                label='Start (Center)')
+        ax.plot(x_after[0],
+                y_after[0],
+                'ro',
+                markersize=8,
+                label='Start (Rear Axle)')
+
+        # 차량 정보 가져오기
+        vehicle = traffic_vehicles[valid_predicted_closest_idx[i]]
+        rear_wheelbase = vehicle.REAR_WHEELBASE
+        vehicle_length = vehicle.LENGTH  # 실제 차량 길이
+        vehicle_width = vehicle.WIDTH  # 실제 차량 너비
+
+        # 첫 번째 점에서 차량 형태 그리기 (변환 전후 비교)
+        if len(x_before) > 0 and len(x_after) > 0:
+            # 차량 방향 (첫 번째 점)
+            cos_yaw = traj_before[0, 2]
+            sin_yaw = traj_before[0, 3]
+
+            center_x, center_y = x_before[0], y_before[0]
+            rear_x, rear_y = x_after[0], y_after[0]
+
+            # 차량 사각형은 원래 위치(중심 기준)에 그리기 - 차량 자체는 안 움직임
+            vehicle_rect = patches.Rectangle(
+                (center_x - vehicle_length/2, center_y - vehicle_width/2),
+                vehicle_length, vehicle_width,
+                angle=np.degrees(np.arctan2(sin_yaw, cos_yaw)),
+                linewidth=2, edgecolor='gray', facecolor='lightgray', alpha=0.3
+            )
+            ax.add_patch(vehicle_rect)
+
+            # 뒷축 선분 그리기 (차량 너비만큼 가로지르는 선)
+            # 뒷축은 차량 중심에서 REAR_WHEELBASE만큼 뒤쪽에 위치
+            rear_axle_center_x = center_x - rear_wheelbase * cos_yaw
+            rear_axle_center_y = center_y - rear_wheelbase * sin_yaw
+
+            # 뒷축 선분의 양 끝점 계산 (차량 방향에 수직)
+            axle_half_width = vehicle_width / 2
+            perpendicular_x = -sin_yaw * axle_half_width  # 차량 방향에 수직
+            perpendicular_y = cos_yaw * axle_half_width
+
+            axle_left_x = rear_axle_center_x + perpendicular_x
+            axle_left_y = rear_axle_center_y + perpendicular_y
+            axle_right_x = rear_axle_center_x - perpendicular_x
+            axle_right_y = rear_axle_center_y - perpendicular_y
+
+            # 뒷축 선분 그리기 (점선)
+            ax.plot([axle_left_x, axle_right_x], [axle_left_y, axle_right_y],
+                   'r:', linewidth=2, alpha=0.8, label='Rear Axle')
+
+            # # 중심점과 뒷축 연결선 그리기 - 궤적 변환을 보여줌
+            # ax.plot([center_x, rear_x], [center_y, rear_y], 'k--', linewidth=1, alpha=0.5, label='Offset Vector')
+
+        ax.set_title(
+            f'Vehicle {i+1} ({vehicle.__class__.__name__})\n'
+            f'L:{vehicle_length:.1f}m, W:{vehicle_width:.1f}m, REAR_WB:{rear_wheelbase:.3f}m'
+        )
+        ax.set_xlabel('X (ego coordinate)')
+        ax.set_ylabel('Y (ego coordinate)')
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+        ax.axis('equal')
+
+    # 사용하지 않는 서브플롯 숨기기
+    for j in range(num_vehicles, len(axes)):
+        axes[j].set_visible(False)
+
+    plt.tight_layout()
+
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()
+
+    print(f"Conversion visualization saved to: {filepath}")
+    return filepath

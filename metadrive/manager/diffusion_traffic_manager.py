@@ -296,9 +296,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
             valid_predicted_closest_idx)
 
         # 변환 전후 비교 시각화 (선택적으로 활성화)
-        if hasattr(
-                self.engine,
-                'save_conversion_plots') and self.engine.save_conversion_plots:
+        if False:
             if valid_predicted_closest_idx is not None and len(
                     valid_predicted_closest_idx) > 0:
                 try:
@@ -314,6 +312,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
                     print(
                         f"Warning: Failed to save conversion visualization: {e}"
                     )
+                    raise RuntimeError("test)")
 
         # (2) Ego 정보 한 번만 꺼내두기
         ego = next(iter(self.engine.agent_manager.active_agents.values()))
@@ -438,7 +437,7 @@ def visualize_center_to_rear_axle_conversion(
         str: 저장된 파일 경로
     """
     # 현재 레포지토리의 가장 상위 경로에 test.png로 저장
-    filepath = "/home/hsb/PycharmProjects/metadrive/test.png"
+    filepath = "test.png"
 
     num_vehicles = min(len(valid_predicted_closest_idx),
                        external_npc_actions_before.shape[0])
@@ -559,4 +558,5 @@ def visualize_center_to_rear_axle_conversion(
     plt.close()
 
     print(f"Conversion visualization saved to: {filepath}")
+    raise NotImplementedError("This function is not fully implemented yet.")
     return filepath

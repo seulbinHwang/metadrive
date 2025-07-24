@@ -78,6 +78,61 @@ def transform_trajectory(npc_traj_wrt_ego: np.ndarray, ego_pos: np.ndarray,
     return global_to_local(coords_g, yaw_g, veh_pos, veh_yaw)
 
 
+def convert_center_to_rear_axle(traj_center: np.ndarray, vehicle) -> np.ndarray:
+    """
+    차량 중심 기준 궤적을 뒷축 중심 기준 궤적으로 변환
+
+    Args:
+        traj_center: (T, 4) array of [x_center, y_center, cos_yaw, sin_yaw]
+        vehicle: BaseVehicle 객체 (REAR_WHEELBASE 속성 사용)
+
+    Returns:
+        traj_rear_axle: (T, 4) array of [x_rear_axle, y_rear_axle, cos_yaw, sin_yaw]
+    """
+    # 차량의 REAR_WHEELBASE 사용 (중심에서 뒷축까지의 거리)
+    rear_wheelbase = vehicle.REAR_WHEELBASE
+
+    # 각 시점에서 차량의 방향 벡터 (뒤쪽 방향)
+    cos_yaw = traj_center[:, 2]  # (T,)
+    sin_yaw = traj_center[:, 3]  # (T,)
+
+    # 뒷축 방향으로의 오프셋 벡터 계산 (차량 좌표계에서 뒤쪽은 -x 방향)
+    offset_x = -rear_wheelbase * cos_yaw  # (T,)
+    offset_y = -rear_wheelbase * sin_yaw  # (T,)
+
+    # 뒷축 중심 좌표 계산
+    x_rear_axle = traj_center[:, 0] + offset_x  # (T,)
+    y_rear_axle = traj_center[:, 1] + offset_y  # (T,)
+
+    # 결과 조합 (yaw는 그대로 유지)
+    traj_rear_axle = np.column_stack([
+        x_rear_axle, y_rear_axle, cos_yaw, sin_yaw
+    ])
+
+    return traj_rear_axle
+
+
+def convert_multiple_npc_center_to_rear_axle(external_npc_actions: np.ndarray,
+                                           traffic_vehicles: List) -> np.ndarray:
+    """
+    여러 NPC 차량의 중심 기준 궤적들을 뒷축 기준으로 변환
+
+    Args:
+        external_npc_actions: (N, T, 4) array where N is number of vehicles
+        traffic_vehicles: List of traffic vehicle objects
+
+    Returns:
+        converted_actions: (N, T, 4) array with rear axle coordinates
+    """
+    converted_actions = np.zeros_like(external_npc_actions)
+
+    for i, (npc_traj, vehicle) in enumerate(zip(external_npc_actions, traffic_vehicles)):
+        # BaseVehicle의 REAR_WHEELBASE 사용
+        converted_actions[i] = convert_center_to_rear_axle(npc_traj, vehicle)
+
+    return converted_actions
+
+
 class DiffusionTrafficManager(HistoricalBufferTrafficManager):
 
     def __init__(self):
@@ -189,23 +244,43 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         self._clear_traffic_trajs()
         self._draw_all_traffic_trajs()
         external_npc_actions = self.engine.external_npc_actions[:,
-                                                                1:]  # (P-1, 80, 4)
-        diffusion_vehicle_num = external_npc_actions.shape[0]
-        # ── 2.  이제 리스트가 확정됐으므로 policy 재배치
-        closest_idx = self._update_control_policies(0)
+                                                                1:]  # (P, 80, 4)
+
+        predicted_agent_num = external_npc_actions.shape[0]
+
+        # ── 먼저 가장 가까운 P대 차량 찾기 ──
+        valid_predicted_closest_idx = self._update_control_policies(predicted_agent_num)
+
+        # NPC 차량 중심 좌표를 뒷축 중심 좌표로 변환
+        # external_npc_actions의 순서와 가장 가까운 차량들의 순서를 맞춰서 변환
+        if valid_predicted_closest_idx is not None and len(valid_predicted_closest_idx) > 0:
+            # 가장 가까운 순서대로 정렬된 차량들
+            valid_predicted_closest_vehs = [self._traffic_vehicles[i] for i in valid_predicted_closest_idx]
+
+            # external_npc_actions의 차량 개수만큼만 변환 (P대)
+            valid_predicted_agent_num = len(valid_predicted_closest_vehs)
+            vehicles_for_conversion = valid_predicted_closest_vehs[:valid_predicted_agent_num]
+            actions_to_convert = external_npc_actions[:valid_predicted_agent_num]
+
+            # 변환된 결과를 external_npc_actions에 다시 할당
+            external_npc_actions[:valid_predicted_agent_num] = convert_multiple_npc_center_to_rear_axle(
+                actions_to_convert, vehicles_for_conversion
+            )
+            # TODO
+
         # (2) Ego 정보 한 번만 꺼내두기
         ego = next(iter(self.engine.agent_manager.active_agents.values()))
         ego_pos = np.array(ego.position[:2], dtype=np.float32)
         ego_yaw = ego.heading_theta
-        if closest_idx is not None:
+        if valid_predicted_closest_idx is not None:
             sorted_traffic_vehicles = [
-                self._traffic_vehicles[i] for i in closest_idx
+                self._traffic_vehicles[i] for i in valid_predicted_closest_idx
             ]
             for vehicle_idx, veh in enumerate(sorted_traffic_vehicles):
                 pol = self.engine.get_policy(veh.id)
                 assert isinstance(pol, (LQRPolicy))
                 npc_traj_wrt_ego = external_npc_actions[vehicle_idx]
-                # global → vehicle 로컬로 일괄 변환
+                # ego → vehicle 로컬로 일괄 변환
                 future_traj = transform_trajectory(
                     npc_traj_wrt_ego, ego_pos, ego_yaw,
                     np.array(veh.position[:2], dtype=np.float32),
@@ -235,7 +310,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         #     if isinstance(pol, IDMPolicy):
         #         veh.before_step(pol.act(is_kinematic=True))
         #     elif isinstance(pol, LQRPolicy):
-        #         index = np.where(closest_idx == vehicle_idx)[0][0]
+        #         index = np.where(valid_predicted_closest_idx == vehicle_idx)[0][0]
         #         future_trajectory = external_npc_actions[index] # (80, 4)
         #         veh.before_step(pol.act(veh.id, future_trajectory))
         return {}
@@ -243,8 +318,8 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
     # ────────────────────────────────────────────────────────────────────────
     # 내부 : 현 시점 traffic 차량들에 대해 “가까운 11대” 재계산 → policy 교체
     # ────────────────────────────────────────────────────────────────────────
-    def _update_control_policies(self, diffusion_vehicle_num=10) -> np.ndarray:
-        if not self._traffic_vehicles or diffusion_vehicle_num == 0:  # ── (0) early-return
+    def _update_control_policies(self, predicted_agent_num=10) -> np.ndarray:
+        if not self._traffic_vehicles or predicted_agent_num == 0:  # ── (0) early-return
             return None
 
         # ── (1) 대표 ego 선정 ──────────────────────────────────────────────
@@ -258,12 +333,11 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         veh_positions = np.asarray([v.position for v in self._traffic_vehicles],
                                    dtype=np.float32)  # (N, 2/3)
         dists = np.linalg.norm(veh_positions - ego_pos, axis=1)  # (N,)
+        total_num_agent = len(dists)
 
-        diffusion_vehicle_num = min(diffusion_vehicle_num, len(dists))
-        closest_idx = np.argsort(dists)[:diffusion_vehicle_num]
-        # closest_idx = np.argpartition(
-        #     dists, diffusion_vehicle_num)[:diffusion_vehicle_num]  # k 개 인덱스
-        lqr_target_set = {self._traffic_vehicles[i] for i in closest_idx}
+        valid_predicted_agent_num = min(predicted_agent_num, total_num_agent)
+        valid_predicted_closest_idx = np.argsort(dists)[:valid_predicted_agent_num]
+        lqr_target_set = {self._traffic_vehicles[i] for i in valid_predicted_closest_idx}
 
         # ── (3) 교체가 필요한 차량만 따로 모아 한 번에 처리 ────────────────
         swap_cache = []  # (veh, desired_cls)
@@ -278,7 +352,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         for veh, cls in swap_cache:
             # engine.add_policy → BasePolicy(control_object, random_seed, …)
             self.add_policy(veh.id, cls, veh, self.generate_seed())
-        return closest_idx
+        return valid_predicted_closest_idx
 
     def random_vehicle_type(self):
         from metadrive.component.vehicle.vehicle_type import random_vehicle_type

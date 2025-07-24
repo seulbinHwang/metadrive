@@ -155,12 +155,11 @@ def apply_center_to_rear_axle_conversion(external_npc_actions: np.ndarray,
 
         # external_npc_actions의 차량 개수만큼만 변환 (P대)
         valid_predicted_num = len(valid_predicted_vehs)
-        vehicles_for_conversion = valid_predicted_vehs[:valid_predicted_num]
         actions_to_convert = external_npc_actions[:valid_predicted_num]
 
         # 변환된 결과를 external_npc_actions에 다시 할당
         external_npc_actions[:valid_predicted_num] = convert_multiple_npc_center_to_rear_axle(
-            actions_to_convert, vehicles_for_conversion
+            actions_to_convert, valid_predicted_vehs
         )
 
     return external_npc_actions

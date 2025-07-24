@@ -105,15 +105,14 @@ def convert_center_to_rear_axle(traj_center: np.ndarray, vehicle) -> np.ndarray:
     y_rear_axle = traj_center[:, 1] + offset_y  # (T,)
 
     # 결과 조합 (yaw는 그대로 유지)
-    traj_rear_axle = np.column_stack([
-        x_rear_axle, y_rear_axle, cos_yaw, sin_yaw
-    ])
+    traj_rear_axle = np.column_stack(
+        [x_rear_axle, y_rear_axle, cos_yaw, sin_yaw])
 
     return traj_rear_axle
 
 
-def convert_multiple_npc_center_to_rear_axle(external_npc_actions: np.ndarray,
-                                           traffic_vehicles: List) -> np.ndarray:
+def convert_multiple_npc_center_to_rear_axle(
+        external_npc_actions: np.ndarray, traffic_vehicles: List) -> np.ndarray:
     """
     여러 NPC 차량의 중심 기준 궤적들을 뒷축 기준으로 변환
 
@@ -126,11 +125,45 @@ def convert_multiple_npc_center_to_rear_axle(external_npc_actions: np.ndarray,
     """
     converted_actions = np.zeros_like(external_npc_actions)
 
-    for i, (npc_traj, vehicle) in enumerate(zip(external_npc_actions, traffic_vehicles)):
+    for i, (npc_traj,
+            vehicle) in enumerate(zip(external_npc_actions, traffic_vehicles)):
         # BaseVehicle의 REAR_WHEELBASE 사용
         converted_actions[i] = convert_center_to_rear_axle(npc_traj, vehicle)
 
     return converted_actions
+
+
+def apply_center_to_rear_axle_conversion(external_npc_actions: np.ndarray,
+                                       traffic_vehicles: List,
+                                       valid_predicted_closest_idx: List) -> np.ndarray:
+    """
+    가장 가까운 차량들의 중심 좌표를 뒷축 좌표로 변환
+
+    Args:
+        external_npc_actions: (P, T, 4) array of predicted trajectories
+        traffic_vehicles: List of all traffic vehicles
+        valid_predicted_closest_idx: List of indices for closest vehicles
+
+    Returns:
+        external_npc_actions: Modified array with rear axle coordinates
+    """
+    if valid_predicted_closest_idx is not None and len(valid_predicted_closest_idx) > 0:
+        # 가장 가까운 순서대로 정렬된 차량들
+        valid_predicted_vehs = [
+            traffic_vehicles[i] for i in valid_predicted_closest_idx
+        ]
+
+        # external_npc_actions의 차량 개수만큼만 변환 (P대)
+        valid_predicted_num = len(valid_predicted_vehs)
+        vehicles_for_conversion = valid_predicted_vehs[:valid_predicted_num]
+        actions_to_convert = external_npc_actions[:valid_predicted_num]
+
+        # 변환된 결과를 external_npc_actions에 다시 할당
+        external_npc_actions[:valid_predicted_num] = convert_multiple_npc_center_to_rear_axle(
+            actions_to_convert, vehicles_for_conversion
+        )
+
+    return external_npc_actions
 
 
 class DiffusionTrafficManager(HistoricalBufferTrafficManager):
@@ -168,7 +201,8 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         ego_yaw = ego.heading_theta
 
         # 외부 NPC들이 예측해온 궤적
-        external_npc = engine.external_npc_actions[:, 1:]  # [:, :1, :]  # (N, T, 4)
+        external_npc = engine.external_npc_actions[:,
+                                                   1:]  # [:, :1, :]  # (N, T, 4)
         # 각 traffic 차량의 글로벌 궤적 좌표 구하기
         # 3) 차량별로 한 궤적씩 변환 → world coords (T,2)
         for idx, npc_traj in enumerate(external_npc):  # npc_traj.shape == (T,4)
@@ -249,24 +283,14 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         predicted_agent_num = external_npc_actions.shape[0]
 
         # ── 먼저 가장 가까운 P대 차량 찾기 ──
-        valid_predicted_closest_idx = self._update_control_policies(predicted_agent_num)
+        valid_predicted_closest_idx = self._update_control_policies(
+            predicted_agent_num)
 
-        # NPC 차량 중심 좌표를 뒷축 중심 좌표로 변환
+        # NPC 차량 중심 좌표를 뒷축 좌표로 변환
         # external_npc_actions의 순서와 가장 가까운 차량들의 순서를 맞춰서 변환
-        if valid_predicted_closest_idx is not None and len(valid_predicted_closest_idx) > 0:
-            # 가장 가까운 순서대로 정렬된 차량들
-            valid_predicted_closest_vehs = [self._traffic_vehicles[i] for i in valid_predicted_closest_idx]
-
-            # external_npc_actions의 차량 개수만큼만 변환 (P대)
-            valid_predicted_agent_num = len(valid_predicted_closest_vehs)
-            vehicles_for_conversion = valid_predicted_closest_vehs[:valid_predicted_agent_num]
-            actions_to_convert = external_npc_actions[:valid_predicted_agent_num]
-
-            # 변환된 결과를 external_npc_actions에 다시 할당
-            external_npc_actions[:valid_predicted_agent_num] = convert_multiple_npc_center_to_rear_axle(
-                actions_to_convert, vehicles_for_conversion
-            )
-            # TODO
+        external_npc_actions = apply_center_to_rear_axle_conversion(
+            external_npc_actions, self._traffic_vehicles, valid_predicted_closest_idx
+        )
 
         # (2) Ego 정보 한 번만 꺼내두기
         ego = next(iter(self.engine.agent_manager.active_agents.values()))
@@ -331,13 +355,16 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         # ── (2) 벡터화 거리 계산 & 11대 선별 ───────────────────────────────
         #      ->  Python loop 대신 NumPy C-루틴: GIL 해제 + SIMD 가능
         veh_positions = np.asarray([v.position for v in self._traffic_vehicles],
-                                   dtype=np.float32)  # (N, 2/3)
-        dists = np.linalg.norm(veh_positions - ego_pos, axis=1)  # (N,)
+                                   dtype=np.float32)  # (total_num_agent,2/3)
+        dists = np.linalg.norm(veh_positions - ego_pos,
+                               axis=1)  # (total_num_agent,)
         total_num_agent = len(dists)
 
-        valid_predicted_agent_num = min(predicted_agent_num, total_num_agent)
-        valid_predicted_closest_idx = np.argsort(dists)[:valid_predicted_agent_num]
-        lqr_target_set = {self._traffic_vehicles[i] for i in valid_predicted_closest_idx}
+        valid_predicted_num = min(predicted_agent_num, total_num_agent)
+        valid_predicted_closest_idx = np.argsort(dists)[:valid_predicted_num]
+        lqr_target_set = {
+            self._traffic_vehicles[i] for i in valid_predicted_closest_idx
+        }
 
         # ── (3) 교체가 필요한 차량만 따로 모아 한 번에 처리 ────────────────
         swap_cache = []  # (veh, desired_cls)

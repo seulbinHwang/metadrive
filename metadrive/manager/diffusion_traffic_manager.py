@@ -143,9 +143,11 @@ def apply_center_to_rear_axle_conversion(
         external_npc_actions: (P, T, 4) array of predicted trajectories
         traffic_vehicles: List of all traffic vehicles
         valid_predicted_closest_idx: List of indices for closest vehicles
+            # Length R
 
     Returns:
         external_npc_actions: Modified array with rear axle coordinates
+            shape: (R, T, 4)
     """
     if valid_predicted_closest_idx is not None and len(
             valid_predicted_closest_idx) > 0:
@@ -156,12 +158,11 @@ def apply_center_to_rear_axle_conversion(
 
         # external_npc_actions의 차량 개수만큼만 변환 (P대)
         valid_predicted_num = len(valid_predicted_vehs)
-        actions_to_convert = external_npc_actions[:valid_predicted_num]
+        external_npc_actions = external_npc_actions[:valid_predicted_num]
 
         # 변환된 결과를 external_npc_actions에 다시 할당
-        external_npc_actions[:
-                             valid_predicted_num] = convert_multiple_npc_center_to_rear_axle(
-                                 actions_to_convert, valid_predicted_vehs)
+        external_npc_actions = convert_multiple_npc_center_to_rear_axle(
+                                 external_npc_actions, valid_predicted_vehs)
 
     return external_npc_actions
 
@@ -330,10 +331,10 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         ego_pos = np.array(ego.position[:2], dtype=np.float32)
         ego_yaw = ego.heading_theta
         if valid_predicted_closest_idx is not None:
-            sorted_traffic_vehicles = [
+            sorted_LQR_vehicles = [
                 self._traffic_vehicles[i] for i in valid_predicted_closest_idx
             ]
-            for vehicle_idx, veh in enumerate(sorted_traffic_vehicles):
+            for vehicle_idx, veh in enumerate(sorted_LQR_vehicles):
                 pol = self.engine.get_policy(veh.id)
                 assert isinstance(pol, (LQRPolicy))
                 npc_traj_wrt_ego = external_npc_actions[vehicle_idx]

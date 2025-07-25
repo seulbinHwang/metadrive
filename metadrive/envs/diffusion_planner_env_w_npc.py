@@ -128,7 +128,7 @@ class DiffusionPlannerEnv(MetaDriveEnv):
         """
         # mask[i] == True if npc_actions[i] is NOT all zeros
         valid_mask = ~np.all(npc_actions == 0, axis=(1, 2))
-        filtered_actions = npc_actions[valid_mask]
+        filtered_actions = npc_actions[valid_mask] # (N, V_future, 4)
         self.engine.external_npc_actions = filtered_actions
 
         if guided_npc_predictions is None:

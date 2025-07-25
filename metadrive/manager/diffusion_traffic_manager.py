@@ -172,11 +172,17 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         super().__init__()
         # 시각화된 궤적 NodePath를 보관할 리스트
         self._traffic_traj_nodes: list = []
+        dt = (self.engine.global_config["physics_world_step_size"] *
+              self.engine.global_config["decision_repeat"])
+        self._initial_idm_steps = int(
+            2. / dt)  # 20초 동안 IDMPolicy 적용
+        self.current_step = 0
 
     def reset(self):
         # 기존 reset 처리
         super().reset()
         # 궤적 그림 초기화
+        self.current_step = 0
         self._clear_traffic_trajs()
         # safety cap: 항상 최대 10대
         # TODO: remove
@@ -276,15 +282,20 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         3) 각 vehicle.before_step(action) 호출
         """
         self._clear_traffic_trajs()
-        self._draw_all_traffic_trajs()
+        if self.current_step >= self._initial_idm_steps:
+            self._draw_all_traffic_trajs()
         external_npc_actions = self.engine.external_npc_actions[:,
                                                                 1:]  # (P, 80, 4)
 
+
         predicted_agent_num = external_npc_actions.shape[0]
+        if self.current_step < self._initial_idm_steps:
+            # 초기 20초 동안은 IDMPolicy 적용
+            predicted_agent_num = 0
 
         # ── 먼저 가장 가까운 P대 차량 찾기 ──
         valid_predicted_closest_idx = self._update_control_policies(
-            predicted_agent_num)
+            0)
 
         # 변환 전 데이터 백업 (시각화용)
         external_npc_actions_before = external_npc_actions.copy()
@@ -359,6 +370,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         #         index = np.where(valid_predicted_closest_idx == vehicle_idx)[0][0]
         #         future_trajectory = external_npc_actions[index] # (80, 4)
         #         veh.before_step(pol.act(veh.id, future_trajectory))
+        self.current_step += 1
         return {}
 
     # ────────────────────────────────────────────────────────────────────────

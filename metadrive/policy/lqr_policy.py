@@ -39,6 +39,7 @@ class LQRPolicy(BasePolicy):
         self._traj_np_list.clear()
 
     def act(self, agent_id, future_trajectory=None):
+        # future_trajectory: (80, 4) # 현재 위치 안들어가는거 확실 (현재 구현상)
         if future_trajectory is None:
             external_actions = self.engine.external_actions
             future_trajectory = external_actions[agent_id]

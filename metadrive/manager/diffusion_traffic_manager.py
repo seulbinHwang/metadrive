@@ -178,6 +178,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         self._initial_idm_steps = int(
             2. / dt)  # 20초 동안 IDMPolicy 적용
         self.current_step = 0
+        self.save_for_debug = False
 
     def reset(self):
         # 기존 reset 처리
@@ -286,7 +287,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         if self.current_step >= self._initial_idm_steps:
             self._draw_all_traffic_trajs()
         external_npc_actions = self.engine.external_npc_actions[:,
-                                                                1:]  # (P, 80, 4)
+                                                                1:]  # 확실 (P, 80, 4)
 
 
         predicted_agent_num = external_npc_actions.shape[0]
@@ -296,7 +297,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
 
         # ── 먼저 가장 가까운 P대 차량 찾기 ──
         valid_predicted_closest_idx = self._update_control_policies(
-            0)
+            predicted_agent_num)
 
         # 변환 전 데이터 백업 (시각화용)
         external_npc_actions_before = external_npc_actions.copy()
@@ -308,23 +309,17 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
             valid_predicted_closest_idx)
 
         # 변환 전후 비교 시각화 (선택적으로 활성화)
-        if False:
+        if self.save_for_debug and self.current_step >= self._initial_idm_steps:
             if valid_predicted_closest_idx is not None and len(
-                    valid_predicted_closest_idx) > 0:
-                try:
-                    # 시각화 저장만 실행
-                    plot_path = visualize_center_to_rear_axle_conversion(
-                        external_npc_actions_before,
-                        external_npc_actions,
-                        self._traffic_vehicles,
-                        valid_predicted_closest_idx,
-                        save_dir=getattr(self.engine, 'conversion_plot_dir',
-                                         './conversion_plots'))
-                except Exception as e:
-                    print(
-                        f"Warning: Failed to save conversion visualization: {e}"
-                    )
-                    raise RuntimeError("test)")
+                valid_predicted_closest_idx) > 0:
+                # 시각화 저장만 실행
+                plot_path = visualize_center_to_rear_axle_conversion(
+                    external_npc_actions_before,
+                    external_npc_actions,
+                    self._traffic_vehicles,
+                    valid_predicted_closest_idx,
+                    save_dir=getattr(self.engine, 'conversion_plot_dir',
+                                     './conversion_plots'))
 
         # (2) Ego 정보 한 번만 꺼내두기
         ego = next(iter(self.engine.agent_manager.active_agents.values()))
@@ -426,9 +421,6 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from datetime import datetime
-import os
-
 
 def visualize_center_to_rear_axle_conversion(
         external_npc_actions_before: np.ndarray,
@@ -452,8 +444,7 @@ def visualize_center_to_rear_axle_conversion(
     # 현재 레포지토리의 가장 상위 경로에 test.png로 저장
     filepath = "test.png"
 
-    num_vehicles = min(len(valid_predicted_closest_idx),
-                       external_npc_actions_before.shape[0])
+    num_vehicles = external_npc_actions_after.shape[0]
 
     # 서브플롯 생성 (차량별로 비교)
     fig, axes = plt.subplots(2, (num_vehicles + 1) // 2, figsize=(15, 10))

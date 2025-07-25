@@ -197,7 +197,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
             np_node.removeNode()
         self._traffic_traj_nodes.clear()
 
-    def _draw_all_traffic_trajs(self):
+    def _draw_all_traffic_trajs(self, external_npc_actions):
         """
         engine.external_npc_actions((N, T, 4): x,y,cos(yaw),sin(yaw))를
         ego→global 변환 후, 각 차량 위치 궤적을 월드에 그린다.
@@ -209,8 +209,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         ego_yaw = ego.heading_theta
 
         # 외부 NPC들이 예측해온 궤적
-        external_npc = engine.external_npc_actions[:,
-                                                   1:]  # [:, :1, :]  # (N, T, 4)
+        external_npc = external_npc_actions  # [:, :1, :]  # (N, T, 4)
         # 각 traffic 차량의 글로벌 궤적 좌표 구하기
         # 3) 차량별로 한 궤적씩 변환 → world coords (T,2)
         for idx, npc_traj in enumerate(external_npc):  # npc_traj.shape == (T,4)
@@ -284,8 +283,6 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         3) 각 vehicle.before_step(action) 호출
         """
         self._clear_traffic_trajs()
-        if self.current_step >= self._initial_idm_steps:
-            self._draw_all_traffic_trajs()
         external_npc_actions = self.engine.external_npc_actions[:,
                                                                 1:]  # 확실 (P, 80, 4)
 
@@ -307,6 +304,8 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         external_npc_actions = apply_center_to_rear_axle_conversion(
             external_npc_actions, self._traffic_vehicles,
             valid_predicted_closest_idx)
+        if self.current_step >= self._initial_idm_steps:
+            self._draw_all_traffic_trajs(external_npc_actions)
 
         # 변환 전후 비교 시각화 (선택적으로 활성화)
         if self.save_for_debug and self.current_step >= self._initial_idm_steps:

@@ -304,8 +304,8 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         external_npc_actions = apply_center_to_rear_axle_conversion(
             external_npc_actions, self._traffic_vehicles,
             valid_predicted_closest_idx)
-        if self.current_step >= self._initial_idm_steps:
-            self._draw_all_traffic_trajs(external_npc_actions)
+        # if self.current_step >= self._initial_idm_steps:
+        #     self._draw_all_traffic_trajs(external_npc_actions)
 
         # 변환 전후 비교 시각화 (선택적으로 활성화)
         if self.save_for_debug and self.current_step >= self._initial_idm_steps:

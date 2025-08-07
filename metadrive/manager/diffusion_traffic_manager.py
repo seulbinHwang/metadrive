@@ -56,7 +56,7 @@ def global_to_local(coords_global: np.ndarray, yaw_global: np.ndarray,
     coords_global: (T,2), yaw_global: (T,)
     veh_pos: (2,), veh_yaw: 스칼라
     returns:
-      future_traj: (T,4) array of [x_local, y_local, cos_local_yaw, sin_local_yaw]
+      future_traj_wrt_npc_rear: (T,4) array of [x_local, y_local, cos_local_yaw, sin_local_yaw]
     """
     R_g2v = rotation_matrix(-veh_yaw)  # global→veh 회전
     delta = coords_global - veh_pos  # (T,2)
@@ -68,14 +68,14 @@ def global_to_local(coords_global: np.ndarray, yaw_global: np.ndarray,
     return np.concatenate([coords_local, cos_l, sin_l], axis=1)
 
 
-def transform_trajectory(npc_traj_wrt_ego: np.ndarray, ego_pos: np.ndarray,
-                         ego_yaw: float, veh_pos: np.ndarray,
+def transform_trajectory(npc_traj_wrt_ego_rear: np.ndarray, ego_rear_axle_xy: np.ndarray,
+                         ego_yaw: float, veh_rear_axle_xy: np.ndarray,
                          veh_yaw: float) -> np.ndarray:
     """
-    ego계 기준 npc_traj_wrt_ego → 각 vehicle 로컬계 기준 (T,4) trajectory.
+    ego계 기준 npc_traj_wrt_ego_rear → 각 vehicle 로컬계 기준 (T,4) trajectory.
     """
-    coords_g, yaw_g = ego_to_global(npc_traj_wrt_ego, ego_pos, ego_yaw)
-    return global_to_local(coords_g, yaw_g, veh_pos, veh_yaw)
+    coords_g, yaw_g = ego_to_global(npc_traj_wrt_ego_rear, ego_rear_axle_xy, ego_yaw)
+    return global_to_local(coords_g, yaw_g, veh_rear_axle_xy, veh_yaw)
 
 
 def convert_center_to_rear_axle(traj_center: np.ndarray, vehicle) -> np.ndarray:
@@ -197,30 +197,29 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
             np_node.removeNode()
         self._traffic_traj_nodes.clear()
 
-    def _draw_all_traffic_trajs(self, external_npc_actions):
+    def _draw_all_traffic_trajs(self, future_npcs_traj_wrt_ego_rear):
         """
-        engine.external_npc_actions((N, T, 4): x,y,cos(yaw),sin(yaw))를
+        engine.future_npcs_traj_wrt_ego_rear((N, T, 4): x,y,cos(yaw),sin(yaw))를
         ego→global 변환 후, 각 차량 위치 궤적을 월드에 그린다.
         """
         engine = self.engine
         # active ego 위치/방향
         ego = next(iter(engine.agent_manager.active_agents.values()))
-        ego_pos = np.array([ego.rear_axle_xy[0], ego.rear_axle_xy[1]])
+        ego_rear_axle_xy = np.array([ego.rear_axle_xy[0], ego.rear_axle_xy[1]])
         ego_yaw = ego.heading_theta
 
         # 외부 NPC들이 예측해온 궤적
-        external_npc = external_npc_actions  # [:, :1, :]  # (N, T, 4)
         # 각 traffic 차량의 글로벌 궤적 좌표 구하기
         # 3) 차량별로 한 궤적씩 변환 → world coords (T,2)
-        for idx, npc_traj in enumerate(external_npc):  # npc_traj.shape == (T,4)
-            # 만약 npc_traj 의 값이 전부 0이라면, skip
-            if np.all(npc_traj == 0.):
+        for idx, future_a_npc_traj_wrt_ego_rear in enumerate(future_npcs_traj_wrt_ego_rear):  # npc_traj.shape == (T,4)
+            # 만약 future_a_npc_traj_wrt_ego_rear 의 값이 전부 0이라면, skip
+            if np.all(future_a_npc_traj_wrt_ego_rear == 0.):
                 continue
-            coords_g, yaws_g = ego_to_global(npc_traj, ego_pos, ego_yaw)
+            traj_xy_wrt_global, yaws_g = ego_to_global(future_a_npc_traj_wrt_ego_rear, ego_rear_axle_xy, ego_yaw)
             # 4) 각 점을 월드에 짧은 선으로 찍기
-            for idx in range(len(coords_g) - 1):
-                x1, y1 = coords_g[idx]
-                x2, y2 = coords_g[idx + 1]
+            for idx in range(len(traj_xy_wrt_global) - 1):
+                x1, y1 = traj_xy_wrt_global[idx]
+                x2, y2 = traj_xy_wrt_global[idx + 1]
                 np_node = engine._draw_line_3d(
                     LVector3(x1, y1, 1.5),
                     LVector3(x2, y2, 1.5),
@@ -229,7 +228,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
                 np_node.setMaterialOff(True)  # 재질(=Material) 완전히 제거
                 np_node.reparentTo(engine.render)
                 self._traffic_traj_nodes.append(np_node)
-            # for (x, y) in coords_g:
+            # for (x, y) in traj_xy_wrt_global:
             #     np_node = engine._draw_line_3d(
             #         LVector3(x, y, 1.5),
             #         LVector3(x, y, 3.),
@@ -237,26 +236,27 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
             #         thickness=3)
             #     np_node.reparentTo(engine.render)
             #     self._traffic_traj_nodes.append(np_node)
-        external_guided_npc_actions = engine.external_guided_npc_actions
-        if external_guided_npc_actions is None:
-            return
-        external_guided_npc_actions = external_guided_npc_actions[:, 1:]
-        for idx, a_guided_npc_actions in enumerate(external_guided_npc_actions):
-            # 만약 npc_traj 의 값이 전부 0이라면, skip
-            if np.all(a_guided_npc_actions == 0.):
-                continue
-            coords_g, yaws_g = ego_to_global(a_guided_npc_actions, ego_pos,
-                                             ego_yaw)
-            for idx in range(len(coords_g) - 1):
-                x1, y1 = coords_g[idx]
-                x2, y2 = coords_g[idx + 1]
-                np_node = engine._draw_line_3d(
-                    LVector3(x1, y1, 1.5),
-                    LVector3(x2, y2, 1.5),
-                    color=(0, 0, 0, 1),  # 검정
-                    thickness=3)
-                np_node.reparentTo(engine.render)
-                self._traffic_traj_nodes.append(np_node)
+        # TODO
+        # external_guided_npc_actions = engine.external_guided_npc_actions
+        # if external_guided_npc_actions is None:
+        #     return
+        # external_guided_npc_actions = external_guided_npc_actions[:, 1:]
+        # for idx, a_guided_npc_actions in enumerate(external_guided_npc_actions):
+        #     # 만약 future_a_npc_traj_wrt_ego_rear 의 값이 전부 0이라면, skip
+        #     if np.all(a_guided_npc_actions == 0.):
+        #         continue
+        #     coords_g, yaws_g = ego_to_global(a_guided_npc_actions, ego_rear_axle_xy,
+        #                                      ego_yaw)
+        #     for idx in range(len(coords_g) - 1):
+        #         x1, y1 = coords_g[idx]
+        #         x2, y2 = coords_g[idx + 1]
+        #         np_node = engine._draw_line_3d(
+        #             LVector3(x1, y1, 1.5),
+        #             LVector3(x2, y2, 1.5),
+        #             color=(0, 0, 0, 1),  # 검정
+        #             thickness=3)
+        #         np_node.reparentTo(engine.render)
+        #         self._traffic_traj_nodes.append(np_node)
 
             # # 4) 각 점을 월드에 짧은 선으로 찍기
             # for (x, y) in coords_g:
@@ -283,29 +283,29 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
         3) 각 vehicle.before_step(action) 호출
         """
         self._clear_traffic_trajs()
-        external_npc_actions = self.engine.external_npc_actions[:,
+        future_npcs_traj_wrt_ego_center = self.engine.external_npc_actions[:,
                                                                 1:]  # 확실 (P, 80, 4)
 
 
-        predicted_agent_num = external_npc_actions.shape[0]
+        predicted_agent_num = future_npcs_traj_wrt_ego_center.shape[0]
         if self.current_step < self._initial_idm_steps:
             # 초기 20초 동안은 IDMPolicy 적용
             predicted_agent_num = 0
 
         # ── 먼저 가장 가까운 P대 차량 찾기 ──
         valid_predicted_closest_idx = self._update_control_policies(
-            predicted_agent_num)
+            0)
 
         # 변환 전 데이터 백업 (시각화용)
-        external_npc_actions_before = external_npc_actions.copy()
+        future_npcs_traj_wrt_ego_center_copy = future_npcs_traj_wrt_ego_center.copy()
 
         # NPC 차량 중심 좌표를 뒷축 좌표로 변환
         # external_npc_actions의 순서와 가장 가까운 차량들의 순서를 맞춰서 변환
-        external_npc_actions = apply_center_to_rear_axle_conversion(
-            external_npc_actions, self._traffic_vehicles,
+        future_npcs_traj_wrt_ego_rear = apply_center_to_rear_axle_conversion(
+            future_npcs_traj_wrt_ego_center, self._traffic_vehicles,
             valid_predicted_closest_idx)
-        # if self.current_step >= self._initial_idm_steps:
-        #     self._draw_all_traffic_trajs(external_npc_actions)
+        if self.current_step >= self._initial_idm_steps:
+            self._draw_all_traffic_trajs(future_npcs_traj_wrt_ego_rear)
 
         # 변환 전후 비교 시각화 (선택적으로 활성화)
         if self.save_for_debug and self.current_step >= self._initial_idm_steps:
@@ -313,8 +313,8 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
                 valid_predicted_closest_idx) > 0:
                 # 시각화 저장만 실행
                 plot_path = visualize_center_to_rear_axle_conversion(
-                    external_npc_actions_before,
-                    external_npc_actions,
+                    future_npcs_traj_wrt_ego_center_copy,
+                    future_npcs_traj_wrt_ego_rear,
                     self._traffic_vehicles,
                     valid_predicted_closest_idx,
                     save_dir=getattr(self.engine, 'conversion_plot_dir',
@@ -322,7 +322,7 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
 
         # (2) Ego 정보 한 번만 꺼내두기
         ego = next(iter(self.engine.agent_manager.active_agents.values()))
-        ego_pos = np.array(ego.position[:2], dtype=np.float32)
+        ego_rear_axle_xy = np.array(ego.rear_axle_xy, dtype=np.float32)
         ego_yaw = ego.heading_theta
         if valid_predicted_closest_idx is not None:
             sorted_LQR_vehicles = [
@@ -331,13 +331,13 @@ class DiffusionTrafficManager(HistoricalBufferTrafficManager):
             for vehicle_idx, veh in enumerate(sorted_LQR_vehicles):
                 pol = self.engine.get_policy(veh.id)
                 assert isinstance(pol, (LQRPolicy))
-                npc_traj_wrt_ego = external_npc_actions[vehicle_idx]
-                # ego → vehicle 로컬로 일괄 변환
-                future_traj = transform_trajectory(
-                    npc_traj_wrt_ego, ego_pos, ego_yaw,
-                    np.array(veh.position[:2], dtype=np.float32),
+                npc_traj_wrt_ego_rear = future_npcs_traj_wrt_ego_rear[vehicle_idx]
+                # ego 뒷축 좌표계 → vehicle 뒷축 좌표계 로 일괄 변환
+                future_traj_wrt_npc_rear = transform_trajectory(
+                    npc_traj_wrt_ego_rear, ego_rear_axle_xy, ego_yaw,
+                    np.array(veh.rear_axle_xy, dtype=np.float32),
                     veh.heading_theta)
-                veh.before_step(pol.act(veh.id, future_traj))
+                veh.before_step(pol.act(veh.id, future_traj_wrt_npc_rear))
 
         # ── 1.  block trigger 처리 (부모 로직 그대로)
         if self.mode != TrafficMode.Respawn:
@@ -422,8 +422,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 def visualize_center_to_rear_axle_conversion(
-        external_npc_actions_before: np.ndarray,
-        external_npc_actions_after: np.ndarray,
+        future_npcs_traj_wrt_ego_center_copy: np.ndarray,
+        future_npcs_traj_wrt_ego_rear: np.ndarray,
         traffic_vehicles: List,
         valid_predicted_closest_idx: List,
         save_dir: str = "./conversion_plots") -> str:
@@ -431,8 +431,8 @@ def visualize_center_to_rear_axle_conversion(
     중심 좌표 → 뒷축 좌표 변환 전후를 시각적으로 비교하여 파일로 저장
 
     Args:
-        external_npc_actions_before: (P, T, 4) 변환 전 궤적
-        external_npc_actions_after: (P, T, 4) 변환 후 궤적
+        future_npcs_traj_wrt_ego_center_copy: (P, T, 4) 변환 전 궤적
+        future_npcs_traj_wrt_ego_rear: (P, T, 4) 변환 후 궤적
         traffic_vehicles: List of traffic vehicle objects
         valid_predicted_closest_idx: List of indices for closest vehicles
         save_dir: 저장할 디렉토리 경로 (사용하지 않음)
@@ -443,7 +443,7 @@ def visualize_center_to_rear_axle_conversion(
     # 현재 레포지토리의 가장 상위 경로에 test.png로 저장
     filepath = "test.png"
 
-    num_vehicles = external_npc_actions_after.shape[0]
+    num_vehicles = future_npcs_traj_wrt_ego_rear.shape[0]
 
     # 서브플롯 생성 (차량별로 비교)
     fig, axes = plt.subplots(2, (num_vehicles + 1) // 2, figsize=(15, 10))
@@ -458,12 +458,12 @@ def visualize_center_to_rear_axle_conversion(
         ax = axes[i]
 
         # 변환 전 궤적 (파란색)
-        traj_before = external_npc_actions_before[i]  # (T, 4)
+        traj_before = future_npcs_traj_wrt_ego_center_copy[i]  # (T, 4)
         x_before = traj_before[:, 0]
         y_before = traj_before[:, 1]
 
         # 변환 후 궤적 (빨간색)
-        traj_after = external_npc_actions_after[i]  # (T, 4)
+        traj_after = future_npcs_traj_wrt_ego_rear[i]  # (T, 4)
         x_after = traj_after[:, 0]
         y_after = traj_after[:, 1]
 

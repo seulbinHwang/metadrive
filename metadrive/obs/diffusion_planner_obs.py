@@ -8,14 +8,14 @@ from typing import List, Tuple, Union
 from metadrive.component.vehicle.base_vehicle import BaseVehicle
 from metadrive.component.road_network.node_road_network import NodeRoadNetwork
 from metadrive.component.lane.abs_lane import AbstractLane
-
+from nuplan.common.actor_state.ego_state import EgoState
 # 이미 제공된 extract_local_lanes_in_square_bbox 함수
 # (여기서는 코드를 그대로 붙여넣었다고 가정)
 # from .somewhere import extract_local_lanes_in_square_bbox
 from metadrive.constants import RENDER_MODE_ONSCREEN, BKG_COLOR, RENDER_MODE_NONE
 from panda3d.core import LVector3, Vec4
 from typing import Any, List, Tuple  # ← 맨 위 import 확인
-
+from diffusion_planner.data_process.utils import convert_absolute_quantities_to_relative
 
 def _to_vec4(color_tuple):
     """(r,g,b,a) -> Vec4; 값 범위 0~1 로 보정"""
@@ -338,6 +338,11 @@ class DiffusionPlannerObservation(BaseObservation):
                                high=1e10,
                                shape=(10,),
                                dtype=np.float32),
+            "ego_agent_past":
+                gym.spaces.Box(low=-1e10,
+                               high=1e10,
+                               shape=(21, 11),  # TODO: hard coding 제거
+                               dtype=np.float32),
             "lanes":
                 gym.spaces.Box(low=-1e10,
                                high=1e10,
@@ -381,19 +386,21 @@ class DiffusionPlannerObservation(BaseObservation):
                     dtype=np.float32),
         })
         # vis_mode = config.get("vis_mode", "all").lower()
-        vis_mode = "route"
+        vis_mode = "none"
         assert vis_mode in {
-            "none", "lanes", "route", "all", "neighbors", "static"
+            "none", "lanes", "route", "all", "neighbors", "static", "ego"
         }
         self._vis_lanes = vis_mode in {"lanes", "all"}
         self._vis_route = vis_mode in {"route", "all"}
-        self._vis_neighbors = vis_mode in {"neighbors", "all"}  # ← 추가
-        self._vis_static = vis_mode in {"static", "all"}  # ← NEW
+        self._vis_neighbors = vis_mode in {"neighbors", "all"}
+        self._vis_static = vis_mode in {"static", "all"}
+        self._vis_ego_past = vis_mode in {"ego", "all"}
 
-        self._lane_np_list: list = []  # ← 여기에 그려둔 선 NodePath 보관
-        self._route_np_list: list = []  # 경로 차선 선(NodePath) 캐시  ← NEW
-        self._neighbor_np_list: List[Any] = []  # 주변 Agent NodePath
-        self._static_np_list: List[Any] = []  # 정적 오브젝트 NodePath 캐시  ← NEW
+        self._lane_np_list: list = []
+        self._route_np_list: list = []
+        self._neighbor_np_list: List[Any] = []
+        self._static_np_list: List[Any] = []
+        self._ego_past_np_list: List[Any] = []
 
     # ──────────────────────────────────────────────────────────
     #   정적 오브젝트(콘, 배리어, 워닝 트라이포드 …) 시각화
@@ -507,6 +514,68 @@ class DiffusionPlannerObservation(BaseObservation):
         np_list.append(heading_node)
 
         return np_list
+
+    def _visualize_ego_agent_past(
+        self,
+        vehicle: "BaseVehicle",
+        ego_agent_past: np.ndarray,  # (21, 11)
+    ) -> None:
+        engine: Any = vehicle.engine
+        if engine.mode == RENDER_MODE_NONE or not self._vis_ego_past:
+            return
+
+        # --- 지난 프레임 정리 ---
+        for np_node in self._ego_past_np_list:
+            np_node.removeNode()
+        self._ego_past_np_list.clear()
+
+        ego_x, ego_y = vehicle.rear_axle_xy
+        ego_yaw: float = float(vehicle.heading_theta)
+
+        # --- 각 과거 스텝 순회 ---
+        for t_idx in range(ego_agent_past.shape[0]):  # 0 (가장 오래됨) → 20 (가장 최신)
+            past_state = ego_agent_past[t_idx]
+            if np.allclose(past_state, 0.0, atol=1e-6):
+                continue
+
+            # 데이터 추출
+            x, y, c_h, s_h, vx, vy, width, length, *_ = past_state
+
+            # 좌표는 이미 현재 ego 포즈(뒷축) 기준 상대 좌표입니다.
+            # 렌더링을 위해 월드 프레임으로 변환하기만 하면 됩니다.
+
+            # 로컬 → 월드 변환
+            # x, y는 뒷축 기준이므로, 차량 중심을 계산해야 합니다.
+            # BaseVehicle의 heading_theta는 y축이 전방인 반면, 여기서는 x축이 전방입니다.
+            # _draw_box는 중심 좌표를 사용합니다.
+            rear_to_center = vehicle.LENGTH / 2 - vehicle.REAR_WHEELBASE
+            center_x = x + rear_to_center * c_h
+            center_y = y + rear_to_center * s_h
+
+            cx_w_arr, cy_w_arr = self._local_to_world_batch(
+                np.array([center_x]), np.array([center_y]), ego_x, ego_y, ego_yaw)
+            cx_w: float = float(cx_w_arr[0])
+            cy_w: float = float(cy_w_arr[0])
+
+            # 월드 yaw 계산
+            yaw_local: float = math.atan2(s_h, c_h)
+            yaw_world: float = yaw_local + ego_yaw
+
+            # 얼마나 오래된 상태인지에 따라 색상 및 투명도 조절
+            # 가장 최신(t_idx=20)이 가장 불투명, 가장 오래됨(t_idx=0)이 가장 투명.
+            alpha: float = 0.15 + 0.85 * (t_idx / (ego_agent_past.shape[0] - 1))
+            color: Tuple[float, float, float, float] = (0.0, 1.0, 0.0, alpha)  # ego는 초록색
+
+            # 박스 그리기
+            self._ego_past_np_list += self._draw_box(
+                engine,
+                cx_w=cx_w,
+                cy_w=cy_w,
+                yaw=yaw_world,
+                length=float(length),
+                width=float(width),
+                color=color,
+            )
 
     # ──────────────── ② 메인 visualize 함수 ────────────────
     @staticmethod
@@ -773,6 +842,53 @@ class DiffusionPlannerObservation(BaseObservation):
         return traffic_manager.get_neighbors_history(vehicle,
                                                      self.observation_distance)  # (32, 21, 10)
 
+    def _get_past_ego_states(self, vehicle: BaseVehicle) -> Tuple[np.ndarray, np.ndarray]:
+        # past_ego_states: (N, 7) # absolute 좌표계
+        ego_state_history: List[EgoState] = list(vehicle.ego_history)
+        history_num = len(ego_state_history)
+        # TODO: 7: x, y, theta, vx, vy, width, length
+        past_ego_states = np.zeros((history_num, 7), dtype=np.float32)
+        for history_idx, ego_state in enumerate(ego_state_history):
+            if history_idx == history_num - 1:
+                # (3, )
+                anchor_ego_state = np.array([ego_state.rear_axle.x, ego_state.rear_axle.y, ego_state.rear_axle.heading], dtype=np.float32)
+            past_ego_states[history_idx, 0] = ego_state.rear_axle.x
+            past_ego_states[history_idx, 1] = ego_state.rear_axle.y
+            past_ego_states[history_idx, 2] = ego_state.rear_axle.heading
+            past_ego_states[history_idx, 3] = ego_state.dynamic_car_state.rear_axle_velocity_2d.x
+            past_ego_states[history_idx, 4] = ego_state.dynamic_car_state.rear_axle_velocity_2d.x
+            past_ego_states[history_idx, 5] = ego_state.car_footprint.width
+            past_ego_states[history_idx, 6] = ego_state.car_footprint.length
+        return past_ego_states, anchor_ego_state
+
+    def _get_ego_agent_past(self, vehicle: BaseVehicle) -> np.ndarray:
+        """
+        returns:
+            ego_agent_past: (21, 11) shape의 np.ndarray
+                - 11: x, y, cos_h, sin_h, vx, vy, width, length,
+                  one_hot(3)
+        """
+        # past_ego_states: (N, 7) # absolute 좌표계
+        past_ego_states, anchor_ego_state = self._get_past_ego_states(vehicle)
+        ego_agent_past = convert_absolute_quantities_to_relative(past_ego_states, anchor_ego_state)
+        ego_agent_past = ego_agent_past.astype(np.float32)  # (N, 7)
+        history_num = ego_agent_past.shape[0]
+
+        past = np.zeros(
+            (vehicle.ego_history_maxlen, ego_agent_past.shape[1] + 1 + 3),
+            dtype=np.float32)
+        # past: x, y, cos(heading), sin(heading), vx, vy, width, length, agent_type
+
+        past[:history_num, :2] = ego_agent_past[:, :2]
+        past[:history_num, 2] = np.cos(ego_agent_past[:, 2])
+        past[:history_num, 3] = np.sin(ego_agent_past[:, 2])
+        past[:history_num, 4:8] = ego_agent_past[:, 3:]
+        # add one-hot encoding for agent type.
+        past[:history_num, 8] = 1.0  # ego is always car
+        # past: shape=(21, 11)
+        return past
+
+
     def observe(self,
                 vehicle: BaseVehicle = None,
                 *args,
@@ -781,6 +897,8 @@ class DiffusionPlannerObservation(BaseObservation):
         vehicle와 vehicle.engine.current_map.road_network(= NodeRoadNetwork)을 통해
         extract_local_lanes_in_square_bbox() 호출
         """
+        ego_agent_past = self._get_ego_agent_past(vehicle)
+        self._visualize_ego_agent_past(vehicle, ego_agent_past)
         (lanes, lanes_speed_limit, lanes_has_speed_limit,
          route_lanes) = self._get_lanes(vehicle)
         self._visualize_lanes(vehicle, lanes, route_lanes)
@@ -792,9 +910,10 @@ class DiffusionPlannerObservation(BaseObservation):
         observation_dict = {
             "ego_current_state":
                 np.array([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.],
-                         dtype=np.float32),
+                         dtype=np.float32), # shape: (10,)
+            "ego_agent_past": ego_agent_past.astype(np.float32), # (21, 11)
             "lanes":
-                lanes.astype(np.float32),
+                lanes.astype(np.float32), # shape: (max_lane_num, lane_len, 12)
             "lanes_speed_limit":
                 lanes_speed_limit.astype(np.float32),
             "lanes_has_speed_limit":

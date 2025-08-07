@@ -13,8 +13,7 @@ class Encoder(nn.Module):
 
         self.hidden_dim = config.hidden_dim
 
-        self.token_num = config.agent_num + config.static_objects_num + config.lane_num
-
+        self.token_num = 1 + config.agent_num + config.static_objects_num + config.lane_num
         self.neighbor_encoder = AgentFusionEncoder(
             config.time_len,
             drop_path_rate=config.encoder_drop_path_rate,
@@ -37,13 +36,14 @@ class Encoder(nn.Module):
             depth=config.encoder_depth,
             device=config.device)
 
-        # position embedding encode x, y, cos, sin, type
-        self.pos_emb = nn.Linear(7, config.hidden_dim)
+        # position embedding encode x, y, cos, sin, type (ego, neighbor, static, lane)
+        self.pos_emb = nn.Linear(8, config.hidden_dim)
 
     def forward(self, inputs):
-
         encoder_outputs = {}
-
+        # ego
+        ego_past = inputs["ego_agent_past"]  # (B, V=21, D=11) -> (B, 1, V, D)
+        ego_past = ego_past.unsqueeze(1)  # Add a dimension for P
         # agents
         neighbors = inputs['neighbor_agents_past']
 
@@ -56,16 +56,14 @@ class Encoder(nn.Module):
         lanes_has_speed_limit = inputs['lanes_has_speed_limit']
 
         B = neighbors.shape[0]
-
         encoding_neighbors, neighbors_mask, neighbor_pos = self.neighbor_encoder(
-            neighbors)
+            ego_past, neighbors)
         encoding_static, static_mask, static_pos = self.static_encoder(static)
         encoding_lanes, lanes_mask, lane_pos = self.lane_encoder(
             lanes, lanes_speed_limit, lanes_has_speed_limit)
 
         encoding_input = torch.cat(
             [encoding_neighbors, encoding_static, encoding_lanes], dim=1)
-
         encoding_pos = torch.cat([neighbor_pos, static_pos, lane_pos],
                                  dim=1).view(B * self.token_num, -1)
         encoding_mask = torch.cat([neighbors_mask, static_mask, lanes_mask],
@@ -147,23 +145,28 @@ class AgentFusionEncoder(nn.Module):
                                act_layer=nn.GELU,
                                drop=drop_path_rate)
 
-    def forward(self, x):
+    def forward(self, x_ego, x):
         '''
+        x_ego: B, P=1, V, D (x, y, cos, sin, vx, vy, w, l, type(3))
         x: B, P, V, D (x, y, cos, sin, vx, vy, w, l, type(3))
         '''
-        neighbor_type = x[:, :, -1, 8:]
-        x = x[..., :8]
+        x = torch.cat([x_ego, x], dim=1)  # (B, M=P+1, V, D)
+        neighbor_type = x[:, :, -1, 8:]  # (B, M, 3)
+        x = x[..., :8]  # (B, M, V, 8)
 
-        pos = x[:, :, -1, :7].clone()  # x, y, cos, sin
-        # neighbor: [1,0,0]
-        pos[..., -3:] = 0.0
+        pos = x[:, :, -1, :8].clone()  # x, y, cos, sin # (B, M, 8)
+        # neighbor: [0,1,0,0]
+        pos[..., -4:] = 0.0
         pos[..., -3] = 1.0
+        # ego: [1, 0, 0, 0]
+        pos[:, 0, -4:] = 0.0
+        pos[:, 0, -4] = 1.0
 
-        B, P, V, _ = x.shape
+        B, M, V, _ = x.shape
         mask_v = torch.sum(torch.ne(x[..., :8], 0), dim=-1).to(x.device) == 0
         mask_p = torch.sum(~mask_v, dim=-1) == 0
         x = torch.cat([x, (~mask_v).float().unsqueeze(-1)], dim=-1)
-        x = x.view(B * P, V, -1)
+        x = x.view(B * M, V, -1)
 
         valid_indices = ~mask_p.view(-1)
         x = x[valid_indices]
@@ -175,22 +178,22 @@ class AgentFusionEncoder(nn.Module):
         for block in self.blocks:
             x = block(x)
 
-        # pooling
+            # pooling
         x = torch.mean(x, dim=1)
 
-        neighbor_type = neighbor_type.view(B * P, -1)
-        neighbor_type = neighbor_type[valid_indices]
+        neighbor_type = neighbor_type.view(B * M, -1)  # (B * M, 3)
+        neighbor_type = neighbor_type[valid_indices]  # (valid_indices.sum(), 3)
         type_embedding = self.type_emb(
             neighbor_type)  # Type embedding for valid data
         x = x + type_embedding
 
         x = self.emb_project(self.norm(x))
 
-        x_result = torch.zeros((B * P, x.shape[-1]), device=x.device)
+        x_result = torch.zeros((B * M, x.shape[-1]), device=x.device)
         x_result[valid_indices] = x  # Fill in valid parts
 
-        return x_result.view(B, P, -1), mask_p.reshape(B,
-                                                       -1), pos.view(B, P, -1)
+        return x_result.view(B, M, -1), mask_p.reshape(B,
+                                                       -1), pos.view(B, M, -1)
 
 
 class StaticFusionEncoder(nn.Module):
@@ -212,9 +215,9 @@ class StaticFusionEncoder(nn.Module):
         '''
         B, P, _ = x.shape
 
-        pos = x[:, :, :7].clone()  # x, y, cos, sin
-        # static: [0,1,0]
-        pos[..., -3:] = 0.0
+        pos = x[:, :, :8].clone()  # x, y, cos, sin
+        # static: [0, 0,1,0]
+        pos[..., -4:] = 0.0
         pos[..., -2] = 1.0
 
         x_result = torch.zeros((B * P, self._hidden_dim), device=x.device)
@@ -284,12 +287,12 @@ class LaneFusionEncoder(nn.Module):
         traffic = x[:, :, 0, 8:]
         x = x[..., :8]
 
-        pos = x[:, :, int(self._lane_len / 2), :7].clone()  # x, y, x'-x, y'-y
+        pos = x[:, :, int(self._lane_len / 2), :8].clone()  # x, y, x'-x, y'-y
         heading = torch.atan2(pos[..., 3], pos[..., 2])
         pos[..., 2] = torch.cos(heading)
         pos[..., 3] = torch.sin(heading)
-        # lane: [0,0,1]
-        pos[..., -3:] = 0.0
+        # lane: [0, 0,0,1]
+        pos[..., -4:] = 0.0
         pos[..., -1] = 1.0
 
         B, P, V, _ = x.shape
@@ -299,7 +302,6 @@ class LaneFusionEncoder(nn.Module):
         mask_p = torch.sum(~mask_v, dim=-1) == 0
         x = x.view(B * P, V, -1)
 
-        # valid_indices: (B * P) -> 유효한 차선의 점들
         valid_indices = ~mask_p.view(-1)
         x = x[valid_indices]
 
@@ -368,7 +370,6 @@ class FusionEncoder(nn.Module):
         self.norm = nn.LayerNorm(hidden_dim)
 
     def forward(self, x, mask):
-
         mask[:, 0] = False
 
         for b in self.blocks:

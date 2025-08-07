@@ -424,6 +424,8 @@ class BaseObject(BaseRunnable, MetaDriveType, ABC):
         heading = Vector((math.cos(real_heading), math.sin(real_heading)))
         return heading
 
+
+
     @property
     def roll(self):
         """

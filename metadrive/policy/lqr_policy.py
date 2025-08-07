@@ -38,37 +38,38 @@ class LQRPolicy(BasePolicy):
             np_node.removeNode()
         self._traj_np_list.clear()
 
-    def act(self, agent_id, future_trajectory=None):
-        # future_trajectory: (80, 4) # 현재 위치 안들어가는거 확실 (현재 구현상)
-        if future_trajectory is None:
+    def act(self, agent_id, future_traj_wrt_rear=None):
+        # future_traj_wrt_rear: (80, 4) # 현재 위치 안들어가는거 확실 (현재 구현상)
+        if future_traj_wrt_rear is None:
             external_actions = self.engine.external_actions
-            future_trajectory = external_actions[agent_id]
+            future_traj_wrt_rear = external_actions[agent_id]
             # return 0., 0.
         # else:
         # return 0., 0.
-        ego_history = list(self.control_object.ego_history)
-        # future_trajectory: np.ndarray (80, 4) # 80: number of future steps, 4: x, y, cos(yaw), sin(yaw)
-        # Convert future_trajectory to control inputs(acceleration and steering rate)
+        # Deque[EgoState]
+        self_history = list(self.control_object.ego_history)
+        # future_traj_wrt_rear: np.ndarray (80, 4) # 80: number of future steps, 4: x, y, cos(yaw), sin(yaw)
+        # Convert future_traj_wrt_rear to control inputs(acceleration and steering rate)
         # List[EgoState]
-        trajectory = InterpolatedTrajectory(
-            trajectory=outputs_to_trajectory(future_trajectory, ego_history))
+        future_trajectory = InterpolatedTrajectory(
+            trajectory=outputs_to_trajectory(future_traj_wrt_rear, self_history))
         # ② 궤적을 화면에 그리기
         # self._draw_history()
-        # self._draw_trajectory(trajectory)
+        # self._draw_trajectory_rear(future_trajectory)
         # Compute the dynamic state to propagate the model
-        ego_state = ego_history[-1]
+        self_state = self_history[-1]
         current_iteration = SimulationIteration(
-            time_point=ego_state.time_point,
+            time_point=self_state.time_point,
             index=self.control_object.engine.episode_step,
         )
         time_gap = TimePoint(int(self.dt * 1e6))
         next_iteration = SimulationIteration(
-            time_point=ego_state.time_point + time_gap,
+            time_point=self_state.time_point + time_gap,
             index=self.control_object.engine.episode_step + 1,
         )
         action = self._tracker.track_trajectory(current_iteration,
-                                                next_iteration, ego_state,
-                                                trajectory)
+                                                next_iteration, self_state,
+                                                future_trajectory)
         np.set_printoptions(suppress=True)  # 과학적 표기 억제
         # print("action", np.round(action, 2))
         self.action_info["action"] = action
@@ -85,9 +86,9 @@ class LQRPolicy(BasePolicy):
         self._hist_np_list.clear()
 
         # ego_history는 오래된 → 최신 순으로 저장됨
-        for ego_state in self.control_object.ego_history:
+        for self_state in self.control_object.ego_history:
             # rear‑axle 기준 좌표를 사용
-            x, y = ego_state.rear_axle.x, ego_state.rear_axle.y
+            x, y = self_state.rear_axle.x, self_state.rear_axle.y
             z = 1.4  # 살짝 위로 띄워서 노면과 구분
             np_dot = engine._draw_line_3d(
                 LVector3(x, y, z),
@@ -99,7 +100,7 @@ class LQRPolicy(BasePolicy):
             np_dot.reparentTo(engine.render)
             self._hist_np_list.append(np_dot)
 
-    def _draw_trajectory(self, traj: InterpolatedTrajectory) -> None:
+    def _draw_trajectory_rear(self, traj: InterpolatedTrajectory) -> None:
         """렌더링 창에 빨간 점(짧은 세로선)으로 궤적을 표시한다."""
 
         engine = self.control_object.engine
@@ -118,7 +119,7 @@ class LQRPolicy(BasePolicy):
             x, y, z = state.rear_axle.x, state.rear_axle.y, 1.5
             np_dot = engine._draw_line_3d(
                 LVector3(x, y, z),
-                LVector3(x, y, z + 5.52),  # 매우 짧은 선 = 점처럼 보임
+                LVector3(x, y, z + 1.52),  # 매우 짧은 선 = 점처럼 보임
                 color=(0, 0, 1, 1),  # 빨간색
                 thickness=5  # 점 크기 조절
             )
